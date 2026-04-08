@@ -1,0 +1,155 @@
+[
+  {
+    "company_summary": "Single-location dental practice with growing AR over 90 days and manual insurance follow-up.",
+    "industry": "Dental",
+    "main_pains": [
+      "AR aging buckets deteriorating quarter over quarter",
+      "Insurance denials tracked in spreadsheets with no owner",
+      "Statements sent inconsistently after EOB delays"
+    ],
+    "available_data": [
+      "Dentrix AR export",
+      "Excel denial log",
+      "Outlook billing inbox"
+    ],
+    "recommended_agents": ["collections"],
+    "priority_order": ["collections", "operations", "sales"],
+    "notes": "Collections risk is the clearest near-term cash impact; operations automation is secondary."
+  },
+  {
+    "company_summary": "Medical aesthetics clinic focused on consult-to-treatment conversion and package utilization.",
+    "industry": "Medical aesthetics",
+    "main_pains": [
+      "Pipeline value by provider is opaque",
+      "Sold packages under-utilized; no automated nudges",
+      "High no-show rate on high-value appointments"
+    ],
+    "available_data": [
+      "Jane App scheduling exports",
+      "Stripe deposit history",
+      "Google Sheets pipeline"
+    ],
+    "recommended_agents": ["sales", "operations"],
+    "priority_order": ["sales", "operations", "collections"],
+    "notes": "Revenue leakage is primarily funnel and utilization, not overdue balances."
+  },
+  {
+    "company_summary": "HVAC and plumbing field services company with dispatch bottlenecks and delayed invoicing.",
+    "industry": "Field services",
+    "main_pains": [
+      "Double-booking and underutilized tech time",
+      "Invoices sometimes sent weeks after job close",
+      "Parts delays not proactively communicated to customers"
+    ],
+    "available_data": [
+      "ServiceTitan job and schedule data",
+      "QuickBooks Online invoices",
+      "SMS alert logs to technicians"
+    ],
+    "recommended_agents": ["operations", "collections"],
+    "priority_order": ["operations", "collections", "sales"],
+    "notes": "Scheduling and job completion discipline drive cash timing; collections supports late invoice follow-up."
+  },
+  {
+    "company_summary": "Dermatology clinic with long wait to first treatment and ad hoc collections when payment plans fail.",
+    "industry": "Dermatology / aesthetics",
+    "main_pains": [
+      "Capacity mismatch between diagnosis and first treatment slot",
+      "Patient education materials outdated affecting conversion",
+      "Failed payment plans handled reactively"
+    ],
+    "available_data": [
+      "Clinic cloud EHR waitlist reports",
+      "WhatsApp Business conversation exports",
+      "Basic AR aging from billing"
+    ],
+    "recommended_agents": ["sales", "operations", "collections"],
+    "priority_order": ["sales", "operations", "collections"],
+    "notes": "All three domains show material pain; sequencing should reflect capacity and cash risk together."
+  },
+  {
+    "company_summary": "Pediatric dental practice with Medicaid mix, last-minute cancellations, and insurance EOB delays.",
+    "industry": "Dental",
+    "main_pains": [
+      "Hard-to-refill short-notice cancellations",
+      "Treatment coordinator follow-up scripts not standardized",
+      "Outstanding balances after slow EOB processing"
+    ],
+    "available_data": [
+      "Open Dental schedule and AR",
+      "Twilio SMS logs",
+      "Mail merge statement history"
+    ],
+    "recommended_agents": ["sales", "collections"],
+    "priority_order": ["sales", "collections", "operations"],
+    "notes": "Fill rate and AR are both acute; broad ops automation is lower evidence in the audit."
+  },
+  {
+    "company_summary": "Commercial cleaning company scaling crews; quotes are slow and some clients on informal Net-60.",
+    "industry": "Commercial cleaning",
+    "main_pains": [
+      "Quote turnaround loses deals to faster competitors",
+      "Crew check-in/out on paper",
+      "Informal credit terms without underwriting"
+    ],
+    "available_data": [
+      "Google Workspace email threads",
+      "PDF quotes archive",
+      "Bank CSV payment history"
+    ],
+    "recommended_agents": ["sales", "operations"],
+    "priority_order": ["sales", "operations", "collections"],
+    "notes": "Win rate and operational scale are primary; collections process is immature but not the headline pain."
+  },
+  {
+    "company_summary": "Oral surgery center with referral communication gaps and pre-auth paperwork backlog.",
+    "industry": "Dental / oral surgery",
+    "main_pains": [
+      "Referring dentists not consistently updated on case status",
+      "Pre-authorization paperwork backlog delaying cases",
+      "High-value cases sometimes stall in scheduling"
+    ],
+    "available_data": [
+      "Referral log in practice management system",
+      "Fax and email pre-auth correspondence",
+      "Surgery schedule"
+    ],
+    "recommended_agents": ["operations", "sales"],
+    "priority_order": ["operations", "sales", "collections"],
+    "notes": "Coordination and case progression dominate; collections mentioned only for isolated balance edge cases."
+  },
+  {
+    "company_summary": "Small B2B parts distributor with steady revenue but chronic DSO extension on key accounts.",
+    "industry": "Wholesale distribution",
+    "main_pains": [
+      "DSO creeping up on top 20 accounts",
+      "No structured escalation path before legal",
+      "Credit limits reviewed annually at best"
+    ],
+    "available_data": [
+      "ERP AR aging by customer",
+      "Historical payment behavior exports",
+      "Account manager notes in CRM"
+    ],
+    "recommended_agents": ["collections"],
+    "priority_order": ["collections", "sales", "operations"],
+    "notes": "Narrow, well-defined receivables problem; other domains lack supporting detail in the audit."
+  },
+  {
+    "company_summary": "Regional fitness studio chain piloting corporate wellness packages with inconsistent enrollment tracking.",
+    "industry": "Fitness / wellness",
+    "main_pains": [
+      "Corporate deal pipeline not visible to franchise owners",
+      "Enrollment vs. contracted seats poorly reconciled",
+      "Membership billing disputes handled manually per location"
+    ],
+    "available_data": [
+      "Franchise reporting spreadsheets",
+      "Billing system contract exports",
+      "Zendesk tickets tagged billing"
+    ],
+    "recommended_agents": ["sales", "operations", "collections"],
+    "priority_order": ["sales", "operations", "collections"],
+    "notes": "B2B growth, operational alignment, and billing exceptions all appear in scope from the same audit."
+  }
+]

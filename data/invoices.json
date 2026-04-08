@@ -1,0 +1,82 @@
+[
+    {
+      "customer": "Nortech Industrial",
+      "invoice_id": "INV-1001",
+      "amount": 4200,
+      "days_overdue": 12,
+      "last_contact_days_ago": 10,
+      "notes": "Cliente respondió que pagaría esta semana."
+    },
+    {
+      "customer": "Rivermark Logistics",
+      "invoice_id": "INV-1002",
+      "amount": 9800,
+      "days_overdue": 37,
+      "last_contact_days_ago": 22,
+      "notes": "Sin respuesta a dos recordatorios."
+    },
+    {
+      "customer": "Atlas Components",
+      "invoice_id": "INV-1003",
+      "amount": 1650,
+      "days_overdue": 5,
+      "last_contact_days_ago": 3,
+      "notes": "Cliente habitual, bajo riesgo."
+    },
+    {
+      "customer": "BluePeak Distribution",
+      "invoice_id": "INV-1004",
+      "amount": 12750,
+      "days_overdue": 49,
+      "last_contact_days_ago": 28,
+      "notes": "Prometieron pago parcial, no llegó."
+    },
+    {
+      "customer": "Summit Health Supplies",
+      "invoice_id": "INV-1005",
+      "amount": 3100,
+      "days_overdue": 18,
+      "last_contact_days_ago": 14,
+      "notes": "Solicitaron copia de factura y se reenvió."
+    },
+    {
+      "customer": "Orchid Retail Group",
+      "invoice_id": "INV-1006",
+      "amount": 22100,
+      "days_overdue": 61,
+      "last_contact_days_ago": 35,
+      "notes": "Cuenta estratégica, pero sin respuesta reciente."
+    },
+    {
+      "customer": "Granite Field Services",
+      "invoice_id": "INV-1007",
+      "amount": 5400,
+      "days_overdue": 26,
+      "last_contact_days_ago": 19,
+      "notes": "El contacto principal está de vacaciones según auto-reply."
+    },
+    {
+      "customer": "UrbanGrid Energy",
+      "invoice_id": "INV-1008",
+      "amount": 8900,
+      "days_overdue": 33,
+      "last_contact_days_ago": 16,
+      "notes": "Solicitaron extensión de pago de 10 días."
+    },
+    {
+      "customer": "CedarStone Manufacturing",
+      "invoice_id": "INV-1009",
+      "amount": 14700,
+      "days_overdue": 72,
+      "last_contact_days_ago": 41,
+      "notes": "No hay respuesta desde hace más de un mes."
+    },
+    {
+      "customer": "Luma Office Interiors",
+      "invoice_id": "INV-1010",
+      "amount": 2400,
+      "days_overdue": 9,
+      "last_contact_days_ago": 7,
+      "notes": "Relación estable, usualmente pagan con leve atraso."
+    }
+  ]

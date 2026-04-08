@@ -1,0 +1,92 @@
+[
+  {
+    "provider_name": "Dr. Elena Varga",
+    "patient_name": "Marta Iglesias",
+    "appointment_status": "completed",
+    "no_show_count": 0,
+    "idle_hours": 2.25,
+    "overbooked_minutes": 0,
+    "notes": "Three 45-minute gaps between hygiene handoffs; front desk did not offer same-day add-ons."
+  },
+  {
+    "provider_name": "Hygienist — Ana Ruiz",
+    "patient_name": "Carlos Méndez",
+    "appointment_status": "no_show",
+    "no_show_count": 2,
+    "idle_hours": 0.5,
+    "overbooked_minutes": 0,
+    "notes": "Second no-show in six weeks; slot left empty with no walk-in fill."
+  },
+  {
+    "provider_name": "Dr. James Okonkwo",
+    "patient_name": "Sofia Lindström",
+    "appointment_status": "checked_in",
+    "no_show_count": 0,
+    "idle_hours": 0,
+    "overbooked_minutes": 35,
+    "notes": "Consultation ran long; next patient waiting 35m; laser room double-booked with injectables."
+  },
+  {
+    "provider_name": "Aesthetic RN — Priya Shah",
+    "patient_name": "Walk-in queue",
+    "appointment_status": "blocked",
+    "no_show_count": 0,
+    "idle_hours": 1.75,
+    "overbooked_minutes": 0,
+    "notes": "Calendar shows 'admin block' 10:00–11:45 with no procedure; recovery beds idle."
+  },
+  {
+    "provider_name": "Dr. Elena Varga",
+    "patient_name": "Luis Ortega",
+    "appointment_status": "late_arrival",
+    "no_show_count": 0,
+    "idle_hours": 0.4,
+    "overbooked_minutes": 0,
+    "notes": "Patient 22m late; prior slot compressed; sterilization backlog delayed next chair turn."
+  },
+  {
+    "provider_name": "Front desk — team",
+    "patient_name": "Mixed afternoon",
+    "appointment_status": "coordination",
+    "no_show_count": 0,
+    "idle_hours": 0,
+    "overbooked_minutes": 0,
+    "notes": "Billing held three charts; treatment rooms ready but patients still in waiting area 15m+."
+  },
+  {
+    "provider_name": "Dr. James Okonkwo",
+    "patient_name": "Elena Fabbri",
+    "appointment_status": "cancelled_same_day",
+    "no_show_count": 1,
+    "idle_hours": 1.0,
+    "overbooked_minutes": 0,
+    "notes": "90-minute filler block freed at 14:00; no standby list ping sent to coordinators."
+  },
+  {
+    "provider_name": "Hygienist — Ana Ruiz",
+    "patient_name": "Pedro Sánchez",
+    "appointment_status": "completed",
+    "no_show_count": 0,
+    "idle_hours": 0,
+    "overbooked_minutes": 20,
+    "notes": "Perio maintenance stacked back-to-back; instrument turnover caused 20m cascade delay."
+  },
+  {
+    "provider_name": "Aesthetic RN — Priya Shah",
+    "patient_name": "Nina Kowalski",
+    "appointment_status": "in_progress",
+    "no_show_count": 0,
+    "idle_hours": 0,
+    "overbooked_minutes": 50,
+    "notes": "Two microneedling patients overlapping prep; consent paperwork missing for second case."
+  },
+  {
+    "provider_name": "Dr. Elena Varga",
+    "patient_name": "Morning column",
+    "appointment_status": "schedule_gap",
+    "no_show_count": 0,
+    "idle_hours": 3.0,
+    "overbooked_minutes": 0,
+    "notes": "Entire 08:00–11:00 column underbooked at 62% utilization vs target 85%."
+  }
+]

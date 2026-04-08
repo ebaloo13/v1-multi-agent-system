@@ -1,0 +1,29 @@
+{
+  "name": "claude-agent-b2b-lab",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "collections": "tsx scripts/run-collections.ts",
+    "sales": "tsx scripts/run-sales.ts",
+    "collections:batch": "tsx scripts/run-collections-batch.ts",
+    "sales:batch": "tsx scripts/run-sales-batch.ts",
+    "operations": "tsx scripts/run-operations.ts",
+    "operations:batch": "tsx scripts/run-operations-batch.ts",
+    "audit": "tsx scripts/run-audit.ts",
+    "audit:batch": "tsx scripts/run-audit-batch.ts",
+    "orchestrator": "tsx scripts/run-orchestrator.ts",
+    "orchestrator:batch": "tsx scripts/run-orchestrator-batch.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx/esm --test src/collections/validateOutput.test.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.87",
+    "dotenv": "^16.4.5",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.0"
+  }
+}

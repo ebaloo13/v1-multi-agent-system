@@ -1,0 +1,122 @@
+[
+  {
+    "company_name": "BrightSmile Family Dental",
+    "industry": "Dental",
+    "services": ["General dentistry", "Hygiene", "Orthodontics referrals"],
+    "known_problems": [
+      "AR over 90 days growing",
+      "Insurance claim denials not consistently followed up",
+      "Recall reminders sent manually from spreadsheets"
+    ],
+    "systems_available": ["Dentrix", "Excel trackers for AR", "Outlook"],
+    "notes": "Three-location group; front desk uses shared inbox for billing questions."
+  },
+  {
+    "company_name": "Lumière Aesthetic Institute",
+    "industry": "Medical aesthetics",
+    "services": ["Injectables", "Laser hair removal", "Skin consultations"],
+    "known_problems": [
+      "Consultation-to-treatment conversion unclear",
+      "Packages sold but utilization not tracked",
+      "High no-show rate on filler appointments"
+    ],
+    "systems_available": ["Jane App scheduling", "Stripe for deposits", "Google Sheets pipeline"],
+    "notes": "Owner wants clearer view of pipeline value by provider."
+  },
+  {
+    "company_name": "Northline HVAC & Plumbing",
+    "industry": "Field services",
+    "services": ["Residential HVAC", "Emergency plumbing", "Maintenance contracts"],
+    "known_problems": [
+      "Technician schedules often double-booked or underutilized",
+      "Parts delays not communicated to customers proactively",
+      "Invoices sometimes sent weeks after job completion"
+    ],
+    "systems_available": ["ServiceTitan", "QuickBooks Online", "SMS alerts to techs"],
+    "notes": "Peak summer volume; dispatch is the main bottleneck."
+  },
+  {
+    "company_name": "Studio Derma Barcelona",
+    "industry": "Medical aesthetics",
+    "services": ["Dermatology", "Chemical peels", "Acne programs"],
+    "known_problems": [
+      "Long wait between diagnosis and first treatment slot",
+      "Patient education materials outdated",
+      "Collections handled ad hoc when plans fail"
+    ],
+    "systems_available": ["Clinic cloud EHR", "WhatsApp Business for reminders"],
+    "notes": "Bilingual staff; no formal CRM."
+  },
+  {
+    "company_name": "Pediatric Dentistry Co-op",
+    "industry": "Dental",
+    "services": ["Pediatric exams", "Sedation cases", "Orthodontic screening"],
+    "known_problems": [
+      "Parents cancel last minute; slots hard to refill",
+      "Treatment coordinators not aligned on follow-up scripts",
+      "Outstanding balances after insurance EOB delays"
+    ],
+    "systems_available": ["Open Dental", "Twilio SMS", "Mail merge for statements"],
+    "notes": "Single location; high Medicaid mix."
+  },
+  {
+    "company_name": "Elite Cleaning Partners",
+    "industry": "Commercial cleaning",
+    "services": ["Office contracts", "Retail after-hours", "Post-construction"],
+    "known_problems": [
+      "Quotes take days to send; competitors respond faster",
+      "Crew check-in/out on paper",
+      "Some clients pay Net-60 without formal credit check"
+    ],
+    "systems_available": ["Google Workspace", "PDF quotes", "Bank CSV exports"],
+    "notes": "Growing from 12 to 25 crews this year."
+  },
+  {
+    "company_name": "Vita Oral Surgery Center",
+    "industry": "Dental / oral surgery",
+    "services": ["Extractions", "Implants", "IV sedation"],
+    "known_problems": [
+      "Referring dentists not consistently updated on case status",
+      "Pre-auth paperwork backlog",
+      "High-value cases with payment plans need monitoring"
+    ],
+    "systems_available": ["Epic referral module (read-only)", "Practice management for billing"],
+    "notes": "Hospital-adjacent; compliance-sensitive environment."
+  },
+  {
+    "company_name": "Glow & Go Medspa",
+    "industry": "Medical aesthetics",
+    "services": ["Membership facials", "Microneedling", "Retail skincare"],
+    "known_problems": [
+      "Membership churn after first 3 months",
+      "Retail attach rate low at checkout",
+      "Staff scheduling leaves treatment rooms idle mid-week"
+    ],
+    "systems_available": ["Mindbody", "Square POS", "Klaviyo (limited use)"],
+    "notes": "Two rooms; owner runs social ads in-house."
+  },
+  {
+    "company_name": "RapidFix Appliance Repair",
+    "industry": "Home services",
+    "services": ["Warranty work", "Paid repairs", "Parts sales"],
+    "known_problems": [
+      "Call center books overlapping arrival windows",
+      "Technicians lack parts availability before dispatch",
+      "Warranty billing rejections pile up"
+    ],
+    "systems_available": ["Zendesk", "Internal dispatch board (whiteboard + Excel)"],
+    "notes": "Franchisee; corporate mandates some tools but local ops are messy."
+  },
+  {
+    "company_name": "Harbor View Dental Spa",
+    "industry": "Dental",
+    "services": ["Cosmetic dentistry", "Perio maintenance", "Whitening"],
+    "known_problems": [
+      "High-treatment plans stall after financial presentation",
+      "Hygiene reappointment rate below target",
+      "Small AR list but persistent repeat offenders"
+    ],
+    "systems_available": ["Eaglesoft", "Patient communication module", "Excel AR aging export"],
+    "notes": "Boutique positioning; concierge-style front desk."
+  }
+]

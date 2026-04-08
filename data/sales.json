@@ -1,0 +1,26 @@
+[
+  {
+    "customer": "BrightSmile Dental",
+    "last_visit_days_ago": 420,
+    "lifetime_value_eur": 12800,
+    "notes": "Historically quarterly whitening; no booking in 14 months."
+  },
+  {
+    "customer": "Aura Aesthetics Clinic",
+    "last_visit_days_ago": 18,
+    "lifetime_value_eur": 22400,
+    "notes": "No-show for follow-up peel appointment last week."
+  },
+  {
+    "customer": "Cityline Medical Spa",
+    "last_visit_days_ago": 45,
+    "lifetime_value_eur": 9600,
+    "notes": "Asked about body contouring; quote sent, no reply in 30 days."
+  },
+  {
+    "customer": "Northside Family Dentistry",
+    "last_visit_days_ago": 7,
+    "lifetime_value_eur": 5400,
+    "notes": "Routine cleaning only; eligible for periodontal screening upsell per chart."
+  }
+]
