@@ -1,12 +1,22 @@
 # Agent flow map — preaudit, audit, orchestrator, collections, sales, and operations
 
-This document describes the **current** batch-agent flows as implemented in code. **Preaudit**, **audit**, **orchestrator**, **collections**, **sales**, and **operations** share the same architecture; only data paths, prompts, schemas, and artifact field names differ.
+This document describes the **current** batch-agent flows as implemented in code. **Preaudit**, **audit**, **orchestrator**, **collections**, **sales**, and **operations** share the same overall pipeline and artifact contract; data paths, prompts, schemas, and LLM runtime wiring differ by stage.
 
 **Preaudit** is a fast digital diagnostic agent: it reads lightweight website / digital-presence scenarios and returns advisory signals across SEO, speed, UX, and tracking. It is intended for lead-generation and early diagnostic use. It does not perform browser automation, live measurement, or external checks.
 
 **Audit** is an internal diagnostic agent: it reads consolidated client scenario JSON and returns structured triage (company summary, pains, available data, recommended specialized agents, priority order, notes). Internally it follows a staged diagnostic workflow: business understanding, pain detection, data / systems availability, prioritization, and agent recommendation. It does not send messages or change external systems.
 
 **Orchestrator** is an internal routing / execution agent: it **runs the audit agent first**, then feeds the **validated audit output** (serialized JSON) into its prompt, returns which specialized agents to activate next, and then executes the selected subagents sequentially. Its final consolidated output includes the validated audit, validated routing result, executed subagent outputs, deterministic consultancy-style findings, deterministic quick wins, deterministic recommended next actions, and a final summary.
+
+---
+
+## LLM Runtime Layer
+
+This system uses a hybrid LLM architecture. Diagnostic agents (`preaudit`, `audit`) use a provider-agnostic abstraction layer via `@mariozechner/pi-ai`, while execution agents (`orchestrator`, `collections`, `sales`, `operations`) continue to use the Claude SDK. This enables controlled experimentation, cost optimization, and incremental migration.
+
+`pi-ai` normalizes provider calls into a unified message schema and execution model. In practice, this means provider changes can be isolated to the runtime layer without changing prompt construction, parsing, validation, business logic, or artifact structure. Deterministic validation remains the compatibility boundary for all agents.
+
+This staged migration is intentional. The hybrid runtime may introduce minor tone or phrasing differences between agent families, but outputs remain operationally consistent because each agent still passes through strict JSON parsing and schema validation before success artifacts are written.
 
 ---
 
@@ -21,11 +31,11 @@ This document describes the **current** batch-agent flows as implemented in code
 | N3 | **Read input bytes** | `data/preaudit.json` | `data/invoices.json` | `data/sales.json` | `data/operations.json` | `data/audit.json` | — | `fs.readFile` for the five domain agents. **Orchestrator:** no static orchestrator file; see N3o. |
 | N3o | **Orchestrator input (audit)** | — | — | — | — | — | `runAuditAgent()` in [`src/agents/audit-agent.ts`](../src/agents/audit-agent.ts) | Awaits a full audit run (its own `run.json` / `events.ndjson`). On audit throw → orchestrator `run.json` (`input_error`) → throw `OrchestratorRunError` `INPUT_INVALID`. |
 | N4 | **Build prompt** | `buildPreauditPrompt` in [`src/preaudit/contract.ts`](../src/preaudit/contract.ts) | `buildCollectionsPrompt` in [`src/collections/contract.ts`](../src/collections/contract.ts) | `buildSalesPrompt` in [`src/sales/contract.ts`](../src/sales/contract.ts) | `buildOperationsPrompt` in [`src/operations/contract.ts`](../src/operations/contract.ts) | `buildAuditPrompt` in [`src/audit/contract.ts`](../src/audit/contract.ts) | `buildOrchestratorPrompt` in [`src/orchestrator/contract.ts`](../src/orchestrator/contract.ts) | **Orchestrator:** input text = `JSON.stringify(auditResult.output, null, 2)`. `prompt_sha256` = SHA-256 of UTF-8 prompt. |
-| N5 | **`query` + options** | — | — | — | — | — | — | Claude Agent SDK: `maxTurns: 2`, `maxBudgetUsd: 0.1`, `allowedTools: []`, `settingSources: ["project"]`. |
-| N6 | **`setModel("haiku")`** | — | — | — | — | — | — | Model override (low cost). |
-| N7 | **Stream loop** | `for await` + `appendPreauditRunEvent` | `for await` + `appendRunEvent` | `for await` + `appendSalesRunEvent` | `for await` + `appendOperationsRunEvent` | `for await` + `appendAuditRunEvent` | `for await` + `appendOrchestratorRunEvent` | Each SDK message → **append** one line to `events.ndjson` (ts, type, subtype?, summary?). |
-| N8 | **Buffer terminal `result`** | Same loop | Same loop | Same loop | Same loop | Same loop | Same loop | On `message.type === "result"`, **overwrite** `terminalResult`. |
-| N9 | **Iterator complete** | After loop | After loop | After loop | After loop | After loop | After loop | **Gate:** use buffered `terminalResult` only. |
+| N5 | **Runtime execution** | `pi-ai complete(...)` | Claude SDK `query(...)` | Claude SDK `query(...)` | Claude SDK `query(...)` | `pi-ai complete(...)` | Claude SDK `query(...)` | Hybrid runtime layer: `preaudit` and `audit` use `pi-ai`; orchestrator and specialist agents use Claude SDK. |
+| N6 | **Model selection** | Anthropic Haiku via `pi-ai` | `setModel("haiku")` | `setModel("haiku")` | `setModel("haiku")` | Anthropic Haiku via `pi-ai` | `setModel("haiku")` | Low-cost runtime tier across all agents. |
+| N7 | **Events / streaming** | Single synthetic `result` event | `for await` + `appendRunEvent` | `for await` + `appendSalesRunEvent` | `for await` + `appendOperationsRunEvent` | Single synthetic `result` event | `for await` + `appendOrchestratorRunEvent` | `pi-ai` agents do not stream today; they still append one `result` line to `events.ndjson`. Claude SDK agents append one line per SDK message. |
+| N8 | **Capture raw output** | `terminalResult.result = runPreauditLLM(prompt)` | Same loop | Same loop | Same loop | `terminalResult.result = runAuditLLM(prompt)` | Same loop | All agents preserve `raw_model_output` semantics for downstream parsing and artifacts. |
+| N9 | **Terminal result gate** | Immediate after completion | After loop | After loop | After loop | Immediate after completion | After loop | **Gate:** use the final raw model string only. |
 | N10a | **No `result`** | — | — | — | — | — | — | `run.json` (`sdk_error`) → throw `SDK_NO_RESULT`. |
 | N10b | **`subtype !== success`** | — | — | — | — | — | — | `run.json` (`sdk_error` + `sdk` fields) → throw `SDK_RUN_FAILED`. |
 | N10c | **Parse + Zod** | `parseAndValidatePreauditOutput` | `parseAndValidateCollectionsOutput` | `parseAndValidateSalesOutput` | `parseAndValidateOperationsOutput` | `parseAndValidateAuditOutput` | `parseAndValidateOrchestratorOutput` | Strip Markdown code fences from the model string, trim whitespace, then `JSON.parse`. Zod validate. On failure → `run.json` (`parse_error` / `schema_error`) → rethrow. |
@@ -45,10 +55,11 @@ This document describes the **current** batch-agent flows as implemented in code
 | Concern | Preaudit | Collections | Sales | Operations | Audit | Orchestrator |
 |---------|----------|-------------|-------|------------|-------|--------------|
 | Agent runner | [`src/agents/preaudit-agent.ts`](../src/agents/preaudit-agent.ts) | [`src/agents/collections-agent.ts`](../src/agents/collections-agent.ts) | [`src/agents/sales-agent.ts`](../src/agents/sales-agent.ts) | [`src/agents/operations-agent.ts`](../src/agents/operations-agent.ts) | [`src/agents/audit-agent.ts`](../src/agents/audit-agent.ts) | [`src/agents/orchestrator-agent.ts`](../src/agents/orchestrator-agent.ts) |
-| Support modules | [`src/preaudit/`](../src/preaudit/) (`errors`, `contract`, `runId`, `runArtifact`, `validateOutput`) | [`src/collections/`](../src/collections/) (`errors`, `contract`, `runId`, `runArtifact`, `validateOutput`) | [`src/sales/`](../src/sales/) (same roles) | [`src/operations/`](../src/operations/) (same roles) | [`src/audit/`](../src/audit/) (same roles) | [`src/orchestrator/`](../src/orchestrator/) (same roles) |
+| Support modules | [`src/preaudit/`](../src/preaudit/) (`errors`, `contract`, `piClient`, `runId`, `runArtifact`, `validateOutput`) | [`src/collections/`](../src/collections/) (`errors`, `contract`, `runId`, `runArtifact`, `validateOutput`) | [`src/sales/`](../src/sales/) (same roles) | [`src/operations/`](../src/operations/) (same roles) | [`src/audit/`](../src/audit/) (`errors`, `contract`, `piClient`, `runId`, `runArtifact`, `validateOutput`) | [`src/orchestrator/`](../src/orchestrator/) (same roles) |
 | Zod schema | [`src/schemas/preaudit.ts`](../src/schemas/preaudit.ts) | [`src/schemas/collections.ts`](../src/schemas/collections.ts) | [`src/schemas/sales.ts`](../src/schemas/sales.ts) | [`src/schemas/operations.ts`](../src/schemas/operations.ts) | [`src/schemas/audit.ts`](../src/schemas/audit.ts) | [`src/schemas/orchestrator.ts`](../src/schemas/orchestrator.ts) |
 | npm script | `npm run preaudit` | `npm run collections` | `npm run sales` | `npm run operations` | `npm run audit` | `npm run orchestrator` |
 | Batch script | `npm run preaudit:batch` | `npm run collections:batch` | `npm run sales:batch` | `npm run operations:batch` | `npm run audit:batch` | `npm run orchestrator:batch` |
+| LLM runtime | `pi-ai` | Claude SDK | Claude SDK | Claude SDK | `pi-ai` | Claude SDK |
 
 ---
 
@@ -60,6 +71,7 @@ All agents use `schema_version: 1` and the same status / exit_code semantics. Di
 |-------|----------|-------------|-------|------------|-------|--------------|
 | Input path | `preaudit_data_path` | `invoice_path` | `sales_data_path` | `operations_data_path` | `audit_data_path` | `orchestrator_data_path` (logical id, same as input source) |
 | Input source label | — | — | — | — | — | `orchestrator_input_source` = `"audit-agent"` |
+| Variant label | — | — | — | — | `audit_variant` = `"baseline"` \| `"pi-ai"` | — |
 | Input hash | `preaudit_data_sha256` | `invoice_sha256` | `sales_data_sha256` | `operations_data_sha256` | `audit_data_sha256` | `orchestrator_data_sha256` = SHA-256 of UTF-8 **serialized validated audit output** (pretty-printed JSON) |
 | Validated shape | `company_summary`, `seo_score`, `speed_score`, `ux_score`, `priority_alerts[]`, `seo_findings[]`, `speed_findings[]`, `ux_findings[]`, `tracking_findings[]`, `quick_wins[]`, `summary` | `summary` + `actions[]` | `summary` + `opportunities[]` | `summary` + `issues[]` | `company_summary`, `industry`, `main_pains[]`, `available_data[]`, `recommended_agents[]`, `priority_order[]`, `notes` | `audit`, `orchestrator`, `agents_executed[]`, `results`, `top_findings[]`, `quick_wins[]`, `recommended_next_actions[]`, `final_summary` |
 
@@ -115,7 +127,7 @@ Shared fields include: `run_id`, `started_at`, `finished_at`, `status`, `exit_co
 - **Operations:** `message_draft` and issue fields are advisory-only (internal coordination drafts).
 - **Audit:** Structured diagnostic triage only; must not invent facts beyond input. `recommended_agents` / `priority_order` are internal planning hints for which other agents to run — no automation.
 - **Orchestrator:** Routing prompt must not invent facts beyond the **audit agent output** embedded in the prompt. After routing validation, the orchestrator executes the selected collections, sales, and/or operations subagents sequentially, then assembles a deterministic consultancy-style consolidated output for human review.
-- **External:** Anthropic API, Claude Agent SDK, optional project settings on disk.
+- **External:** Anthropic API, `@mariozechner/pi-ai`, Claude Agent SDK, optional project settings on disk.
 - **Local:** `artifacts/` (should stay out of VCS; often gitignored).
 
 ---
@@ -134,7 +146,8 @@ Shared fields include: `run_id`, `started_at`, `finished_at`, `status`, `exit_co
 3. **Artifact sensitivity** — `run.json` may store `raw_model_output` and `validated_output`; treat `artifacts/` as sensitive.
 4. **Fixture language / style** — Mixed-language notes in demo data may affect model consistency.
 5. **`git_commit` null** — If the repo is not a git checkout, the field is `null` (stderr noise from `git` is possible).
-6. **Preadudit / audit / orchestrator hallucination** — Prompts instruct not to invent data; validation does not cross-check claims against source JSON. Preaudit is explicitly non-measured and advisory. Orchestrator may disagree with audit `recommended_agents`; that is model judgment unless wired to deterministic rules later. The consultancy-style consolidated fields are deterministic, but they still depend on the factual quality of the validated agent outputs they summarize.
+6. **Hybrid runtime drift** — Running `pi-ai` and Claude SDK side by side may introduce minor phrasing or tone differences even when schemas match.
+7. **Preadudit / audit / orchestrator hallucination** — Prompts instruct not to invent data; validation does not cross-check claims against source JSON. Preaudit is explicitly non-measured and advisory. Orchestrator may disagree with audit `recommended_agents`; that is model judgment unless wired to deterministic rules later. The consultancy-style consolidated fields are deterministic, but they still depend on the factual quality of the validated agent outputs they summarize.
 
 ---
 

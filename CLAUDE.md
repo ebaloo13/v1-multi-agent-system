@@ -1,6 +1,6 @@
 # Project Context
 
-This repository contains B2B business agents built in TypeScript using the Claude Agent SDK.
+This repository contains B2B business agents built in TypeScript using a hybrid LLM runtime: `pi-ai` for diagnostic agents and the Claude Agent SDK for orchestration and specialist agents.
 
 ## Goal
 Build realistic, production-oriented mock agents for SME consulting use cases that can later be deployed in real client environments.
@@ -39,6 +39,12 @@ The current documented flow is:
    - Operations
 
 All agents are mock-data driven in the current phase.
+
+### LLM Usage
+- `preaudit-agent` and `audit-agent` use `pi-ai` (multi-provider abstraction)
+- `orchestrator-agent`, `collections-agent`, `sales-agent`, and `operations-agent` use the Claude SDK
+
+This separation allows controlled migration and evaluation of different model providers without affecting core system behavior.
 
 ---
 

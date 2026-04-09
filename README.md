@@ -12,6 +12,8 @@ End-to-end flow:
 3. **Orchestrator** takes the **validated audit JSON** from a real audit run, decides which agents to activate, then executes the selected subagents and returns a richer consolidated structured output for internal consultant review.
 4. **Specialized agents** each read their own mock dataset and return schema-conforming JSON.
 
+The system uses a hybrid LLM architecture. Fast diagnostic agents (`preaudit` and `audit`) use a provider-agnostic layer via `pi-ai`, while orchestration and execution agents use the Claude SDK. This enables cost optimization and controlled experimentation across models.
+
 The system includes a fast pre-audit layer used to surface immediate opportunities before running a full diagnostic.
 
 ```
@@ -49,7 +51,7 @@ Each box that calls the model writes its own run folder under `artifacts/runs/`.
 
 | Agent | Role |
 |-------|------|
-| **preaudit-agent** | Fast digital diagnostic for SEO, PageSpeed, UX, and tracking. Useful for lead generation and early opportunity discovery. |
+| **preaudit-agent** | Fast SEO / UX / PageSpeed / tracking diagnostic used for lead generation and early opportunity discovery. |
 | **audit-agent** | Analyzes static audit scenarios using a staged diagnostic methodology; summarizes the business, pains, available data, and recommends `collections` / `sales` / `operations` with priority. |
 | **orchestrator-agent** | Runs **audit-agent** first, feeds the result into the orchestration prompt, validates routing output, executes the selected specialized agents sequentially, and returns a consultancy-style consolidated structured output. |
 | **collections-agent** | Accounts-receivable style analysis: overdue invoices, risk tiers, priority scores, suggested actions, short email drafts. |
@@ -61,6 +63,7 @@ Each box that calls the model writes its own run folder under `artifacts/runs/`.
 ## Tech stack
 
 - **TypeScript** (ES modules, `tsx` for execution)
+- **[@mariozechner/pi-ai](https://www.npmjs.com/package/@mariozechner/pi-ai)** — provider-agnostic runtime for diagnostic agents
 - **[@anthropic-ai/claude-agent-sdk](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk)** — agent runs and streaming
 - **Zod** — strict parsing and validation of model JSON
 - **dotenv** — load local environment configuration
@@ -170,7 +173,7 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
 
 ## Current status (v1)
 
-- Multi-agent **preaudit → audit → orchestrator → specialists** flow is implemented with **structured, Zod-validated** outputs and **persisted run artifacts**.
+- Multi-agent **preaudit → audit → orchestrator → specialized agents** flow is implemented with **structured, Zod-validated** outputs and **persisted run artifacts**.
 - **Preaudit** adds a fast digital diagnostic layer for early opportunity discovery before the deeper business diagnostic.
 - **Audit v2** now uses a staged internal diagnostic prompt while keeping the same output schema and artifact contract.
 - Orchestrator uses **real audit output** from an in-process audit run, not a hand-written stub.
