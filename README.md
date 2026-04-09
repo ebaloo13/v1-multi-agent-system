@@ -82,7 +82,7 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
 | `src/agents/` | Entry agents: preaudit, audit, orchestrator, collections, sales, operations |
 | `src/schemas/` | Zod schemas shared with validation |
 | `src/<agent>/` | Per-domain prompts (`contract.ts`), validation, run IDs, artifact writers |
-| `scripts/` | CLI entrypoints (single-run and `:batch` where applicable) |
+| `scripts/` | Top-level script folders for demo, batch, and future live entrypoints |
 | `data/mock/` | Mock JSON inputs (`preaudit.json`, `audit.json`, `invoices.json`, `sales.json`, `operations.json`, `orchestrator.json`) |
 | `data/clients/` | Reserved for future live client-specific inputs |
 | `scripts/demo/` | Demo/mock script entrypoints |
@@ -96,13 +96,13 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
 
 | Script | Description |
 |--------|-------------|
-| `npm run preaudit` | Single preaudit run (default scenario index `0`) |
+| `npm run preaudit:demo` | Single preaudit demo run (default scenario index `0`) |
 | `npm run preaudit:batch` | Up to 5 preaudit runs over indices `0..n-1` |
-| `npm run audit` | Single audit run (default scenario index `0`) |
+| `npm run audit:demo` | Single audit demo run (default scenario index `0`) |
 | `npm run audit:batch` | Up to 5 audit runs over indices `0..n-1` |
-| `npm run orchestrator` | Full pipeline: audit → orchestrate → selected subagents |
+| `npm run orchestrator:demo` | Full demo pipeline: audit → orchestrate → selected subagents |
 | `npm run orchestrator:batch` | Repeat orchestrator 5 times |
-| `npm run collections` / `npm run sales` / `npm run operations` | Single run of that specialist |
+| `npm run collections:demo` / `npm run sales:demo` / `npm run operations:demo` | Single demo run of that specialist |
 | `npm run collections:batch` / `:batch` variants | Five consecutive runs |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Runs collections output validation tests |
@@ -125,10 +125,10 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
    ANTHROPIC_API_KEY=your_key_here
    ```
 
-3. Run an agent, for example:
+3. Run a demo agent, for example:
 
    ```bash
-   npm run orchestrator
+   npm run orchestrator:demo
    ```
 
    On success, the CLI prints `artifactDir:` pointing under `artifacts/runs/`.
@@ -140,6 +140,7 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
 - **`artifacts/`** is **intentionally gitignored**. Each run creates a directory such as `artifacts/runs/<agent>-<timestamp>-<id>/` containing at least **`run.json`** (metadata, hashes, validation outcome, and validated output when successful) and **`events.ndjson`** (SDK message stream for traceability).
 - **`.env`** is **gitignored** so secrets are not committed. Use a local file or your shell environment for `ANTHROPIC_API_KEY`.
 - **Mock data** lives under **`data/mock/`** as JSON; `data/mock/preaudit.json` contains lightweight website / digital-presence scenarios, and `data/mock/audit.json` contains richer consulting-style intake scenarios for dental clinics, aesthetic clinics, fitness studios, and related service businesses. Replacing these files is the supported way to vary inputs in v1.
+- **Execution separation** is explicit: `scripts/demo/` is for single mock/demo runs, `scripts/batch/` is for repeated mock/demo runs, and `scripts/live/` is reserved for future production-ready execution paths.
 - All inputs are currently **mock datasets**; there are no live system integrations in v1.
 
 ---

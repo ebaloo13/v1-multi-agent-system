@@ -57,7 +57,7 @@ This staged migration is intentional. The hybrid runtime may introduce minor ton
 | Agent runner | [`src/agents/preaudit-agent.ts`](../src/agents/preaudit-agent.ts) | [`src/agents/collections-agent.ts`](../src/agents/collections-agent.ts) | [`src/agents/sales-agent.ts`](../src/agents/sales-agent.ts) | [`src/agents/operations-agent.ts`](../src/agents/operations-agent.ts) | [`src/agents/audit-agent.ts`](../src/agents/audit-agent.ts) | [`src/agents/orchestrator-agent.ts`](../src/agents/orchestrator-agent.ts) |
 | Support modules | [`src/preaudit/`](../src/preaudit/) (`errors`, `contract`, `piClient`, `runId`, `runArtifact`, `validateOutput`) | [`src/collections/`](../src/collections/) (`errors`, `contract`, `runId`, `runArtifact`, `validateOutput`) | [`src/sales/`](../src/sales/) (same roles) | [`src/operations/`](../src/operations/) (same roles) | [`src/audit/`](../src/audit/) (`errors`, `contract`, `piClient`, `runId`, `runArtifact`, `validateOutput`) | [`src/orchestrator/`](../src/orchestrator/) (same roles) |
 | Zod schema | [`src/schemas/preaudit.ts`](../src/schemas/preaudit.ts) | [`src/schemas/collections.ts`](../src/schemas/collections.ts) | [`src/schemas/sales.ts`](../src/schemas/sales.ts) | [`src/schemas/operations.ts`](../src/schemas/operations.ts) | [`src/schemas/audit.ts`](../src/schemas/audit.ts) | [`src/schemas/orchestrator.ts`](../src/schemas/orchestrator.ts) |
-| npm script | `npm run preaudit` | `npm run collections` | `npm run sales` | `npm run operations` | `npm run audit` | `npm run orchestrator` |
+| npm script | `npm run preaudit:demo` | `npm run collections:demo` | `npm run sales:demo` | `npm run operations:demo` | `npm run audit:demo` | `npm run orchestrator:demo` |
 | Batch script | `npm run preaudit:batch` | `npm run collections:batch` | `npm run sales:batch` | `npm run operations:batch` | `npm run audit:batch` | `npm run orchestrator:batch` |
 | LLM runtime | `pi-ai` | Claude SDK | Claude SDK | Claude SDK | `pi-ai` | Claude SDK |
 
@@ -158,4 +158,4 @@ Shared fields include: `run_id`, `started_at`, `finished_at`, `status`, `exit_co
 
 ---
 
-*Entry points: `npm run preaudit` / `npm run collections` / `npm run sales` / `npm run operations` / `npm run audit` / `npm run orchestrator` → `src/agents/*-agent.ts` + `src/preaudit/*`, `src/collections/*`, `src/sales/*`, `src/operations/*`, `src/audit/*`, or `src/orchestrator/*`.*
+*Entry points: `npm run preaudit:demo` / `npm run collections:demo` / `npm run sales:demo` / `npm run operations:demo` / `npm run audit:demo` / `npm run orchestrator:demo`, plus the matching `:batch` commands. Demo entrypoints live under `scripts/demo/`, batch entrypoints under `scripts/batch/`, and future live entrypoints are reserved under `scripts/live/`.*

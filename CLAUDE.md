@@ -40,6 +40,13 @@ The current documented flow is:
 
 All agents are mock-data driven in the current phase.
 
+### Execution Layout
+- `scripts/demo/` contains mock/demo single-run entrypoints
+- `scripts/batch/` contains repeated mock/demo batch entrypoints
+- `scripts/live/` is reserved for future production-ready entrypoints
+- `data/mock/` contains the current mock JSON fixtures
+- `data/clients/` is reserved for future live client inputs
+
 ### LLM Usage
 - `preaudit-agent` and `audit-agent` use `pi-ai` (multi-provider abstraction)
 - `orchestrator-agent`, `collections-agent`, `sales-agent`, and `operations-agent` use the Claude SDK
@@ -57,7 +64,7 @@ This separation allows controlled migration and evaluation of different model pr
 ---
 
 ## Data Assumptions (Mock Phase)
-- Input data comes from static JSON files
+- Input data comes from static JSON files under `data/mock/`
 - No external integrations
 - No real customer data
 - No live browser automation or live website measurement yet
@@ -68,6 +75,7 @@ This separation allows controlled migration and evaluation of different model pr
 - TypeScript only
 - Deterministic validation using Zod
 - Strict parsing (fail on invalid JSON)
+- Keep demo/mock execution clearly separated from future live execution
 - All runs must generate artifacts:
   - run.json
   - events.ndjson
@@ -105,6 +113,7 @@ This separation allows controlled migration and evaluation of different model pr
 ---
 
 ## Definition of Done
+- Demo commands run from `scripts/demo/` and batch commands run from `scripts/batch/`
 - Runs in batch mode
 - Produces valid structured outputs
 - Saves artifacts per run
