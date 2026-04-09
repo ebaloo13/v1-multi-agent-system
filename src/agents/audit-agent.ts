@@ -1,10 +1,9 @@
 import "dotenv/config";
-import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildAuditPrompt } from "../audit/contract.js";
 import { AuditRunError } from "../audit/errors.js";
+import { getLastAuditLLMSdk, runAuditLLM } from "../audit/piClient.js";
 import { createAuditRunId } from "../audit/runId.js";
 import {
   appendAuditRunEvent,
@@ -12,7 +11,6 @@ import {
   resolveRepoRootFromModuleUrl,
   auditEventLineFromSdkMessage,
   auditRunDirFor,
-  auditSdkFieldsFromResult,
   sha256Buffer,
   sha256Utf8,
   writeAuditRunJson,
@@ -38,6 +36,7 @@ export async function runAuditAgent(
   scenarioIndex?: number,
 ): Promise<AuditAgentSuccess> {
   const index = scenarioIndex ?? 0;
+  const auditVariant = "pi-ai" as const;
   const repoRoot = resolveRepoRootFromModuleUrl(import.meta.url);
   const runId = createAuditRunId();
   const runDir = auditRunDirFor(repoRoot, runId);
@@ -69,6 +68,7 @@ export async function runAuditAgent(
     audit_data_path: auditDataPath,
     audit_data_sha256: auditDataSha,
     audit_record_index: index,
+    audit_variant: auditVariant,
     git_commit: gitCommit,
     prompt_sha256: promptSha,
   });
@@ -156,99 +156,92 @@ export async function runAuditAgent(
     prompt = buildAuditPrompt(scenarioText);
     promptSha = sha256Utf8(prompt);
 
-    const run = query({
-      prompt,
-      options: {
-        maxTurns: 2,
-        maxBudgetUsd: 0.1,
-        allowedTools: [],
-        settingSources: ["project"],
-      },
-    });
+    // Experimental pi-ai integration. Other agents may still use the original SDK. This change is isolated for comparison.
+    let terminalResult: { result: string };
+    const fallbackSdk = {
+      subtype: "success",
+      total_cost_usd: 0,
+      num_turns: 1,
+    } satisfies NonNullable<AuditRunArtifactV1["sdk"]>;
 
-    await run.setModel("haiku");
+    try {
+      terminalResult = { result: await runAuditLLM(prompt) };
+      const sdk = getLastAuditLLMSdk() ?? fallbackSdk;
+      await appendAuditRunEvent(
+        runDir,
+        auditEventLineFromSdkMessage({ type: "result", subtype: "success" }),
+      );
 
-    let terminalResult: SDKResultMessage | undefined;
-    for await (const message of run as AsyncIterable<SDKMessage>) {
-      await appendAuditRunEvent(runDir, auditEventLineFromSdkMessage(message));
-      if (message.type === "result") {
-        terminalResult = message;
+      let output: AuditOutput;
+      try {
+        output = parseAndValidateAuditOutput(terminalResult.result);
+      } catch (e) {
+        const ft = new Date().toISOString();
+        if (e instanceof AuditRunError && e.code === "OUTPUT_PARSE") {
+          await writeAuditRunJson(runDir, {
+            ...baseFields(),
+            finished_at: ft,
+            status: "parse_error",
+            exit_code: 1,
+            sdk,
+            raw_model_output: terminalResult.result,
+            parse_error_message: parseDetailMessage(e.details),
+          });
+        } else if (e instanceof AuditRunError && e.code === "OUTPUT_SCHEMA") {
+          await writeAuditRunJson(runDir, {
+            ...baseFields(),
+            finished_at: ft,
+            status: "schema_error",
+            exit_code: 1,
+            sdk,
+            raw_model_output: terminalResult.result,
+            validation_errors: e.details,
+          });
+        }
+        throw e;
       }
-    }
 
-    const finishedAt = new Date().toISOString();
-
-    if (!terminalResult) {
+      const finishedOk = new Date().toISOString();
       await writeAuditRunJson(runDir, {
         ...baseFields(),
-        finished_at: finishedAt,
-        status: "sdk_error",
-        exit_code: 1,
-        unexpected_message: "No terminal result message in stream",
+        finished_at: finishedOk,
+        status: "success",
+        exit_code: 0,
+        sdk,
+        raw_model_output: terminalResult.result,
+        validated_output: output,
       });
-      throw new AuditRunError("SDK_NO_RESULT", {});
-    }
 
-    if (terminalResult.subtype !== "success") {
+      console.log(
+        `Audit run OK: ${output.recommended_agents.length} recommended agents — ${path.join(runDir, "run.json")}`,
+      );
+
+      return { runId, artifactDir: runDir, output };
+    } catch (cause) {
+      const finishedAt = new Date().toISOString();
+      const message = cause instanceof Error ? cause.message : String(cause);
+      const sdk = getLastAuditLLMSdk() ?? {
+        ...fallbackSdk,
+        subtype: "error",
+        errors: [message],
+      };
+      await appendAuditRunEvent(
+        runDir,
+        auditEventLineFromSdkMessage({ type: "result", subtype: sdk.subtype }),
+      );
       await writeAuditRunJson(runDir, {
         ...baseFields(),
         finished_at: finishedAt,
         status: "sdk_error",
         exit_code: 1,
-        sdk: auditSdkFieldsFromResult(terminalResult),
+        sdk,
         raw_model_output: null,
       });
       throw new AuditRunError("SDK_RUN_FAILED", {
-        subtype: terminalResult.subtype,
-        errors: terminalResult.errors,
+        subtype: sdk.subtype,
+        errors: "errors" in sdk ? sdk.errors : [message],
       });
     }
-
-    let output: AuditOutput;
-    try {
-      output = parseAndValidateAuditOutput(terminalResult.result);
-    } catch (e) {
-      const ft = new Date().toISOString();
-      if (e instanceof AuditRunError && e.code === "OUTPUT_PARSE") {
-        await writeAuditRunJson(runDir, {
-          ...baseFields(),
-          finished_at: ft,
-          status: "parse_error",
-          exit_code: 1,
-          sdk: auditSdkFieldsFromResult(terminalResult),
-          raw_model_output: terminalResult.result,
-          parse_error_message: parseDetailMessage(e.details),
-        });
-      } else if (e instanceof AuditRunError && e.code === "OUTPUT_SCHEMA") {
-        await writeAuditRunJson(runDir, {
-          ...baseFields(),
-          finished_at: ft,
-          status: "schema_error",
-          exit_code: 1,
-          sdk: auditSdkFieldsFromResult(terminalResult),
-          raw_model_output: terminalResult.result,
-          validation_errors: e.details,
-        });
-      }
-      throw e;
-    }
-
-    const finishedOk = new Date().toISOString();
-    await writeAuditRunJson(runDir, {
-      ...baseFields(),
-      finished_at: finishedOk,
-      status: "success",
-      exit_code: 0,
-      sdk: auditSdkFieldsFromResult(terminalResult),
-      raw_model_output: terminalResult.result,
-      validated_output: output,
-    });
-
-    console.log(
-      `Audit run OK: ${output.recommended_agents.length} recommended agents — ${path.join(runDir, "run.json")}`,
-    );
-
-    return { runId, artifactDir: runDir, output };
   } catch (e) {
     if (e instanceof AuditRunError) {
       throw e;

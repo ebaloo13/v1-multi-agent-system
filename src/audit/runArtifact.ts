@@ -26,6 +26,7 @@ export type AuditRunArtifactV1 = {
   audit_data_sha256: string;
   /** Index into the `audit.json` top-level array for this run (one scenario per run). */
   audit_record_index?: number;
+  audit_variant: "baseline" | "pi-ai";
   git_commit: string | null;
   prompt_sha256: string;
   sdk?: {

@@ -1,10 +1,9 @@
 import "dotenv/config";
-import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildPreauditPrompt } from "../preaudit/contract.js";
 import { PreauditRunError } from "../preaudit/errors.js";
+import { getLastPreauditLLMSdk, runPreauditLLM } from "../preaudit/piClient.js";
 import { createPreauditRunId } from "../preaudit/runId.js";
 import {
   appendPreauditRunEvent,
@@ -12,7 +11,6 @@ import {
   resolveRepoRootFromModuleUrl,
   preauditEventLineFromSdkMessage,
   preauditRunDirFor,
-  preauditSdkFieldsFromResult,
   sha256Buffer,
   sha256Utf8,
   writePreauditRunJson,
@@ -156,99 +154,91 @@ export async function runPreauditAgent(
     prompt = buildPreauditPrompt(scenarioText);
     promptSha = sha256Utf8(prompt);
 
-    const run = query({
-      prompt,
-      options: {
-        maxTurns: 2,
-        maxBudgetUsd: 0.1,
-        allowedTools: [],
-        settingSources: ["project"],
-      },
-    });
+    // Experimental pi-ai integration for multi-provider evaluation. Other agents still use Claude SDK.
+    let terminalResult: { result: string };
+    const fallbackSdk = {
+      subtype: "success",
+      total_cost_usd: 0,
+      num_turns: 1,
+    } satisfies NonNullable<PreauditRunArtifactV1["sdk"]>;
 
-    await run.setModel("haiku");
-
-    let terminalResult: SDKResultMessage | undefined;
-    for await (const message of run as AsyncIterable<SDKMessage>) {
-      await appendPreauditRunEvent(runDir, preauditEventLineFromSdkMessage(message));
-      if (message.type === "result") {
-        terminalResult = message;
+    try {
+      terminalResult = { result: await runPreauditLLM(prompt) };
+      const sdk = getLastPreauditLLMSdk() ?? fallbackSdk;
+      await appendPreauditRunEvent(
+        runDir,
+        preauditEventLineFromSdkMessage({ type: "result", subtype: "success" }),
+      );
+      let output: PreauditOutput;
+      try {
+        output = parseAndValidatePreauditOutput(terminalResult.result);
+      } catch (e) {
+        const ft = new Date().toISOString();
+        if (e instanceof PreauditRunError && e.code === "OUTPUT_PARSE") {
+          await writePreauditRunJson(runDir, {
+            ...baseFields(),
+            finished_at: ft,
+            status: "parse_error",
+            exit_code: 1,
+            sdk,
+            raw_model_output: terminalResult.result,
+            parse_error_message: parseDetailMessage(e.details),
+          });
+        } else if (e instanceof PreauditRunError && e.code === "OUTPUT_SCHEMA") {
+          await writePreauditRunJson(runDir, {
+            ...baseFields(),
+            finished_at: ft,
+            status: "schema_error",
+            exit_code: 1,
+            sdk,
+            raw_model_output: terminalResult.result,
+            validation_errors: e.details,
+          });
+        }
+        throw e;
       }
-    }
 
-    const finishedAt = new Date().toISOString();
-
-    if (!terminalResult) {
+      const finishedOk = new Date().toISOString();
       await writePreauditRunJson(runDir, {
         ...baseFields(),
-        finished_at: finishedAt,
-        status: "sdk_error",
-        exit_code: 1,
-        unexpected_message: "No terminal result message in stream",
+        finished_at: finishedOk,
+        status: "success",
+        exit_code: 0,
+        sdk,
+        raw_model_output: terminalResult.result,
+        validated_output: output,
       });
-      throw new PreauditRunError("SDK_NO_RESULT", {});
-    }
 
-    if (terminalResult.subtype !== "success") {
+      console.log(
+        `Preaudit run OK: ${output.priority_alerts.length} alerts — ${path.join(runDir, "run.json")}`,
+      );
+
+      return { runId, artifactDir: runDir, output };
+    } catch (cause) {
+      const finishedAt = new Date().toISOString();
+      const message = cause instanceof Error ? cause.message : String(cause);
+      const sdk = getLastPreauditLLMSdk() ?? {
+        ...fallbackSdk,
+        subtype: "error",
+        errors: [message],
+      };
+      await appendPreauditRunEvent(
+        runDir,
+        preauditEventLineFromSdkMessage({ type: "result", subtype: sdk.subtype }),
+      );
       await writePreauditRunJson(runDir, {
         ...baseFields(),
         finished_at: finishedAt,
         status: "sdk_error",
         exit_code: 1,
-        sdk: preauditSdkFieldsFromResult(terminalResult),
+        sdk,
         raw_model_output: null,
       });
       throw new PreauditRunError("SDK_RUN_FAILED", {
-        subtype: terminalResult.subtype,
-        errors: terminalResult.errors,
+        subtype: sdk.subtype,
+        errors: "errors" in sdk ? sdk.errors : [message],
       });
     }
-
-    let output: PreauditOutput;
-    try {
-      output = parseAndValidatePreauditOutput(terminalResult.result);
-    } catch (e) {
-      const ft = new Date().toISOString();
-      if (e instanceof PreauditRunError && e.code === "OUTPUT_PARSE") {
-        await writePreauditRunJson(runDir, {
-          ...baseFields(),
-          finished_at: ft,
-          status: "parse_error",
-          exit_code: 1,
-          sdk: preauditSdkFieldsFromResult(terminalResult),
-          raw_model_output: terminalResult.result,
-          parse_error_message: parseDetailMessage(e.details),
-        });
-      } else if (e instanceof PreauditRunError && e.code === "OUTPUT_SCHEMA") {
-        await writePreauditRunJson(runDir, {
-          ...baseFields(),
-          finished_at: ft,
-          status: "schema_error",
-          exit_code: 1,
-          sdk: preauditSdkFieldsFromResult(terminalResult),
-          raw_model_output: terminalResult.result,
-          validation_errors: e.details,
-        });
-      }
-      throw e;
-    }
-
-    const finishedOk = new Date().toISOString();
-    await writePreauditRunJson(runDir, {
-      ...baseFields(),
-      finished_at: finishedOk,
-      status: "success",
-      exit_code: 0,
-      sdk: preauditSdkFieldsFromResult(terminalResult),
-      raw_model_output: terminalResult.result,
-      validated_output: output,
-    });
-
-    console.log(
-      `Preaudit run OK: ${output.priority_alerts.length} alerts — ${path.join(runDir, "run.json")}`,
-    );
-
-    return { runId, artifactDir: runDir, output };
   } catch (e) {
     if (e instanceof PreauditRunError) {
       throw e;
