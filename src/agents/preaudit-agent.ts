@@ -43,7 +43,8 @@ export async function runPreauditAgent(
 
   const startedAt = new Date().toISOString();
   const gitCommit = getGitCommit(repoRoot);
-  const preauditDataPath = path.join(repoRoot, "data", "mock", "preaudit.json");
+  const preauditDataPath =
+    process.env.PREAUDIT_INPUT_PATH?.trim() || path.join(repoRoot, "data", "mock", "preaudit.json");
   let preauditDataSha = "";
   let promptSha = "";
   let prompt = "";

@@ -38,14 +38,14 @@ The current documented flow is:
    - Sales
    - Operations
 
-All agents are mock-data driven in the current phase.
+Most agents are mock-data driven in the current phase. Preaudit also supports a lightweight live single-page ingestion path for one real website URL.
 
 ### Execution Layout
 - `scripts/demo/` contains mock/demo single-run entrypoints
 - `scripts/batch/` contains repeated mock/demo batch entrypoints
-- `scripts/live/` is reserved for future production-ready entrypoints
+- `scripts/live/` contains live preaudit ingestion and deterministic report generation entrypoints
 - `data/mock/` contains the current mock JSON fixtures
-- `data/clients/` is reserved for future live client inputs
+- `data/clients/` contains generated live client inputs for preaudit runs
 
 ### LLM Usage
 - `preaudit-agent` and `audit-agent` use `pi-ai` (multi-provider abstraction)
@@ -65,9 +65,10 @@ This separation allows controlled migration and evaluation of different model pr
 
 ## Data Assumptions (Mock Phase)
 - Input data comes from static JSON files under `data/mock/`
+- Live preaudit may synthesize a one-record JSON input under `data/clients/` from a fetched homepage
 - No external integrations
 - No real customer data
-- No live browser automation or live website measurement yet
+- No live browser automation, crawling, or live website measurement yet
 
 ---
 
@@ -76,6 +77,7 @@ This separation allows controlled migration and evaluation of different model pr
 - Deterministic validation using Zod
 - Strict parsing (fail on invalid JSON)
 - Keep demo/mock execution clearly separated from future live execution
+- Presentation/reporting layers must remain deterministic and derive only from validated output
 - All runs must generate artifacts:
   - run.json
   - events.ndjson
@@ -99,8 +101,9 @@ This separation allows controlled migration and evaluation of different model pr
 
 ## Near-Term Roadmap
 1. Keep preaudit, audit, orchestrator, and specialist agents aligned with the documented architecture
-2. Extend validation and tests across agents that still lag collections
-3. Add real integrations only when requirements are explicit
+2. Extend deterministic reporting patterns where useful without changing schemas or artifact contracts
+3. Extend validation and tests across agents that still lag collections
+4. Add real integrations only when requirements are explicit
 
 ---
 
@@ -109,11 +112,13 @@ This separation allows controlled migration and evaluation of different model pr
 - Embedding business logic only in prompts
 - Relying on LLM outputs without validation
 - Mixing responsibilities across agents
+- Turning presentation/report scripts into business-logic layers
 
 ---
 
 ## Definition of Done
 - Demo commands run from `scripts/demo/` and batch commands run from `scripts/batch/`
+- Live preaudit ingestion and report generation run from `scripts/live/`
 - Runs in batch mode
 - Produces valid structured outputs
 - Saves artifacts per run

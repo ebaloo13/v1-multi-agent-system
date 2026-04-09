@@ -8,17 +8,30 @@ function formatPreauditScenario(preauditDataJson: string): string {
       parsed.digital_presence && typeof parsed.digital_presence === "object"
         ? JSON.stringify(parsed.digital_presence)
         : "not provided";
+    const extractedContext =
+      parsed.extracted_context && typeof parsed.extracted_context === "object"
+        ? JSON.stringify(parsed.extracted_context, null, 2)
+        : null;
 
-    return [
+    const parts = [
       `Company: ${String(parsed.company_name ?? "not provided")}`,
       `Industry: ${String(parsed.industry ?? "not provided")}`,
       `Website: ${website}`,
       `Digital presence: ${digitalPresence}`,
       `Notes: ${notes}`,
-      "",
-      "Raw scenario JSON:",
-      preauditDataJson,
-    ].join("\n");
+    ];
+
+    if (extractedContext) {
+      parts.push(
+        "",
+        "Here is real website context extracted from the target business:",
+        extractedContext,
+      );
+    }
+
+    parts.push("", "Raw scenario JSON:", preauditDataJson);
+
+    return parts.join("\n");
   } catch {
     return `Scenario input:\n${preauditDataJson}`;
   }

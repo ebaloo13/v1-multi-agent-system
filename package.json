@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "preaudit:demo": "tsx scripts/demo/run-preaudit-demo.ts",
+    "preaudit:live": "tsx scripts/live/run-preaudit-live.ts",
+    "preaudit:report": "tsx scripts/live/run-preaudit-report.ts",
     "audit:demo": "tsx scripts/demo/run-audit-demo.ts",
     "collections:demo": "tsx scripts/demo/run-collections-demo.ts",
     "sales:demo": "tsx scripts/demo/run-sales-demo.ts",

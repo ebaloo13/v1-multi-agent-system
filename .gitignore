@@ -16,6 +16,7 @@ coverage/
 artifacts/
 archive/
 *.ndjson
+data/clients/*.json
 
 # logs
 npm-debug.log*

@@ -24,11 +24,12 @@ This staged migration is intentional. The hybrid runtime may introduce minor ton
 
 | # | Node | Preaudit | Collections | Sales | Operations | Audit | Orchestrator | What happens |
 |---|------|----------|-------------|-------|------------|-------|--------------|--------------|
-| N0 | **Script entry** | `scripts/demo/run-preaudit-demo.ts` | `scripts/demo/run-collections-demo.ts` | `scripts/demo/run-sales-demo.ts` | `scripts/demo/run-operations-demo.ts` | `scripts/demo/run-audit-demo.ts` | `scripts/demo/run-orchestrator-demo.ts` | `await run*Agent()`; on throw → log `*RunError` or generic → `process.exit(1)`. |
+| N0 | **Script entry** | `scripts/demo/run-preaudit-demo.ts` or `scripts/live/run-preaudit-live.ts` | `scripts/demo/run-collections-demo.ts` | `scripts/demo/run-sales-demo.ts` | `scripts/demo/run-operations-demo.ts` | `scripts/demo/run-audit-demo.ts` | `scripts/demo/run-orchestrator-demo.ts` | `await run*Agent()`; on throw → log `*RunError` or generic → `process.exit(1)`. |
 | N0b | **Batch (optional)** | `scripts/batch/run-preaudit-batch.ts` | `scripts/batch/run-collections-batch.ts` | `scripts/batch/run-sales-batch.ts` | `scripts/batch/run-operations-batch.ts` | `scripts/batch/run-audit-batch.ts` | `scripts/batch/run-orchestrator-batch.ts` | Five sequential `run*Agent()` calls (demo harness). |
 | N1 | **Resolve repo + run id** | `src/agents/preaudit-agent.ts` | `src/agents/collections-agent.ts` | `src/agents/sales-agent.ts` | `src/agents/operations-agent.ts` | `src/agents/audit-agent.ts` | `src/agents/orchestrator-agent.ts` | `resolveRepoRootFromModuleUrl(import.meta.url)`; `createPreauditRunId()` / `createRunId()` / `createSalesRunId()` / `createOperationsRunId()` / `createAuditRunId()` / `createOrchestratorRunId()`; `mkdir artifacts/runs/{runId}`. |
-| N2 | **Git + input path** | — | — | — | — | — | — | `getGitCommit(repoRoot)`; static JSON under repo root (not CWD). |
-| N3 | **Read input bytes** | `data/mock/preaudit.json` | `data/mock/invoices.json` | `data/mock/sales.json` | `data/mock/operations.json` | `data/mock/audit.json` | — | `fs.readFile` for the five domain agents. **Orchestrator:** no static orchestrator file; see N3o. |
+| N2 | **Git + input path** | — | — | — | — | — | — | `getGitCommit(repoRoot)`; input JSON resolved under repo root (not CWD). |
+| N2p | **Live preaudit input prep** | `scripts/live/run-preaudit-live.ts` + [`src/preaudit/webContext.ts`](../src/preaudit/webContext.ts) | — | — | — | — | — | For live preaudit only: fetch one URL, extract lightweight page context, write a one-record JSON array under `data/clients/preaudit-live.json`, then set `PREAUDIT_INPUT_PATH` before calling `runPreauditAgent(0)`. |
+| N3 | **Read input bytes** | `data/mock/preaudit.json` or `data/clients/preaudit-live.json` | `data/mock/invoices.json` | `data/mock/sales.json` | `data/mock/operations.json` | `data/mock/audit.json` | — | `fs.readFile` for the five domain agents. **Orchestrator:** no static orchestrator file; see N3o. |
 | N3o | **Orchestrator input (audit)** | — | — | — | — | — | `runAuditAgent()` in [`src/agents/audit-agent.ts`](../src/agents/audit-agent.ts) | Awaits a full audit run (its own `run.json` / `events.ndjson`). On audit throw → orchestrator `run.json` (`input_error`) → throw `OrchestratorRunError` `INPUT_INVALID`. |
 | N4 | **Build prompt** | `buildPreauditPrompt` in [`src/preaudit/contract.ts`](../src/preaudit/contract.ts) | `buildCollectionsPrompt` in [`src/collections/contract.ts`](../src/collections/contract.ts) | `buildSalesPrompt` in [`src/sales/contract.ts`](../src/sales/contract.ts) | `buildOperationsPrompt` in [`src/operations/contract.ts`](../src/operations/contract.ts) | `buildAuditPrompt` in [`src/audit/contract.ts`](../src/audit/contract.ts) | `buildOrchestratorPrompt` in [`src/orchestrator/contract.ts`](../src/orchestrator/contract.ts) | **Orchestrator:** input text = `JSON.stringify(auditResult.output, null, 2)`. `prompt_sha256` = SHA-256 of UTF-8 prompt. |
 | N5 | **Runtime execution** | `pi-ai complete(...)` | Claude SDK `query(...)` | Claude SDK `query(...)` | Claude SDK `query(...)` | `pi-ai complete(...)` | Claude SDK `query(...)` | Hybrid runtime layer: `preaudit` and `audit` use `pi-ai`; orchestrator and specialist agents use Claude SDK. |
@@ -41,6 +42,7 @@ This staged migration is intentional. The hybrid runtime may introduce minor ton
 | N10c | **Parse + Zod** | `parseAndValidatePreauditOutput` | `parseAndValidateCollectionsOutput` | `parseAndValidateSalesOutput` | `parseAndValidateOperationsOutput` | `parseAndValidateAuditOutput` | `parseAndValidateOrchestratorOutput` | Strip Markdown code fences from the model string, trim whitespace, then `JSON.parse`. Zod validate. On failure → `run.json` (`parse_error` / `schema_error`) → rethrow. |
 | N10d | **Success** | — | — | — | — | — | — | `run.json` (`success`, `validated_output`, `raw_model_output`, `sdk`, `git_commit`, `prompt_sha256`, input hash fields…). For orchestrator, `validated_output` is the final consolidated object, while `raw_model_output` remains the routing model output only. Return `{ runId, artifactDir, output }`. |
 | N11 | **Unexpected errors** | Outer `catch` | Outer `catch` | Outer `catch` | Outer `catch` | Outer `catch` | Outer `catch` | If not `*RunError`, best-effort `run.json` (`unexpected_error`) then rethrow. |
+| N12 | **Deterministic report (optional)** | `scripts/live/run-preaudit-report.ts` + [`src/preaudit/report.ts`](../src/preaudit/report.ts) | — | — | — | — | — | Read latest preaudit `run.json`, extract `validated_output`, generate Markdown report, and write `report.md` into the same run directory. |
 
 **Run ID prefixes:** `preaudit-…`, `collections-…`, `sales-…`, `operations-…`, `audit-…`, and `orchestrator-…` (each `{ISO-stamp}-{8-hex}`).
 
@@ -55,9 +57,9 @@ This staged migration is intentional. The hybrid runtime may introduce minor ton
 | Concern | Preaudit | Collections | Sales | Operations | Audit | Orchestrator |
 |---------|----------|-------------|-------|------------|-------|--------------|
 | Agent runner | [`src/agents/preaudit-agent.ts`](../src/agents/preaudit-agent.ts) | [`src/agents/collections-agent.ts`](../src/agents/collections-agent.ts) | [`src/agents/sales-agent.ts`](../src/agents/sales-agent.ts) | [`src/agents/operations-agent.ts`](../src/agents/operations-agent.ts) | [`src/agents/audit-agent.ts`](../src/agents/audit-agent.ts) | [`src/agents/orchestrator-agent.ts`](../src/agents/orchestrator-agent.ts) |
-| Support modules | [`src/preaudit/`](../src/preaudit/) (`errors`, `contract`, `piClient`, `runId`, `runArtifact`, `validateOutput`) | [`src/collections/`](../src/collections/) (`errors`, `contract`, `runId`, `runArtifact`, `validateOutput`) | [`src/sales/`](../src/sales/) (same roles) | [`src/operations/`](../src/operations/) (same roles) | [`src/audit/`](../src/audit/) (`errors`, `contract`, `piClient`, `runId`, `runArtifact`, `validateOutput`) | [`src/orchestrator/`](../src/orchestrator/) (same roles) |
+| Support modules | [`src/preaudit/`](../src/preaudit/) (`errors`, `contract`, `piClient`, `runId`, `runArtifact`, `validateOutput`, `webContext`, `report`) | [`src/collections/`](../src/collections/) (`errors`, `contract`, `runId`, `runArtifact`, `validateOutput`) | [`src/sales/`](../src/sales/) (same roles) | [`src/operations/`](../src/operations/) (same roles) | [`src/audit/`](../src/audit/) (`errors`, `contract`, `piClient`, `runId`, `runArtifact`, `validateOutput`) | [`src/orchestrator/`](../src/orchestrator/) (same roles) |
 | Zod schema | [`src/schemas/preaudit.ts`](../src/schemas/preaudit.ts) | [`src/schemas/collections.ts`](../src/schemas/collections.ts) | [`src/schemas/sales.ts`](../src/schemas/sales.ts) | [`src/schemas/operations.ts`](../src/schemas/operations.ts) | [`src/schemas/audit.ts`](../src/schemas/audit.ts) | [`src/schemas/orchestrator.ts`](../src/schemas/orchestrator.ts) |
-| npm script | `npm run preaudit:demo` | `npm run collections:demo` | `npm run sales:demo` | `npm run operations:demo` | `npm run audit:demo` | `npm run orchestrator:demo` |
+| npm script | `npm run preaudit:demo` / `npm run preaudit:live` / `npm run preaudit:report` | `npm run collections:demo` | `npm run sales:demo` | `npm run operations:demo` | `npm run audit:demo` | `npm run orchestrator:demo` |
 | Batch script | `npm run preaudit:batch` | `npm run collections:batch` | `npm run sales:batch` | `npm run operations:batch` | `npm run audit:batch` | `npm run orchestrator:batch` |
 | LLM runtime | `pi-ai` | Claude SDK | Claude SDK | Claude SDK | `pi-ai` | Claude SDK |
 
@@ -77,7 +79,7 @@ All agents use `schema_version: 1` and the same status / exit_code semantics. Di
 
 Shared fields include: `run_id`, `started_at`, `finished_at`, `status`, `exit_code`, `model`, `git_commit`, `prompt_sha256`, optional `sdk`, `raw_model_output`, `validated_output`, `validation_errors`, `parse_error_message`, `unexpected_message`. Writes also attach `local_time` for human-readable logs.
 
-**Preaudit** findings are advisory-only digital diagnostic signals; they are not produced by live browser automation, PageSpeed measurements, analytics inspection, or external API checks.
+**Preaudit** findings are advisory-only digital diagnostic signals; they are not produced by live browser automation, PageSpeed measurements, analytics inspection, or external API checks. In live mode, the model sees a single extracted homepage context only.
 
 **Audit** `recommended_agents` and `priority_order` entries are constrained to `collections` \| `sales` \| `operations` (see schema).
 
@@ -97,7 +99,7 @@ Shared fields include: `run_id`, `started_at`, `finished_at`, `status`, `exit_co
 
 | Input | Preaudit | Collections | Sales | Operations | Audit | Orchestrator |
 |-------|----------|-------------|-------|------------|-------|--------------|
-| Fixture JSON | `data/mock/preaudit.json` (array of SME website / digital-presence scenarios: e.g. `company_name`, `industry`, `website`, `digital_presence`, `notes`) | `data/mock/invoices.json` | `data/mock/sales.json` | `data/mock/operations.json` | `data/mock/audit.json` (array of richer client scenarios: e.g. `company_name`, `industry`, `services`, `business_model`, `known_problems`, `systems_available`, `sales_notes`, `operations_notes`, `collections_notes`, `digital_presence`, `notes`) | **None for orchestrator** — routing prompt input is the **live validated output** of `runAuditAgent()` (which itself reads `data/mock/audit.json`). |
+| Fixture JSON | `data/mock/preaudit.json` for demo, or `data/clients/preaudit-live.json` for live single-site ingestion (array with one synthesized record containing extracted page context) | `data/mock/invoices.json` | `data/mock/sales.json` | `data/mock/operations.json` | `data/mock/audit.json` (array of richer client scenarios: e.g. `company_name`, `industry`, `services`, `business_model`, `known_problems`, `systems_available`, `sales_notes`, `operations_notes`, `collections_notes`, `digital_presence`, `notes`) | **None for orchestrator** — routing prompt input is the **live validated output** of `runAuditAgent()` (which itself reads `data/mock/audit.json`). |
 | API key | `ANTHROPIC_API_KEY` via `dotenv` (loaded in agent modules) | Same | Same | Same | Same | Same |
 | Project settings | `settingSources: ["project"]` | Same | Same | Same | Same | Same |
 
@@ -108,6 +110,7 @@ Shared fields include: `run_id`, `started_at`, `finished_at`, `status`, `exit_co
 | Validated payload | `run.json` → `validated_output` **only** when `status === "success"` |
 | Audit / debug | `run.json` (hashes, `git_commit`, `prompt_sha256`, `sdk`, …) |
 | Stream ordering | `events.ndjson` |
+| Preaudit report | `report.md` in the same preaudit run directory when generated via `preaudit:report` |
 
 ### Decision points
 
@@ -122,6 +125,7 @@ Shared fields include: `run_id`, `started_at`, `finished_at`, `status`, `exit_co
 
 - Customer / clinic-like identifiers and notes appear in prompts and may appear in `raw_model_output` and `validated_output`.
 - **Preaudit:** Fast digital diagnostic only; SEO, speed, UX, and tracking findings are advisory signals based on scenario inputs. No browser automation, live measurement, or external validation.
+- **Preaudit report generation:** deterministic Markdown formatting only, built from `validated_output`; it does not modify artifacts other than writing `report.md`.
 - **Collections:** `email_draft`, `escalate`, `risk_tier` are advisory-only; no automated send.
 - **Sales:** `message_draft` and opportunity fields are advisory-only.
 - **Operations:** `message_draft` and issue fields are advisory-only (internal coordination drafts).
@@ -158,4 +162,4 @@ Shared fields include: `run_id`, `started_at`, `finished_at`, `status`, `exit_co
 
 ---
 
-*Entry points: `npm run preaudit:demo` / `npm run collections:demo` / `npm run sales:demo` / `npm run operations:demo` / `npm run audit:demo` / `npm run orchestrator:demo`, plus the matching `:batch` commands. Demo entrypoints live under `scripts/demo/`, batch entrypoints under `scripts/batch/`, and future live entrypoints are reserved under `scripts/live/`.*
+*Entry points: `npm run preaudit:demo`, `npm run preaudit:live`, `npm run preaudit:report`, `npm run collections:demo`, `npm run sales:demo`, `npm run operations:demo`, `npm run audit:demo`, and `npm run orchestrator:demo`, plus the matching `:batch` commands. Demo entrypoints live under `scripts/demo/`, batch entrypoints under `scripts/batch/`, and live ingestion/reporting entrypoints live under `scripts/live/`.*
