@@ -1,4 +1,4 @@
-import { runSalesAgent } from "../src/agents/sales-agent.js";
+import { runSalesAgent } from "../../src/agents/sales-agent.js";
 
 async function main() {
   console.log("Running sales batch...\n");

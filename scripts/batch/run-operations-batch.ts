@@ -1,4 +1,4 @@
-import { runOperationsAgent } from "../src/agents/operations-agent.js";
+import { runOperationsAgent } from "../../src/agents/operations-agent.js";
 
 async function main() {
   console.log("Running operations batch...\n");

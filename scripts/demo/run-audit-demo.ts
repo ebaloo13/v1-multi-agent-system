@@ -1,5 +1,5 @@
-import { AuditRunError } from "../src/audit/errors.js";
-import { runAuditAgent } from "../src/agents/audit-agent.js";
+import { AuditRunError } from "../../src/audit/errors.js";
+import { runAuditAgent } from "../../src/agents/audit-agent.js";
 
 try {
   const result = await runAuditAgent();

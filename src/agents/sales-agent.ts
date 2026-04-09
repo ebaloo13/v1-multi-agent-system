@@ -42,7 +42,7 @@ export async function runSalesAgent(): Promise<SalesAgentSuccess> {
 
   const startedAt = new Date().toISOString();
   const gitCommit = getGitCommit(repoRoot);
-  const salesDataPath = path.join(repoRoot, "data", "sales.json");
+  const salesDataPath = path.join(repoRoot, "data", "mock", "sales.json");
   let salesDataSha = "";
   let promptSha = "";
   let prompt = "";

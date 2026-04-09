@@ -1,5 +1,5 @@
-import { OperationsRunError } from "../src/operations/errors.js";
-import { runOperationsAgent } from "../src/agents/operations-agent.js";
+import { OperationsRunError } from "../../src/operations/errors.js";
+import { runOperationsAgent } from "../../src/agents/operations-agent.js";
 
 try {
   const result = await runOperationsAgent();

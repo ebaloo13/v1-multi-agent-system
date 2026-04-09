@@ -1,5 +1,5 @@
-import { SalesRunError } from "../src/sales/errors.js";
-import { runSalesAgent } from "../src/agents/sales-agent.js";
+import { SalesRunError } from "../../src/sales/errors.js";
+import { runSalesAgent } from "../../src/agents/sales-agent.js";
 
 try {
   const result = await runSalesAgent();

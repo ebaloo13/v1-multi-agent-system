@@ -1,5 +1,5 @@
-import { CollectionsRunError } from "../src/collections/errors.js";
-import { runCollectionsAgent } from "../src/agents/collections-agent.js";
+import { CollectionsRunError } from "../../src/collections/errors.js";
+import { runCollectionsAgent } from "../../src/agents/collections-agent.js";
 
 try {
   const result = await runCollectionsAgent();

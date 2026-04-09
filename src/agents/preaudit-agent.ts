@@ -43,7 +43,7 @@ export async function runPreauditAgent(
 
   const startedAt = new Date().toISOString();
   const gitCommit = getGitCommit(repoRoot);
-  const preauditDataPath = path.join(repoRoot, "data", "preaudit.json");
+  const preauditDataPath = path.join(repoRoot, "data", "mock", "preaudit.json");
   let preauditDataSha = "";
   let promptSha = "";
   let prompt = "";
@@ -113,10 +113,10 @@ export async function runPreauditAgent(
         finished_at: finishedAt,
         status: "input_error",
         exit_code: 1,
-        unexpected_message: "preaudit.json must be a JSON array",
+        unexpected_message: "data/mock/preaudit.json must be a JSON array",
       });
       throw new PreauditRunError("INPUT_INVALID", {
-        message: "preaudit.json must be a JSON array",
+        message: "data/mock/preaudit.json must be a JSON array",
       });
     }
 
@@ -127,10 +127,10 @@ export async function runPreauditAgent(
         finished_at: finishedAt,
         status: "input_error",
         exit_code: 1,
-        unexpected_message: "preaudit.json array is empty",
+        unexpected_message: "data/mock/preaudit.json array is empty",
       });
       throw new PreauditRunError("INPUT_INVALID", {
-        message: "preaudit.json array is empty",
+        message: "data/mock/preaudit.json array is empty",
       });
     }
 

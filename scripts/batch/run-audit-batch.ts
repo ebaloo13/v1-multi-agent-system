@@ -1,21 +1,21 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { runAuditAgent } from "../src/agents/audit-agent.js";
+import { runAuditAgent } from "../../src/agents/audit-agent.js";
 
-const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 async function main() {
   console.log("Running audit batch...\n");
 
-  const auditDataPath = path.join(repoRoot, "data", "audit.json");
+  const auditDataPath = path.join(repoRoot, "data", "mock", "audit.json");
   let parsed: unknown;
   try {
     const raw = await fs.readFile(auditDataPath, "utf8");
     parsed = JSON.parse(raw);
   } catch (e) {
     console.error(
-      "Failed to read or parse data/audit.json:",
+      "Failed to read or parse data/mock/audit.json:",
       e instanceof Error ? e.message : e,
     );
     process.exit(1);

@@ -42,7 +42,7 @@ export async function runCollectionsAgent(): Promise<CollectionsAgentSuccess> {
 
   const startedAt = new Date().toISOString();
   const gitCommit = getGitCommit(repoRoot);
-  const invoicePath = path.join(repoRoot, "data", "invoices.json");
+  const invoicePath = path.join(repoRoot, "data", "mock", "invoices.json");
   let invoiceSha = "";
   let promptSha = "";
   let prompt = "";

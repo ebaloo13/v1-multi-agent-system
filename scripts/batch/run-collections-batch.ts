@@ -1,4 +1,4 @@
-import { runCollectionsAgent } from "../src/agents/collections-agent.js";
+import { runCollectionsAgent } from "../../src/agents/collections-agent.js";
 
 async function main() {
   console.log("Running batch...\n");

@@ -1,5 +1,5 @@
-import { PreauditRunError } from "../src/preaudit/errors.js";
-import { runPreauditAgent } from "../src/agents/preaudit-agent.js";
+import { PreauditRunError } from "../../src/preaudit/errors.js";
+import { runPreauditAgent } from "../../src/agents/preaudit-agent.js";
 
 try {
   const result = await runPreauditAgent();

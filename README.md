@@ -19,13 +19,15 @@ The system includes a fast pre-audit layer used to surface immediate opportuniti
 ```
                     +------------------+
                     |  preaudit-agent  |
-                    | (data/preaudit)  |
+                    | (data/mock/      |
+                    |  preaudit)       |
                     +--------+---------+
                              |
                              v
                     +------------------+
                     |   audit-agent    |
-                    |  (data/audit)    |
+                    | (data/mock/      |
+                    |  audit)          |
                     +--------+---------+
                              | validated audit JSON
                              v
@@ -39,7 +41,8 @@ The system includes a fast pre-audit layer used to surface immediate opportuniti
          v                   v                   v
  +---------------+   +---------------+   +---------------+
  | collections   |   | sales         |   | operations    |
- | (invoices)    |   | (sales.json)  |   | (operations)  |
+ | (mock/        |   | (mock/        |   | (mock/        |
+ |  invoices)    |   |  sales.json)  |   |  operations)  |
  +---------------+   +---------------+   +---------------+
 ```
 
@@ -80,7 +83,11 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
 | `src/schemas/` | Zod schemas shared with validation |
 | `src/<agent>/` | Per-domain prompts (`contract.ts`), validation, run IDs, artifact writers |
 | `scripts/` | CLI entrypoints (single-run and `:batch` where applicable) |
-| `data/` | Mock JSON inputs (`preaudit.json`, `audit.json`, `invoices.json`, `sales.json`, `operations.json`) |
+| `data/mock/` | Mock JSON inputs (`preaudit.json`, `audit.json`, `invoices.json`, `sales.json`, `operations.json`, `orchestrator.json`) |
+| `data/clients/` | Reserved for future live client-specific inputs |
+| `scripts/demo/` | Demo/mock script entrypoints |
+| `scripts/live/` | Reserved for future live/production-ready entrypoints |
+| `scripts/batch/` | Batch execution entrypoints |
 | `docs/` | Additional design notes (e.g. flow maps) |
 
 ---
@@ -132,7 +139,7 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
 
 - **`artifacts/`** is **intentionally gitignored**. Each run creates a directory such as `artifacts/runs/<agent>-<timestamp>-<id>/` containing at least **`run.json`** (metadata, hashes, validation outcome, and validated output when successful) and **`events.ndjson`** (SDK message stream for traceability).
 - **`.env`** is **gitignored** so secrets are not committed. Use a local file or your shell environment for `ANTHROPIC_API_KEY`.
-- **Mock data** lives under **`data/`** as JSON; `data/preaudit.json` contains lightweight website / digital-presence scenarios, and `data/audit.json` contains richer consulting-style intake scenarios for dental clinics, aesthetic clinics, fitness studios, and related service businesses. Replacing these files is the supported way to vary inputs in v1.
+- **Mock data** lives under **`data/mock/`** as JSON; `data/mock/preaudit.json` contains lightweight website / digital-presence scenarios, and `data/mock/audit.json` contains richer consulting-style intake scenarios for dental clinics, aesthetic clinics, fitness studios, and related service businesses. Replacing these files is the supported way to vary inputs in v1.
 - All inputs are currently **mock datasets**; there are no live system integrations in v1.
 
 ---

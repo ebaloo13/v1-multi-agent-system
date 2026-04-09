@@ -1,4 +1,4 @@
-import { runOrchestratorAgent } from "../src/agents/orchestrator-agent.js";
+import { runOrchestratorAgent } from "../../src/agents/orchestrator-agent.js";
 
 async function main() {
   console.log("Running orchestrator batch...\n");

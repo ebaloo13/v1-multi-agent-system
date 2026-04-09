@@ -42,7 +42,7 @@ export async function runOperationsAgent(): Promise<OperationsAgentSuccess> {
 
   const startedAt = new Date().toISOString();
   const gitCommit = getGitCommit(repoRoot);
-  const operationsDataPath = path.join(repoRoot, "data", "operations.json");
+  const operationsDataPath = path.join(repoRoot, "data", "mock", "operations.json");
   let operationsDataSha = "";
   let promptSha = "";
   let prompt = "";

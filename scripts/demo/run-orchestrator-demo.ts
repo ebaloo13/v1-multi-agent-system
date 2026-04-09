@@ -1,5 +1,5 @@
-import { OrchestratorRunError } from "../src/orchestrator/errors.js";
-import { runOrchestratorAgent } from "../src/agents/orchestrator-agent.js";
+import { OrchestratorRunError } from "../../src/orchestrator/errors.js";
+import { runOrchestratorAgent } from "../../src/agents/orchestrator-agent.js";
 
 try {
   const result = await runOrchestratorAgent();

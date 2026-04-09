@@ -44,7 +44,7 @@ export async function runAuditAgent(
 
   const startedAt = new Date().toISOString();
   const gitCommit = getGitCommit(repoRoot);
-  const auditDataPath = path.join(repoRoot, "data", "audit.json");
+  const auditDataPath = path.join(repoRoot, "data", "mock", "audit.json");
   let auditDataSha = "";
   let promptSha = "";
   let prompt = "";
@@ -115,10 +115,10 @@ export async function runAuditAgent(
         finished_at: finishedAt,
         status: "input_error",
         exit_code: 1,
-        unexpected_message: "audit.json must be a JSON array",
+        unexpected_message: "data/mock/audit.json must be a JSON array",
       });
       throw new AuditRunError("INPUT_INVALID", {
-        message: "audit.json must be a JSON array",
+        message: "data/mock/audit.json must be a JSON array",
       });
     }
 
@@ -129,10 +129,10 @@ export async function runAuditAgent(
         finished_at: finishedAt,
         status: "input_error",
         exit_code: 1,
-        unexpected_message: "audit.json array is empty",
+        unexpected_message: "data/mock/audit.json array is empty",
       });
       throw new AuditRunError("INPUT_INVALID", {
-        message: "audit.json array is empty",
+        message: "data/mock/audit.json array is empty",
       });
     }
 
