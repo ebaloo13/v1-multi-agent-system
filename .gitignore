@@ -14,6 +14,7 @@ coverage/
 
 # artifacts / runs
 artifacts/
+archive/
 *.ndjson
 
 # logs

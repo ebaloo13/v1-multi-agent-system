@@ -1,122 +1,172 @@
 [
   {
     "company_name": "BrightSmile Family Dental",
-    "industry": "Dental",
-    "services": ["General dentistry", "Hygiene", "Orthodontics referrals"],
+    "industry": "Dental clinic",
+    "services": ["General dentistry", "Hygiene", "Crowns and bridges", "Limited Invisalign cases"],
+    "business_model": "Multi-location fee-for-service and insurance-based dental practice with hygiene recall revenue and treatment plan acceptance driving production",
     "known_problems": [
-      "AR over 90 days growing",
-      "Insurance claim denials not consistently followed up",
-      "Recall reminders sent manually from spreadsheets"
+      "AR over 90 days has increased for the last two quarters",
+      "Insurance claim denials are reviewed inconsistently and often sit in shared inboxes",
+      "Recall reminders are still managed from spreadsheets and staff follow-up varies by location"
     ],
-    "systems_available": ["Dentrix", "Excel trackers for AR", "Outlook"],
-    "notes": "Three-location group; front desk uses shared inbox for billing questions."
+    "systems_available": ["Dentrix", "Excel AR aging tracker", "Outlook shared inbox", "Basic online booking form"],
+    "sales_notes": "Treatment plan follow-up happens manually and no one can say which unscheduled treatment is most likely to close.",
+    "operations_notes": "Three locations share admin support but each front desk team uses a different process for reminders and billing questions.",
+    "collections_notes": "Billing questions come through a shared inbox and there is no consistent cadence for overdue insurance or patient balances.",
+    "digital_presence": "Website with appointment request form and Google Business profiles for each location",
+    "notes": "Owner wants a practical first step and is worried staff already feel overloaded."
   },
   {
-    "company_name": "Lumière Aesthetic Institute",
-    "industry": "Medical aesthetics",
-    "services": ["Injectables", "Laser hair removal", "Skin consultations"],
+    "company_name": "Lumiere Aesthetic Institute",
+    "industry": "Aesthetic clinic",
+    "services": ["Injectables", "Laser hair removal", "Skin consultations", "Package-based treatment plans"],
+    "business_model": "Consultation-led medspa earning revenue from treatment packages, repeat visits, and provider utilization",
     "known_problems": [
-      "Consultation-to-treatment conversion unclear",
-      "Packages sold but utilization not tracked",
-      "High no-show rate on filler appointments"
+      "Consultation-to-treatment conversion is not measured reliably",
+      "Packages are sold but usage and remaining sessions are tracked inconsistently",
+      "High no-show rate on premium injectable appointments"
     ],
-    "systems_available": ["Jane App scheduling", "Stripe for deposits", "Google Sheets pipeline"],
-    "notes": "Owner wants clearer view of pipeline value by provider."
+    "systems_available": ["Jane App", "Stripe for deposits", "Google Sheets lead tracker", "Instagram DM inquiries"],
+    "sales_notes": "Owner wants visibility into provider pipeline value and which consultations are most likely to convert.",
+    "operations_notes": "Front desk confirms some appointments by text, but follow-up rules differ by coordinator.",
+    "collections_notes": "Deposits are collected for some services, but there is no clear view of expired credits or unused prepaid packages.",
+    "digital_presence": "Strong Instagram presence, paid social campaigns, website consultation form",
+    "notes": "Two senior injectors drive most revenue, so missed consults have outsized impact."
   },
   {
-    "company_name": "Northline HVAC & Plumbing",
-    "industry": "Field services",
-    "services": ["Residential HVAC", "Emergency plumbing", "Maintenance contracts"],
+    "company_name": "Harbor Fit Studio",
+    "industry": "Gym / fitness studio",
+    "services": ["Small-group strength classes", "Personal training", "Nutrition coaching", "Monthly memberships"],
+    "business_model": "Recurring membership studio with upsell revenue from PT sessions and coaching add-ons",
     "known_problems": [
-      "Technician schedules often double-booked or underutilized",
-      "Parts delays not communicated to customers proactively",
-      "Invoices sometimes sent weeks after job completion"
+      "Membership churn spikes after the first 90 days",
+      "Leads from trials and web forms are followed up inconsistently",
+      "Class schedule is full on evenings but underused in late mornings"
     ],
-    "systems_available": ["ServiceTitan", "QuickBooks Online", "SMS alerts to techs"],
-    "notes": "Peak summer volume; dispatch is the main bottleneck."
+    "systems_available": ["Mindbody", "Stripe subscriptions", "Mailchimp", "Google Sheets for leads"],
+    "sales_notes": "Sales conversations depend heavily on the owner and there is no reliable lead stage tracking after a trial visit.",
+    "operations_notes": "Coach schedules are built manually and quieter class blocks are not being repackaged or promoted.",
+    "collections_notes": "Failed recurring payments are retried manually and some paused members stay unresolved for weeks.",
+    "digital_presence": "Website with free trial form, active Instagram, local referral partnerships",
+    "notes": "The studio is profitable but growth has stalled because retention and lead follow-up are uneven."
   },
   {
-    "company_name": "Studio Derma Barcelona",
-    "industry": "Medical aesthetics",
-    "services": ["Dermatology", "Chemical peels", "Acne programs"],
+    "company_name": "Northline HVAC and Plumbing",
+    "industry": "Home services",
+    "services": ["Residential HVAC installs", "Emergency plumbing", "Maintenance memberships"],
+    "business_model": "Field service company earning from dispatched jobs, larger install projects, and recurring maintenance plans",
     "known_problems": [
-      "Long wait between diagnosis and first treatment slot",
-      "Patient education materials outdated",
-      "Collections handled ad hoc when plans fail"
+      "Technician schedules are frequently double-booked or underutilized",
+      "Customers are not updated proactively when parts delays affect service dates",
+      "Invoices are sometimes sent weeks after work is completed"
     ],
-    "systems_available": ["Clinic cloud EHR", "WhatsApp Business for reminders"],
-    "notes": "Bilingual staff; no formal CRM."
+    "systems_available": ["ServiceTitan", "QuickBooks Online", "Technician SMS alerts"],
+    "sales_notes": "Maintenance membership renewals appear to be handled reactively rather than through a managed renewal process.",
+    "operations_notes": "Dispatch is the main bottleneck during peak season and handoffs between office staff and technicians are noisy.",
+    "collections_notes": "Billing lags after job completion, which likely delays cash collection and creates avoidable customer disputes.",
+    "digital_presence": "Google Local Services, website booking request form, call-heavy inbound flow",
+    "notes": "Owner says summer demand is strong, but operational breakdowns are hurting customer experience and cash timing."
+  },
+  {
+    "company_name": "Studio Derma",
+    "industry": "Aesthetic dermatology clinic",
+    "services": ["Dermatology consults", "Chemical peels", "Acne treatment programs", "Maintenance skincare plans"],
+    "business_model": "Clinic generating revenue from provider consults, procedure bookings, and longer-term treatment programs",
+    "known_problems": [
+      "There is a long gap between diagnosis and first treatment slot",
+      "Patient education content is outdated and providers explain plans differently",
+      "Payment plan follow-up happens ad hoc when cards fail or installments are missed"
+    ],
+    "systems_available": ["Clinic cloud EHR", "WhatsApp Business", "Basic website contact form"],
+    "sales_notes": "There is no clear CRM or pipeline view for patients who consult but delay treatment.",
+    "operations_notes": "Treatment capacity feels constrained, but the team does not have a clear view of where the scheduling bottleneck starts.",
+    "collections_notes": "Installment collections are handled manually and ownership is unclear when payments fail.",
+    "digital_presence": "Website, WhatsApp inquiries, moderate Instagram activity",
+    "notes": "Bilingual team; owner is open to automation but wants recommendations grounded in what the clinic actually has today."
   },
   {
     "company_name": "Pediatric Dentistry Co-op",
-    "industry": "Dental",
-    "services": ["Pediatric exams", "Sedation cases", "Orthodontic screening"],
+    "industry": "Dental clinic",
+    "services": ["Pediatric exams", "Sedation cases", "Orthodontic screening", "Preventive hygiene"],
+    "business_model": "Single-location pediatric practice with a mix of insured visits, higher-value sedation cases, and recurring recall hygiene",
     "known_problems": [
-      "Parents cancel last minute; slots hard to refill",
-      "Treatment coordinators not aligned on follow-up scripts",
-      "Outstanding balances after insurance EOB delays"
+      "Parents cancel at the last minute and open chair time is hard to refill",
+      "Treatment coordinators use inconsistent follow-up scripts after diagnosis",
+      "Outstanding balances linger after insurance EOB delays"
     ],
-    "systems_available": ["Open Dental", "Twilio SMS", "Mail merge for statements"],
-    "notes": "Single location; high Medicaid mix."
+    "systems_available": ["Open Dental", "Twilio SMS", "Mail-merged patient statements"],
+    "sales_notes": "Higher-value cases depend on coordinator follow-up, but there is no clear tracking of which proposed treatment is stalled.",
+    "operations_notes": "Schedule gaps from cancellations affect provider utilization and the team has no clear waitlist process.",
+    "collections_notes": "Insurance timing and parent balances create friction, and statements alone are not resolving older accounts.",
+    "digital_presence": "Website, online forms, strong parent referral base",
+    "notes": "High Medicaid mix means staff time is tight and recommendations need to be operationally realistic."
   },
   {
-    "company_name": "Elite Cleaning Partners",
-    "industry": "Commercial cleaning",
-    "services": ["Office contracts", "Retail after-hours", "Post-construction"],
+    "company_name": "Glow and Go Medspa",
+    "industry": "Aesthetic clinic",
+    "services": ["Membership facials", "Microneedling", "Retail skincare", "Seasonal treatment promotions"],
+    "business_model": "Membership-led medspa with additional revenue from treatment upsells and in-clinic retail",
     "known_problems": [
-      "Quotes take days to send; competitors respond faster",
-      "Crew check-in/out on paper",
-      "Some clients pay Net-60 without formal credit check"
-    ],
-    "systems_available": ["Google Workspace", "PDF quotes", "Bank CSV exports"],
-    "notes": "Growing from 12 to 25 crews this year."
-  },
-  {
-    "company_name": "Vita Oral Surgery Center",
-    "industry": "Dental / oral surgery",
-    "services": ["Extractions", "Implants", "IV sedation"],
-    "known_problems": [
-      "Referring dentists not consistently updated on case status",
-      "Pre-auth paperwork backlog",
-      "High-value cases with payment plans need monitoring"
-    ],
-    "systems_available": ["Epic referral module (read-only)", "Practice management for billing"],
-    "notes": "Hospital-adjacent; compliance-sensitive environment."
-  },
-  {
-    "company_name": "Glow & Go Medspa",
-    "industry": "Medical aesthetics",
-    "services": ["Membership facials", "Microneedling", "Retail skincare"],
-    "known_problems": [
-      "Membership churn after first 3 months",
-      "Retail attach rate low at checkout",
+      "Membership churn rises after the first three months",
+      "Retail attach rate at checkout is low",
       "Staff scheduling leaves treatment rooms idle mid-week"
     ],
-    "systems_available": ["Mindbody", "Square POS", "Klaviyo (limited use)"],
-    "notes": "Two rooms; owner runs social ads in-house."
+    "systems_available": ["Mindbody", "Square POS", "Klaviyo with limited usage", "Meta ads"],
+    "sales_notes": "Promotions generate interest, but follow-up from inquiry to booked consult is not tightly managed.",
+    "operations_notes": "Owner believes room utilization could support more revenue, but no one is measuring the gap consistently.",
+    "collections_notes": "Membership billing exists, but failed autopays and paused accounts are not actively worked.",
+    "digital_presence": "Active social ads, Instagram-heavy brand, online gift card sales",
+    "notes": "The owner wants growth without adding headcount immediately."
   },
   {
-    "company_name": "RapidFix Appliance Repair",
-    "industry": "Home services",
-    "services": ["Warranty work", "Paid repairs", "Parts sales"],
+    "company_name": "Peak Motion Physiotherapy",
+    "industry": "Physio / rehab clinic",
+    "services": ["Physiotherapy", "Massage therapy", "Rehab programs", "Employer-funded treatment plans"],
+    "business_model": "Clinic earning from booked provider appointments, rehab plans, and repeat visits funded by insurers, employers, and private pay",
     "known_problems": [
-      "Call center books overlapping arrival windows",
-      "Technicians lack parts availability before dispatch",
-      "Warranty billing rejections pile up"
+      "Initial assessments are full, but follow-on plan adherence drops after week two",
+      "Front desk spends significant time chasing insurer authorizations and missing paperwork",
+      "Employer-funded invoices are paid slowly and status is hard to track"
     ],
-    "systems_available": ["Zendesk", "Internal dispatch board (whiteboard + Excel)"],
-    "notes": "Franchisee; corporate mandates some tools but local ops are messy."
+    "systems_available": ["Jane App", "Xero", "Google Drive intake forms"],
+    "sales_notes": "The clinic gets enough new assessments, but ongoing program retention is weak and cross-sell into longer rehab plans is inconsistent.",
+    "operations_notes": "Admin workload around forms and approvals is slowing patient onboarding and clinician schedules.",
+    "collections_notes": "Corporate and insurer receivables have weak visibility once invoices are sent.",
+    "digital_presence": "Website, physician referrals, local SEO",
+    "notes": "Clinic manager wants better process discipline before adding more marketing."
   },
   {
     "company_name": "Harbor View Dental Spa",
-    "industry": "Dental",
-    "services": ["Cosmetic dentistry", "Perio maintenance", "Whitening"],
+    "industry": "Dental clinic",
+    "services": ["Cosmetic dentistry", "Perio maintenance", "Whitening", "Smile makeover cases"],
+    "business_model": "Boutique dental practice with high-value cosmetic treatment plans supported by hygiene retention and concierge-style service",
     "known_problems": [
-      "High-treatment plans stall after financial presentation",
-      "Hygiene reappointment rate below target",
-      "Small AR list but persistent repeat offenders"
+      "High-value treatment plans often stall after the financial presentation",
+      "Hygiene reappointment rate is below target",
+      "The AR list is small but includes repeat late payers"
     ],
     "systems_available": ["Eaglesoft", "Patient communication module", "Excel AR aging export"],
-    "notes": "Boutique positioning; concierge-style front desk."
+    "sales_notes": "Case acceptance for larger cosmetic plans is a major growth lever, but follow-up after consultation appears inconsistent.",
+    "operations_notes": "Front desk experience is high-touch, yet reappointment discipline is weaker than expected for a boutique practice.",
+    "collections_notes": "The volume of overdue balances is limited, but repeat late payers create avoidable friction for a premium brand.",
+    "digital_presence": "Polished website, before-and-after gallery, referral-driven cosmetic reputation",
+    "notes": "Owner is more concerned with conversion and retention than with pure collections volume."
+  },
+  {
+    "company_name": "Core Reform Pilates",
+    "industry": "Fitness studio",
+    "services": ["Reformer classes", "Private sessions", "Intro packs", "Recurring memberships"],
+    "business_model": "Class-pack and membership studio depending on recurring clients, intro offer conversion, and instructor utilization",
+    "known_problems": [
+      "Intro pack buyers do not consistently convert into recurring members",
+      "Waitlists are active for prime classes, but daytime classes remain underfilled",
+      "Payment failures and expired cards are followed up manually"
+    ],
+    "systems_available": ["Momence", "Stripe", "Instagram inquiries", "Google Sheets for instructor scheduling"],
+    "sales_notes": "The studio has demand at the top of funnel, but there is no structured conversion process from intro offer to ongoing membership.",
+    "operations_notes": "Capacity is uneven across the week and instructor planning is partly manual.",
+    "collections_notes": "Recurring billing exists, but failed payments and package expiry follow-up depend on whoever notices first.",
+    "digital_presence": "Strong Instagram community, referral partnerships, online class booking",
+    "notes": "Founder wants to grow MRR without expanding the studio footprint this year."
   }
 ]

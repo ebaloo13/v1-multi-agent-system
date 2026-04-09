@@ -11,6 +11,8 @@
     "operations:batch": "tsx scripts/run-operations-batch.ts",
     "audit": "tsx scripts/run-audit.ts",
     "audit:batch": "tsx scripts/run-audit-batch.ts",
+    "preaudit": "tsx scripts/run-preaudit.ts",
+    "preaudit:batch": "tsx scripts/run-preaudit-batch.ts",
     "orchestrator": "tsx scripts/run-orchestrator.ts",
     "orchestrator:batch": "tsx scripts/run-orchestrator-batch.ts",
     "typecheck": "tsc --noEmit",

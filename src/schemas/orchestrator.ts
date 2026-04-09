@@ -35,6 +35,9 @@ export const OrchestratorFinalOutputSchema = z
     orchestrator: OrchestratorOutputSchema,
     agents_executed: z.array(OrchestratorAgentNameSchema),
     results: OrchestratorFinalResultsSchema,
+    top_findings: z.array(z.string()),
+    quick_wins: z.array(z.string()),
+    recommended_next_actions: z.array(z.string()),
     final_summary: z.string(),
   })
   .superRefine((data, ctx) => {

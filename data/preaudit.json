@@ -1,0 +1,110 @@
+[
+  {
+    "company_name": "BrightSmile Family Dental",
+    "industry": "dental",
+    "website": "https://brightsmilefamilydental.com",
+    "digital_presence": {
+      "instagram": true,
+      "tiktok": false,
+      "blog": false,
+      "google_business": true
+    },
+    "notes": "Three-location dental group. Website looks dated, has many generic service pages, and relies heavily on brand search plus Google Maps traffic."
+  },
+  {
+    "company_name": "Harbor View Dental Spa",
+    "industry": "dental",
+    "website": "https://harborviewdentalspa.com",
+    "digital_presence": {
+      "instagram": true,
+      "tiktok": false,
+      "blog": true,
+      "google_business": true
+    },
+    "notes": "Boutique cosmetic practice with polished branding, but the blog has not been updated in over a year and mobile booking feels clunky."
+  },
+  {
+    "company_name": "Lumiere Aesthetic Institute",
+    "industry": "aesthetic",
+    "website": "https://lumiereaestheticinstitute.com",
+    "digital_presence": {
+      "instagram": true,
+      "tiktok": true,
+      "blog": false,
+      "google_business": true
+    },
+    "notes": "Medspa with strong paid social and Instagram presence. Home page is image-heavy and provider-led offers are not clearly segmented by intent."
+  },
+  {
+    "company_name": "Glow and Go Medspa",
+    "industry": "aesthetic",
+    "website": "https://glowandgomedspa.com",
+    "digital_presence": {
+      "instagram": true,
+      "tiktok": true,
+      "blog": false,
+      "google_business": true
+    },
+    "notes": "Membership-led medspa using seasonal promotions. Likely optimized for aesthetic branding more than search clarity or conversion tracking."
+  },
+  {
+    "company_name": "Harbor Fit Studio",
+    "industry": "gym",
+    "website": "https://harborfitstudio.com",
+    "digital_presence": {
+      "instagram": true,
+      "tiktok": false,
+      "blog": false,
+      "google_business": true
+    },
+    "notes": "Small-group fitness studio pushing free trials. Website appears modern but has oversized hero sections and limited local SEO content."
+  },
+  {
+    "company_name": "Core Reform Pilates",
+    "industry": "gym",
+    "website": "https://corereformpilates.com",
+    "digital_presence": {
+      "instagram": true,
+      "tiktok": true,
+      "blog": false,
+      "google_business": true
+    },
+    "notes": "Pilates studio with strong social community and premium visuals. Likely image-heavy mobile experience with weak conversion pathways from intro offers."
+  },
+  {
+    "company_name": "Northline HVAC and Plumbing",
+    "industry": "services",
+    "website": "https://northlinehvacplumbing.com",
+    "digital_presence": {
+      "instagram": false,
+      "tiktok": false,
+      "blog": true,
+      "google_business": true
+    },
+    "notes": "Home services business competing on local search. Service pages are broad, blog posts are basic, and tracking for call leads is unclear."
+  },
+  {
+    "company_name": "Peak Motion Physiotherapy",
+    "industry": "services",
+    "website": "https://peakmotionphysio.com",
+    "digital_presence": {
+      "instagram": true,
+      "tiktok": false,
+      "blog": true,
+      "google_business": true
+    },
+    "notes": "Clinic with referral traffic and local SEO ambitions. Content exists but reads generic, and above-the-fold messaging may be too clinical and low-conversion."
+  },
+  {
+    "company_name": "Elite Cleaning Partners",
+    "industry": "services",
+    "website": "https://elitecleaningpartners.com",
+    "digital_presence": {
+      "instagram": false,
+      "tiktok": false,
+      "blog": false,
+      "google_business": true
+    },
+    "notes": "Commercial cleaning firm. Website likely acts as a brochure with weak trust proof, thin search visibility, and minimal measurement setup."
+  }
+]

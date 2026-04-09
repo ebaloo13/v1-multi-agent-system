@@ -26,11 +26,14 @@ import {
   validateOrchestratorFinalOutput,
 } from "../orchestrator/validateOutput.js";
 import type { AuditOutput } from "../schemas/audit.js";
+import type { CollectionsOutput } from "../schemas/collections.js";
+import type { OperationsOutput } from "../schemas/operations.js";
 import type {
   OrchestratorFinalOutput,
   OrchestratorFinalResults,
   OrchestratorOutput,
 } from "../schemas/orchestrator.js";
+import type { SalesOutput } from "../schemas/sales.js";
 import type { AuditAgentSuccess } from "./audit-agent.js";
 import { runAuditAgent } from "./audit-agent.js";
 import { runCollectionsAgent } from "./collections-agent.js";
@@ -46,41 +49,180 @@ export type OrchestratorAgentSuccess = {
 function buildFinalSummary(
   audit: AuditOutput,
   routing: OrchestratorOutput,
-  agentsExecutedCount: number,
-  executionFailed: boolean,
+  results: OrchestratorFinalResults,
 ): string {
-  const recommended = audit.recommended_agents;
-  let auditSentence: string;
-  if (recommended.length === 0) {
-    auditSentence = "Audit recommended no specialized agents.";
-  } else if (recommended.length === 1) {
-    auditSentence = `Audit recommended ${recommended[0]}.`;
-  } else {
-    const head = recommended.slice(0, -1).join(", ");
-    const tail = recommended[recommended.length - 1];
-    auditSentence = `Audit recommended ${head} and ${tail}.`;
+  const painSnippet =
+    audit.main_pains.length > 0
+      ? audit.main_pains.slice(0, 2).join("; ")
+      : "No major pains were explicitly identified in the audit.";
+
+  const prioritySnippet =
+    routing.execution_priority.length > 0
+      ? `Priority order: ${routing.execution_priority.join(", ")}.`
+      : "No specialized execution priority was set.";
+
+  const executed = routing.activated_agents;
+  const executionSnippet =
+    executed.length > 0
+      ? `Activated agents: ${executed.join(", ")}.`
+      : "No specialized agents were activated.";
+
+  const resultSummaries = [
+    results.collections?.summary,
+    results.sales?.summary,
+    results.operations?.summary,
+  ].filter((value): value is string => Boolean(value));
+
+  const resultSnippet =
+    resultSummaries.length > 0
+      ? `Key execution outputs: ${resultSummaries.slice(0, 2).join(" ")}`
+      : "No subagent execution outputs were produced.";
+
+  return `${audit.company_summary} Main issues: ${painSnippet}. ${prioritySnippet} ${executionSnippet} ${resultSnippet}`.trim();
+}
+
+function normalizeText(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function uniqueList(items: string[], maxItems = 5): string[] {
+  const seen = new Set<string>();
+  const output: string[] = [];
+
+  for (const item of items) {
+    const cleaned = item.trim().replace(/\s+/g, " ");
+    if (cleaned.length === 0) {
+      continue;
+    }
+
+    const key = normalizeText(cleaned);
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    output.push(cleaned);
+
+    if (output.length >= maxItems) {
+      break;
+    }
   }
 
-  const n = routing.activated_agents.length;
-  const orchSentence =
-    n === 1
-      ? "Orchestrator activated 1 agent."
-      : `Orchestrator activated ${n} agents.`;
+  return output;
+}
 
-  let outcomeSentence: string;
-  if (executionFailed) {
-    outcomeSentence = "Execution stopped after a subagent failed.";
-  } else if (agentsExecutedCount === 0) {
-    outcomeSentence = "No specialized agents were run.";
-  } else if (agentsExecutedCount === 1) {
-    outcomeSentence = "It executed successfully.";
-  } else if (agentsExecutedCount === 2) {
-    outcomeSentence = "Both were executed successfully.";
-  } else {
-    outcomeSentence = `All ${agentsExecutedCount} were executed successfully.`;
+function typeLabel(value: string): string {
+  return value.replace(/_/g, " ");
+}
+
+function buildTopFindings(
+  audit: AuditOutput,
+  results: OrchestratorFinalResults,
+): string[] {
+  const findings = [
+    ...audit.main_pains,
+    results.collections?.summary,
+    results.sales?.summary,
+    results.operations?.summary,
+  ].filter((value): value is string => Boolean(value));
+
+  return uniqueList(findings, 5);
+}
+
+function buildQuickWins(results: OrchestratorFinalResults): string[] {
+  const wins: string[] = [];
+
+  if (results.collections?.actions.length) {
+    const top = [...results.collections.actions].sort(
+      (a, b) => b.priority_score - a.priority_score,
+    )[0];
+    wins.push(top.suggested_action);
   }
 
-  return `${auditSentence} ${orchSentence} ${outcomeSentence}`;
+  if (results.sales?.opportunities.length) {
+    const top = [...results.sales.opportunities].sort(
+      (a, b) => b.priority_score - a.priority_score,
+    )[0];
+    wins.push(top.suggested_action);
+  }
+
+  if (results.operations?.issues.length) {
+    const top = [...results.operations.issues].sort(
+      (a, b) => b.priority_score - a.priority_score,
+    )[0];
+    wins.push(top.suggested_action);
+  }
+
+  return uniqueList(wins, 5);
+}
+
+function buildCollectionsNextAction(output: CollectionsOutput): string | undefined {
+  if (output.actions.length === 0) {
+    return undefined;
+  }
+
+  const top = [...output.actions].sort(
+    (a, b) => b.priority_score - a.priority_score,
+  )[0];
+
+  return `Run collections follow-up for ${top.customer} on invoice ${top.invoice_id} using the drafted outreach. Priority action: ${top.suggested_action}`;
+}
+
+function buildSalesNextAction(output: SalesOutput): string | undefined {
+  if (output.opportunities.length === 0) {
+    return undefined;
+  }
+
+  const top = [...output.opportunities].sort(
+    (a, b) => b.priority_score - a.priority_score,
+  )[0];
+
+  return `Execute the highest-priority ${typeLabel(top.type)} action for ${top.customer} using the drafted message. Priority action: ${top.suggested_action}`;
+}
+
+function buildOperationsNextAction(output: OperationsOutput): string | undefined {
+  if (output.issues.length === 0) {
+    return undefined;
+  }
+
+  const top = [...output.issues].sort(
+    (a, b) => b.priority_score - a.priority_score,
+  )[0];
+
+  return `Address the ${typeLabel(top.type)} affecting ${top.entity}. Priority action: ${top.suggested_action}`;
+}
+
+function buildRecommendedNextActions(
+  routing: OrchestratorOutput,
+  results: OrchestratorFinalResults,
+): string[] {
+  const nextActions: string[] = [];
+
+  if (routing.recommended_next_step.trim().length > 0) {
+    nextActions.push(routing.recommended_next_step);
+  }
+
+  for (const agent of routing.execution_priority) {
+    switch (agent) {
+      case "collections":
+        if (results.collections) {
+          nextActions.push(buildCollectionsNextAction(results.collections) ?? "");
+        }
+        break;
+      case "sales":
+        if (results.sales) {
+          nextActions.push(buildSalesNextAction(results.sales) ?? "");
+        }
+        break;
+      case "operations":
+        if (results.operations) {
+          nextActions.push(buildOperationsNextAction(results.operations) ?? "");
+        }
+        break;
+    }
+  }
+
+  return uniqueList(nextActions, 5);
 }
 
 function parseDetailMessage(details: unknown): string | undefined {
@@ -293,12 +435,13 @@ export async function runOrchestratorAgent(): Promise<OrchestratorAgentSuccess> 
       orchestrator: routingOutput,
       agents_executed,
       results,
-      final_summary: buildFinalSummary(
-        auditResult.output,
+      top_findings: buildTopFindings(auditResult.output, results),
+      quick_wins: buildQuickWins(results),
+      recommended_next_actions: buildRecommendedNextActions(
         routingOutput,
-        agents_executed.length,
-        false,
+        results,
       ),
+      final_summary: buildFinalSummary(auditResult.output, routingOutput, results),
     };
     const finalOutput = validateOrchestratorFinalOutput(consolidatedUnknown);
 

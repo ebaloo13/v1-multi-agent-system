@@ -6,7 +6,13 @@ This repository contains B2B business agents built in TypeScript using the Claud
 Build realistic, production-oriented mock agents for SME consulting use cases that can later be deployed in real client environments.
 
 ## Current Focus
-Collections agent (Accounts Receivable / Debt Recovery)
+Documented multi-agent consulting workflow:
+- Preaudit agent
+- Audit agent
+- Orchestrator agent
+- Collections agent
+- Sales agent
+- Operations agent
 
 ---
 
@@ -21,26 +27,26 @@ Collections agent (Accounts Receivable / Debt Recovery)
 
 ---
 
-## Agent Responsibilities (Collections)
-The collections agent must:
+## Current Architecture
+The current documented flow is:
 
-1. Analyze overdue invoices
-2. Prioritize accounts based on risk
-3. Suggest clear next actions
-4. Generate professional communication drafts
-5. Output strictly structured JSON
+1. **Preaudit**: fast digital diagnostic for SEO, PageSpeed, UX, and tracking
+2. **Audit**: deeper business diagnostic covering business model, pains, available data, prioritization, and recommended specialist agents
+3. **Orchestrator**: routing and execution layer that runs the audit first, validates routing, and executes the selected specialist agents
+4. **Specialized agents**:
+   - Collections
+   - Sales
+   - Operations
+
+All agents are mock-data driven in the current phase.
 
 ---
 
 ## Output Requirements
 - Must return **valid JSON only** (no markdown fences)
 - Must conform to schema
-- Must include:
-  - summary
-  - prioritized actions
-  - risk classification
-  - suggested next steps
-  - email drafts (short, professional)
+- Must match the agent-specific validated output contract
+- Must be concise, auditable, and safe to store in `run.json`
 
 ---
 
@@ -48,6 +54,7 @@ The collections agent must:
 - Input data comes from static JSON files
 - No external integrations
 - No real customer data
+- No live browser automation or live website measurement yet
 
 ---
 
@@ -70,18 +77,16 @@ The collections agent must:
 
 ## Design Principles
 - Keep agents simple and composable
-- Avoid premature orchestration
+- Use orchestration only where the current architecture already requires it
 - Build reusable patterns across agents
 - Favor clarity over cleverness
 
 ---
 
 ## Near-Term Roadmap
-1. Finalize Collections agent (v1)
-2. Replicate pattern for:
-   - Sales agent
-   - Operations agent
-3. Introduce orchestrator agent (later stage)
+1. Keep preaudit, audit, orchestrator, and specialist agents aligned with the documented architecture
+2. Extend validation and tests across agents that still lag collections
+3. Add real integrations only when requirements are explicit
 
 ---
 
@@ -93,9 +98,13 @@ The collections agent must:
 
 ---
 
-## Definition of Done (Collections v1)
+## Definition of Done
 - Runs in batch mode
 - Produces valid structured outputs
 - Saves artifacts per run
 - Handles failures safely
-- Can be reused as a template for other agents
+- Preserves clear separation between:
+  - preaudit as fast digital diagnostic
+  - audit as deeper business diagnostic
+  - orchestrator as routing / execution
+  - collections / sales / operations as specialized execution agents
