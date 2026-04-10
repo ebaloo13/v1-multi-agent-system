@@ -17,8 +17,13 @@ export type PreauditRunArtifactStatus =
 export type PreauditRunArtifactV1 = {
   schema_version: 1;
   run_id: string;
+  display_run_id?: string;
+  client_slug?: string;
+  input_source?: "mock" | "live";
+  runtime?: "claude-sdk" | "pi-ai";
   started_at: string;
   finished_at: string;
+  duration_ms?: number;
   status: PreauditRunArtifactStatus;
   exit_code: 0 | 1;
   model: string;
@@ -39,6 +44,7 @@ export type PreauditRunArtifactV1 = {
   validation_errors?: unknown;
   parse_error_message?: string;
   unexpected_message?: string;
+  score_source?: "llm" | "deterministic";
 };
 
 export type PreauditRunEventLine = {

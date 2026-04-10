@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runPreauditAgent } from "../../src/agents/preaudit-agent.js";
+import { slugifyHostnameLabel } from "../../src/common/runNaming.js";
 import { PreauditRunError } from "../../src/preaudit/errors.js";
 import { getWebContext } from "../../src/preaudit/webContext.js";
 
@@ -56,6 +57,7 @@ async function main() {
   await fs.writeFile(liveInputPath, `${JSON.stringify([input], null, 2)}\n`, "utf8");
 
   process.env.PREAUDIT_INPUT_PATH = liveInputPath;
+  process.env.PREAUDIT_CLIENT_SLUG = slugifyHostnameLabel(new URL(context.url).hostname);
 
   try {
     const result = await runPreauditAgent(0);

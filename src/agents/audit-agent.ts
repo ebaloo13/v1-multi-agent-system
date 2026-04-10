@@ -1,6 +1,10 @@
 import "dotenv/config";
 import fs from "node:fs/promises";
 import path from "node:path";
+import {
+  deriveClientSlugFromRecord,
+  nextDisplayRunId,
+} from "../common/runNaming.js";
 import { buildAuditPrompt } from "../audit/contract.js";
 import { AuditRunError } from "../audit/errors.js";
 import { getLastAuditLLMSdk, runAuditLLM } from "../audit/piClient.js";
@@ -32,6 +36,10 @@ function parseDetailMessage(details: unknown): string | undefined {
   return undefined;
 }
 
+function durationMs(startedAt: string, finishedAt: string): number {
+  return Math.max(0, Date.parse(finishedAt) - Date.parse(startedAt));
+}
+
 export async function runAuditAgent(
   scenarioIndex?: number,
 ): Promise<AuditAgentSuccess> {
@@ -45,6 +53,9 @@ export async function runAuditAgent(
   const startedAt = new Date().toISOString();
   const gitCommit = getGitCommit(repoRoot);
   const auditDataPath = path.join(repoRoot, "data", "mock", "audit.json");
+  const inputSource = "mock";
+  let displayRunId = "";
+  let clientSlug = "generic-client";
   let auditDataSha = "";
   let promptSha = "";
   let prompt = "";
@@ -63,6 +74,10 @@ export async function runAuditAgent(
   > => ({
     schema_version: 1,
     run_id: runId,
+    display_run_id: displayRunId || undefined,
+    client_slug: clientSlug,
+    input_source: inputSource,
+    runtime: "pi-ai",
     started_at: startedAt,
     model: "haiku",
     audit_data_path: auditDataPath,
@@ -71,6 +86,7 @@ export async function runAuditAgent(
     audit_variant: auditVariant,
     git_commit: gitCommit,
     prompt_sha256: promptSha,
+    score_source: "llm",
   });
 
   try {
@@ -152,6 +168,10 @@ export async function runAuditAgent(
     }
 
     const selectedScenario = parsed[index];
+    clientSlug =
+      process.env.AUDIT_CLIENT_SLUG?.trim() ||
+      deriveClientSlugFromRecord(selectedScenario, "generic-client");
+    displayRunId = await nextDisplayRunId(repoRoot, "audit", clientSlug);
     const scenarioText = JSON.stringify(selectedScenario, null, 2);
     prompt = buildAuditPrompt(scenarioText);
     promptSha = sha256Utf8(prompt);
@@ -202,9 +222,11 @@ export async function runAuditAgent(
       }
 
       const finishedOk = new Date().toISOString();
+      const completedDurationMs = durationMs(startedAt, finishedOk);
       await writeAuditRunJson(runDir, {
         ...baseFields(),
         finished_at: finishedOk,
+        duration_ms: completedDurationMs,
         status: "success",
         exit_code: 0,
         sdk,
@@ -212,9 +234,12 @@ export async function runAuditAgent(
         validated_output: output,
       });
 
-      console.log(
-        `Audit run OK: ${output.recommended_agents.length} recommended agents — ${path.join(runDir, "run.json")}`,
-      );
+      console.log("[audit] success");
+      console.log(`display_run_id: ${displayRunId || runId}`);
+      console.log("runtime: pi-ai");
+      console.log(`input_source: ${inputSource}`);
+      console.log(`duration_ms: ${completedDurationMs}`);
+      console.log(`run_json: ${path.join(runDir, "run.json")}`);
 
       return { runId, artifactDir: runDir, output };
     } catch (cause) {
@@ -232,6 +257,7 @@ export async function runAuditAgent(
       await writeAuditRunJson(runDir, {
         ...baseFields(),
         finished_at: finishedAt,
+        duration_ms: durationMs(startedAt, finishedAt),
         status: "sdk_error",
         exit_code: 1,
         sdk,
@@ -251,6 +277,7 @@ export async function runAuditAgent(
       await writeAuditRunJson(runDir, {
         ...baseFields(),
         finished_at: finishedAt,
+        duration_ms: durationMs(startedAt, finishedAt),
         status: "unexpected_error",
         exit_code: 1,
         unexpected_message: e instanceof Error ? e.message : String(e),

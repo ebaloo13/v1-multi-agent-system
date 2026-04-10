@@ -6,6 +6,7 @@ import type { PreauditOutput } from "../../src/schemas/preaudit.js";
 
 type PreauditRunJson = {
   run_id?: string;
+  display_run_id?: string;
   validated_output?: PreauditOutput;
 };
 
@@ -48,7 +49,10 @@ async function main() {
 
   const report = generatePreauditReport(runJson.validated_output);
   const reportPath = path.join(runDir, "report.md");
-  await fs.writeFile(reportPath, `${report}\n`, "utf8");
+  const reportBody = runJson.display_run_id
+    ? `<!-- display_run_id: ${runJson.display_run_id} -->\n\n${report}\n`
+    : `${report}\n`;
+  await fs.writeFile(reportPath, reportBody, "utf8");
 
   console.log("reportPath:", reportPath);
 }

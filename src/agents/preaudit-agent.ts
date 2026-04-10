@@ -1,6 +1,10 @@
 import "dotenv/config";
 import fs from "node:fs/promises";
 import path from "node:path";
+import {
+  deriveClientSlugFromRecord,
+  nextDisplayRunId,
+} from "../common/runNaming.js";
 import { buildPreauditPrompt } from "../preaudit/contract.js";
 import { PreauditRunError } from "../preaudit/errors.js";
 import { getLastPreauditLLMSdk, runPreauditLLM } from "../preaudit/piClient.js";
@@ -37,6 +41,10 @@ function parseDetailMessage(details: unknown): string | undefined {
   return undefined;
 }
 
+function durationMs(startedAt: string, finishedAt: string): number {
+  return Math.max(0, Date.parse(finishedAt) - Date.parse(startedAt));
+}
+
 export async function runPreauditAgent(
   scenarioIndex?: number,
 ): Promise<PreauditAgentSuccess> {
@@ -50,6 +58,9 @@ export async function runPreauditAgent(
   const gitCommit = getGitCommit(repoRoot);
   const preauditDataPath =
     process.env.PREAUDIT_INPUT_PATH?.trim() || path.join(repoRoot, "data", "mock", "preaudit.json");
+  const inputSource = process.env.PREAUDIT_INPUT_PATH?.trim() ? "live" : "mock";
+  let displayRunId = "";
+  let clientSlug = "generic-client";
   let preauditDataSha = "";
   let promptSha = "";
   let prompt = "";
@@ -68,6 +79,10 @@ export async function runPreauditAgent(
   > => ({
     schema_version: 1,
     run_id: runId,
+    display_run_id: displayRunId || undefined,
+    client_slug: clientSlug,
+    input_source: inputSource,
+    runtime: "pi-ai",
     started_at: startedAt,
     model: "haiku",
     preaudit_data_path: preauditDataPath,
@@ -75,6 +90,7 @@ export async function runPreauditAgent(
     preaudit_record_index: index,
     git_commit: gitCommit,
     prompt_sha256: promptSha,
+    score_source: "deterministic",
   });
 
   try {
@@ -156,6 +172,10 @@ export async function runPreauditAgent(
     }
 
     const selectedScenario = parsed[index];
+    clientSlug =
+      process.env.PREAUDIT_CLIENT_SLUG?.trim() ||
+      deriveClientSlugFromRecord(selectedScenario, "generic-client");
+    displayRunId = await nextDisplayRunId(repoRoot, "preaudit", clientSlug);
     const scenarioText = JSON.stringify(selectedScenario, null, 2);
     prompt = buildPreauditPrompt(scenarioText);
     promptSha = sha256Utf8(prompt);
@@ -209,9 +229,11 @@ export async function runPreauditAgent(
       }
 
       const finishedOk = new Date().toISOString();
+      const completedDurationMs = durationMs(startedAt, finishedOk);
       await writePreauditRunJson(runDir, {
         ...baseFields(),
         finished_at: finishedOk,
+        duration_ms: completedDurationMs,
         status: "success",
         exit_code: 0,
         sdk,
@@ -219,9 +241,14 @@ export async function runPreauditAgent(
         validated_output: output,
       });
 
-      console.log(
-        `Preaudit run OK: ${output.priority_alerts.length} alerts — ${path.join(runDir, "run.json")}`,
-      );
+      console.log("[preaudit] success");
+      console.log(`display_run_id: ${displayRunId || runId}`);
+      console.log("runtime: pi-ai");
+      console.log(`input_source: ${inputSource}`);
+      console.log(`duration_ms: ${completedDurationMs}`);
+      console.log(`scores: SEO ${output.seo_score} | Speed ${output.speed_score} | UX ${output.ux_score}`);
+      console.log(`report: ${path.join(runDir, "report.md")}`);
+      console.log(`run_json: ${path.join(runDir, "run.json")}`);
 
       return { runId, artifactDir: runDir, output };
     } catch (cause) {
@@ -239,6 +266,7 @@ export async function runPreauditAgent(
       await writePreauditRunJson(runDir, {
         ...baseFields(),
         finished_at: finishedAt,
+        duration_ms: durationMs(startedAt, finishedAt),
         status: "sdk_error",
         exit_code: 1,
         sdk,
@@ -258,6 +286,7 @@ export async function runPreauditAgent(
       await writePreauditRunJson(runDir, {
         ...baseFields(),
         finished_at: finishedAt,
+        duration_ms: durationMs(startedAt, finishedAt),
         status: "unexpected_error",
         exit_code: 1,
         unexpected_message: e instanceof Error ? e.message : String(e),
