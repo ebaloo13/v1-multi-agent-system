@@ -16,12 +16,22 @@ async function getLatestPreauditRunDir(runsDir: string): Promise<string> {
     .map((entry) => entry.name)
     .sort();
 
-  const latest = preauditRunDirs.at(-1);
-  if (!latest) {
-    throw new Error("No preaudit runs found in artifacts/runs");
+  for (let i = preauditRunDirs.length - 1; i >= 0; i--) {
+    const candidate = preauditRunDirs[i];
+    if (!candidate) {
+      continue;
+    }
+
+    const runJsonPath = path.join(runsDir, candidate, "run.json");
+    try {
+      await fs.access(runJsonPath);
+      return path.join(runsDir, candidate);
+    } catch {
+      continue;
+    }
   }
 
-  return path.join(runsDir, latest);
+  throw new Error("No completed preaudit runs with run.json found in artifacts/runs");
 }
 
 async function main() {

@@ -16,6 +16,11 @@ import {
   writePreauditRunJson,
   type PreauditRunArtifactV1,
 } from "../preaudit/runArtifact.js";
+import {
+  computeSeoScore,
+  computeSpeedScore,
+  computeUxScore,
+} from "../preaudit/scoring.js";
 import { parseAndValidatePreauditOutput } from "../preaudit/validateOutput.js";
 import type { PreauditOutput } from "../schemas/preaudit.js";
 
@@ -173,6 +178,10 @@ export async function runPreauditAgent(
       let output: PreauditOutput;
       try {
         output = parseAndValidatePreauditOutput(terminalResult.result);
+        output.seo_score = computeSeoScore(output);
+        output.speed_score = computeSpeedScore(output);
+        output.ux_score = computeUxScore(output);
+        console.log("Deterministic scores applied");
       } catch (e) {
         const ft = new Date().toISOString();
         if (e instanceof PreauditRunError && e.code === "OUTPUT_PARSE") {
