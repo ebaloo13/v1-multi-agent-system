@@ -1,5 +1,10 @@
 import type { PreauditOutput } from "../schemas/preaudit.js";
 
+type PreauditReportContext = {
+  framework_fit?: "good" | "partial" | "poor";
+  site_type?: string;
+};
+
 function deriveCompanyName(companySummary: string): string {
   const summary = companySummary.trim();
   if (summary.length === 0) {
@@ -57,9 +62,29 @@ function uxBusinessMeaning(score: number): string {
   return "visitor friction is likely making it harder to turn attention into inquiries or bookings.";
 }
 
-export function generatePreauditReport(data: PreauditOutput): string {
+function scopeNote(context?: PreauditReportContext): string | null {
+  if (context?.framework_fit === "good") {
+    return null;
+  }
+
+  if (context?.framework_fit === "poor") {
+    return "This pre-audit framework is optimized for SME lead-generation and service businesses. The current site appears to fall outside that scope, so findings and scores should be treated as directional rather than a complete benchmark.";
+  }
+
+  if (context?.framework_fit === "partial") {
+    return "This pre-audit framework is optimized for SME lead-generation and service businesses. The current site appears to fall partially outside that scope, so findings should be treated as directional rather than a complete benchmark.";
+  }
+
+  return null;
+}
+
+export function generatePreauditReport(
+  data: PreauditOutput,
+  context?: PreauditReportContext,
+): string {
   const companyName = deriveCompanyName(data.company_summary);
   const priorityAlerts = data.priority_alerts.slice(0, 5);
+  const note = scopeNote(context);
 
   return [
     `# ${companyName} — Pre-Audit Digital`,
@@ -69,6 +94,15 @@ export function generatePreauditReport(data: PreauditOutput): string {
     "",
     "---",
     "",
+    ...(note
+      ? [
+          "## Scope Note",
+          note,
+          "",
+          "---",
+          "",
+        ]
+      : []),
     "## Scores",
     `- SEO: ${data.seo_score}/100 — ${seoBusinessMeaning(data.seo_score)}`,
     `- Speed: ${data.speed_score}/100 — ${speedBusinessMeaning(data.speed_score)}`,

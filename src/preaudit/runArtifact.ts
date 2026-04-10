@@ -4,6 +4,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
+import type {
+  PreauditFrameworkFit,
+  PreauditScopeConfidence,
+  PreauditSiteType,
+} from "./scope.js";
 import type { PreauditOutput } from "../schemas/preaudit.js";
 
 export type PreauditRunArtifactStatus =
@@ -32,6 +37,9 @@ export type PreauditRunArtifactV1 = {
   preaudit_record_index?: number;
   git_commit: string | null;
   prompt_sha256: string;
+  site_type?: PreauditSiteType;
+  framework_fit?: PreauditFrameworkFit;
+  scope_confidence?: PreauditScopeConfidence;
   sdk?: {
     subtype: string;
     errors?: string[];

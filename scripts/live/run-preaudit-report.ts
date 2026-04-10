@@ -7,6 +7,8 @@ import type { PreauditOutput } from "../../src/schemas/preaudit.js";
 type PreauditRunJson = {
   run_id?: string;
   display_run_id?: string;
+  framework_fit?: "good" | "partial" | "poor";
+  site_type?: string;
   validated_output?: PreauditOutput;
 };
 
@@ -47,7 +49,10 @@ async function main() {
     throw new Error(`Latest preaudit run has no validated_output: ${runJsonPath}`);
   }
 
-  const report = generatePreauditReport(runJson.validated_output);
+  const report = generatePreauditReport(runJson.validated_output, {
+    framework_fit: runJson.framework_fit,
+    site_type: runJson.site_type,
+  });
   const reportPath = path.join(runDir, "report.md");
   const reportBody = runJson.display_run_id
     ? `<!-- display_run_id: ${runJson.display_run_id} -->\n\n${report}\n`

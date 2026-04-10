@@ -25,6 +25,7 @@ import {
   computeSpeedScore,
   computeUxScore,
 } from "../preaudit/scoring.js";
+import { classifyPreauditScope } from "../preaudit/scope.js";
 import { parseAndValidatePreauditOutput } from "../preaudit/validateOutput.js";
 import type { PreauditOutput } from "../schemas/preaudit.js";
 
@@ -61,6 +62,9 @@ export async function runPreauditAgent(
   const inputSource = process.env.PREAUDIT_INPUT_PATH?.trim() ? "live" : "mock";
   let displayRunId = "";
   let clientSlug = "generic-client";
+  let siteType: ReturnType<typeof classifyPreauditScope>["site_type"] | undefined;
+  let frameworkFit: ReturnType<typeof classifyPreauditScope>["framework_fit"] | undefined;
+  let scopeConfidence: ReturnType<typeof classifyPreauditScope>["confidence"] | undefined;
   let preauditDataSha = "";
   let promptSha = "";
   let prompt = "";
@@ -91,6 +95,9 @@ export async function runPreauditAgent(
     git_commit: gitCommit,
     prompt_sha256: promptSha,
     score_source: "deterministic",
+    site_type: siteType,
+    framework_fit: frameworkFit,
+    scope_confidence: scopeConfidence,
   });
 
   try {
@@ -176,6 +183,10 @@ export async function runPreauditAgent(
       process.env.PREAUDIT_CLIENT_SLUG?.trim() ||
       deriveClientSlugFromRecord(selectedScenario, "generic-client");
     displayRunId = await nextDisplayRunId(repoRoot, "preaudit", clientSlug);
+    const scope = classifyPreauditScope(selectedScenario);
+    siteType = scope.site_type;
+    frameworkFit = scope.framework_fit;
+    scopeConfidence = scope.confidence;
     const scenarioText = JSON.stringify(selectedScenario, null, 2);
     prompt = buildPreauditPrompt(scenarioText);
     promptSha = sha256Utf8(prompt);
@@ -245,6 +256,8 @@ export async function runPreauditAgent(
       console.log(`display_run_id: ${displayRunId || runId}`);
       console.log("runtime: pi-ai");
       console.log(`input_source: ${inputSource}`);
+      console.log(`site_type: ${siteType ?? "unknown"}`);
+      console.log(`framework_fit: ${frameworkFit ?? "partial"} (${scopeConfidence ?? "low"})`);
       console.log(`duration_ms: ${completedDurationMs}`);
       console.log(`scores: SEO ${output.seo_score} | Speed ${output.speed_score} | UX ${output.ux_score}`);
       console.log(`report: ${path.join(runDir, "report.md")}`);
