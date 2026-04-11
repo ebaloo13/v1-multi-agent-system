@@ -46,6 +46,7 @@ Most agents are mock-data driven in the current phase. Preaudit also supports a 
 - `scripts/live/` contains live preaudit ingestion and deterministic report generation entrypoints
 - `data/mock/` contains the current mock JSON fixtures
 - `data/clients/` contains generated live client inputs for preaudit runs
+- `src/common/` contains lightweight shared helpers such as run naming
 
 ### LLM Usage
 - `preaudit-agent` and `audit-agent` use `pi-ai` (multi-provider abstraction)
@@ -60,6 +61,7 @@ This separation allows controlled migration and evaluation of different model pr
 - Must conform to schema
 - Must match the agent-specific validated output contract
 - Must be concise, auditable, and safe to store in `run.json`
+- For preaudit, model-generated scores are not trusted as final; deterministic scoring in code is the source of truth written to `validated_output`
 
 ---
 
@@ -69,6 +71,7 @@ This separation allows controlled migration and evaluation of different model pr
 - No external integrations
 - No real customer data
 - No live browser automation, crawling, or live website measurement yet
+- Preaudit scope-fit classification is heuristic and is used only to add prudence, not to block runs
 
 ---
 
@@ -78,6 +81,7 @@ This separation allows controlled migration and evaluation of different model pr
 - Strict parsing (fail on invalid JSON)
 - Keep demo/mock execution clearly separated from future live execution
 - Presentation/reporting layers must remain deterministic and derive only from validated output
+- Observability metadata in artifacts may be extended, but existing artifact readers must keep working
 - All runs must generate artifacts:
   - run.json
   - events.ndjson
@@ -96,6 +100,7 @@ This separation allows controlled migration and evaluation of different model pr
 - Use orchestration only where the current architecture already requires it
 - Build reusable patterns across agents
 - Favor clarity over cleverness
+- Prefer lightweight heuristics over infrastructure when adding prudence or traceability
 
 ---
 
@@ -113,6 +118,7 @@ This separation allows controlled migration and evaluation of different model pr
 - Relying on LLM outputs without validation
 - Mixing responsibilities across agents
 - Turning presentation/report scripts into business-logic layers
+- Treating enterprise or platform sites as if the SME lead-gen framework applies cleanly without qualification
 
 ---
 
@@ -123,6 +129,7 @@ This separation allows controlled migration and evaluation of different model pr
 - Produces valid structured outputs
 - Saves artifacts per run
 - Handles failures safely
+- Preserves internal traceability via `run_id` while allowing optional human-friendly artifact metadata such as `display_run_id`
 - Preserves clear separation between:
   - preaudit as fast digital diagnostic
   - audit as deeper business diagnostic

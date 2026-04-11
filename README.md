@@ -7,7 +7,7 @@ TypeScript multi-agent system for AI-driven SME consulting workflows (preaudit, 
 
 End-to-end flow:
 
-1. **Preaudit** runs a fast digital diagnostic to surface immediate opportunities across SEO, PageSpeed, UX, and tracking.
+1. **Preaudit** runs a fast digital diagnostic to surface immediate opportunities across SEO, PageSpeed, UX, and tracking, with deterministic scoring and a lightweight scope-fit layer for safer interpretation.
 2. **Audit v2** reads richer mock company scenarios and follows a staged internal diagnostic workflow: business understanding, pain detection, data / systems availability, prioritization, and agent recommendation.
 3. **Orchestrator** takes the **validated audit JSON** from a real audit run, decides which agents to activate, then executes the selected subagents and returns a richer consolidated structured output for internal consultant review.
 4. **Specialized agents** each read their own mock dataset and return schema-conforming JSON.
@@ -82,6 +82,7 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
 | `src/agents/` | Entry agents: preaudit, audit, orchestrator, collections, sales, operations |
 | `src/schemas/` | Zod schemas shared with validation |
 | `src/<agent>/` | Per-domain prompts (`contract.ts`), validation, run IDs, artifact writers, and deterministic presentation helpers where applicable |
+| `src/common/` | Small shared helpers such as human-friendly run naming |
 | `scripts/` | Top-level script folders for demo, batch, and future live entrypoints |
 | `data/mock/` | Mock JSON inputs (`preaudit.json`, `audit.json`, `invoices.json`, `sales.json`, `operations.json`, `orchestrator.json`) |
 | `data/clients/` | Live-ingestion inputs generated for client-specific runs (for example live preaudit context) |
@@ -152,8 +153,11 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
 - **`.env`** is **gitignored** so secrets are not committed. Use a local file or your shell environment for `ANTHROPIC_API_KEY`.
 - **Mock data** lives under **`data/mock/`** as JSON; `data/mock/preaudit.json` contains lightweight website / digital-presence scenarios, and `data/mock/audit.json` contains richer consulting-style intake scenarios for dental clinics, aesthetic clinics, fitness studios, and related service businesses. Replacing these files is the supported way to vary inputs in v1.
 - **Live preaudit ingestion** can fetch a single real homepage URL, extract lightweight page context, persist the generated input under `data/clients/`, and run through the same preaudit validation and artifact pipeline.
+- **Deterministic preaudit scoring** recalculates SEO, Speed, and UX scores in code from validated findings rather than trusting model-provided scores directly.
+- **Scope classification** adds a lightweight `site_type` / `framework_fit` / `scope_confidence` layer so enterprise or platform-like sites are treated more carefully than SME lead-generation sites.
 - **Execution separation** is explicit: `scripts/demo/` is for single mock/demo runs, `scripts/batch/` is for repeated mock/demo runs, and `scripts/live/` is for live ingestion and artifact-based reporting.
-- **Preaudit reports** are generated deterministically from `validated_output` only and written as `report.md` inside the run folder. They do not alter `run.json`, `events.ndjson`, schemas, or validation.
+- **Preaudit reports** are generated deterministically from `validated_output` plus optional run metadata and written as `report.md` inside the run folder. They do not alter schemas, validation, or raw model output.
+- **Run artifacts** now preserve the internal `run_id` while also adding a human-friendly `display_run_id` and optional observability metadata such as `client_slug`, `input_source`, `runtime`, `duration_ms`, `score_source`, and preaudit scope-fit fields.
 
 ---
 
@@ -196,7 +200,9 @@ Development runs use the **Haiku** model with tight **turn and budget limits** p
 - Multi-agent **preaudit → audit → orchestrator → specialized agents** flow is implemented with **structured, Zod-validated** outputs and **persisted run artifacts**.
 - **Preaudit** adds a fast digital diagnostic layer for early opportunity discovery before the deeper business diagnostic.
 - **Live preaudit ingestion** is available for single-page website analysis without browser automation or crawling.
-- **Preaudit reporting** now includes a deterministic Markdown export built from `validated_output`.
+- **Preaudit reporting** now includes a deterministic Markdown export built from `validated_output`, reframed for business owners rather than purely technical review.
+- **Preaudit run artifacts** include human-friendly `display_run_id` values and lightweight observability metadata for easier comparison across runs.
+- **Preaudit scope-fit classification** helps distinguish good-fit SME/service websites from poor-fit enterprise or platform sites, keeping the audit more prudent.
 - **Audit v2** now uses a staged internal diagnostic prompt while keeping the same output schema and artifact contract.
 - Orchestrator uses **real audit output** from an in-process audit run, not a hand-written stub.
 - Orchestrator final output now includes deterministic consultancy-style fields: `top_findings`, `quick_wins`, `recommended_next_actions`, and a richer `final_summary`.
