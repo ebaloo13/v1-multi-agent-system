@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { runPreauditAgent } from "../../src/agents/preaudit-agent.js";
 import { slugifyHostnameLabel } from "../../src/common/runNaming.js";
 import { PreauditRunError } from "../../src/preaudit/errors.js";
-import { getWebContext } from "../../src/preaudit/webContext.js";
+import { runPreauditFactsCollection } from "../../src/tools/harness.js";
 
 function parseUrlArg(argv: string[]): string {
   const arg = argv.find((value) => value.startsWith("--url="));
@@ -40,15 +40,20 @@ function deriveCompanyName(url: URL, title: string): string {
 async function main() {
   const urlArg = parseUrlArg(process.argv.slice(2));
   const normalizedUrl = new URL(urlArg);
-  const context = await getWebContext(normalizedUrl.toString());
-  const companyName = deriveCompanyName(new URL(context.url), context.title);
+  const facts = await runPreauditFactsCollection(normalizedUrl.toString());
+  const companyName = deriveCompanyName(
+    new URL(facts.extracted_context.url),
+    facts.extracted_context.title,
+  );
+  console.log(`tools_used: ${facts.tools_used.join(", ")}`);
 
   const input = {
     company_name: companyName,
     industry: "real estate",
-    website: context.url,
-    extracted_context: context,
-    notes: "live web analysis",
+    website: facts.extracted_context.url,
+    digital_presence: facts.digital_presence,
+    extracted_context: facts.extracted_context,
+    notes: "live web analysis via tool harness",
   };
 
   const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -57,7 +62,11 @@ async function main() {
   await fs.writeFile(liveInputPath, `${JSON.stringify([input], null, 2)}\n`, "utf8");
 
   process.env.PREAUDIT_INPUT_PATH = liveInputPath;
-  process.env.PREAUDIT_CLIENT_SLUG = slugifyHostnameLabel(new URL(context.url).hostname);
+  process.env.PREAUDIT_CLIENT_SLUG = slugifyHostnameLabel(
+    new URL(facts.extracted_context.url).hostname,
+  );
+  process.env.PREAUDIT_TOOLS_USED = facts.tools_used.join(",");
+  process.env.PREAUDIT_FACTS_COLLECTION_SOURCE = facts.facts_collection_source;
 
   try {
     const result = await runPreauditAgent(0);

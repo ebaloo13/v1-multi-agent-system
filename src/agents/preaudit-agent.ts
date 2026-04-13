@@ -46,6 +46,19 @@ function durationMs(startedAt: string, finishedAt: string): number {
   return Math.max(0, Date.parse(finishedAt) - Date.parse(startedAt));
 }
 
+function parseToolsUsedFromEnv(value: string | undefined): string[] | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = value
+    .split(",")
+    .map((tool) => tool.trim())
+    .filter((tool) => tool.length > 0);
+
+  return parsed.length > 0 ? parsed : undefined;
+}
+
 export async function runPreauditAgent(
   scenarioIndex?: number,
 ): Promise<PreauditAgentSuccess> {
@@ -60,6 +73,11 @@ export async function runPreauditAgent(
   const preauditDataPath =
     process.env.PREAUDIT_INPUT_PATH?.trim() || path.join(repoRoot, "data", "mock", "preaudit.json");
   const inputSource = process.env.PREAUDIT_INPUT_PATH?.trim() ? "live" : "mock";
+  const toolsUsed = parseToolsUsedFromEnv(process.env.PREAUDIT_TOOLS_USED);
+  const factsCollectionSource =
+    process.env.PREAUDIT_FACTS_COLLECTION_SOURCE?.trim() === "tool-harness"
+      ? "tool-harness"
+      : undefined;
   let displayRunId = "";
   let clientSlug = "generic-client";
   let siteType: ReturnType<typeof classifyPreauditScope>["site_type"] | undefined;
@@ -98,6 +116,8 @@ export async function runPreauditAgent(
     site_type: siteType,
     framework_fit: frameworkFit,
     scope_confidence: scopeConfidence,
+    tools_used: toolsUsed,
+    facts_collection_source: factsCollectionSource,
   });
 
   try {
@@ -256,6 +276,9 @@ export async function runPreauditAgent(
       console.log(`display_run_id: ${displayRunId || runId}`);
       console.log("runtime: pi-ai");
       console.log(`input_source: ${inputSource}`);
+      if (toolsUsed) {
+        console.log(`tools_used: ${toolsUsed.join(", ")}`);
+      }
       console.log(`site_type: ${siteType ?? "unknown"}`);
       console.log(`framework_fit: ${frameworkFit ?? "partial"} (${scopeConfidence ?? "low"})`);
       console.log(`duration_ms: ${completedDurationMs}`);

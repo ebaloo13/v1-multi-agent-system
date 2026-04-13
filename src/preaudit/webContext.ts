@@ -1,4 +1,4 @@
-type WebHeadingMap = {
+export type WebHeadingMap = {
   h1: string[];
   h2: string[];
 };
@@ -10,6 +10,12 @@ export type WebContext = {
   headings: WebHeadingMap;
   content: string;
   links: string[];
+};
+
+export type FetchedWebPage = WebContext & {
+  raw_html: string;
+  internal_links: string[];
+  social_links: string[];
 };
 
 const SOCIAL_HOST_PATTERNS = [
@@ -89,7 +95,7 @@ function isSocialHost(hostname: string): boolean {
   );
 }
 
-function extractLinks(html: string, pageUrl: URL, limit: number): string[] {
+function extractResolvedLinks(html: string, pageUrl: URL, limit: number): string[] {
   const pattern = /<a\b[^>]*href=["']([^"'#]+)["'][^>]*>/gi;
   const links: string[] = [];
   const seen = new Set<string>();
@@ -104,12 +110,8 @@ function extractLinks(html: string, pageUrl: URL, limit: number): string[] {
     let resolved: URL;
     try {
       resolved = new URL(href, pageUrl);
+      resolved.hash = "";
     } catch {
-      continue;
-    }
-
-    const isInternal = resolved.hostname === pageUrl.hostname;
-    if (!isInternal && !isSocialHost(resolved.hostname)) {
       continue;
     }
 
@@ -125,7 +127,34 @@ function extractLinks(html: string, pageUrl: URL, limit: number): string[] {
   return links;
 }
 
-export async function getWebContext(url: string): Promise<WebContext> {
+function filterLinks(
+  links: string[],
+  predicate: (resolved: URL) => boolean,
+  limit: number,
+): string[] {
+  const filtered: string[] = [];
+
+  for (const link of links) {
+    if (filtered.length >= limit) {
+      break;
+    }
+
+    let resolved: URL;
+    try {
+      resolved = new URL(link);
+    } catch {
+      continue;
+    }
+
+    if (predicate(resolved)) {
+      filtered.push(resolved.toString());
+    }
+  }
+
+  return filtered;
+}
+
+export async function fetchWebPage(url: string): Promise<FetchedWebPage> {
   const normalizedUrl = new URL(url);
   const response = await fetch(normalizedUrl, {
     headers: {
@@ -142,9 +171,21 @@ export async function getWebContext(url: string): Promise<WebContext> {
 
   const html = await response.text();
   const finalUrl = new URL(response.url);
+  const resolvedLinks = extractResolvedLinks(html, finalUrl, 80);
+  const internalLinks = filterLinks(
+    resolvedLinks,
+    (resolved) => resolved.hostname === finalUrl.hostname,
+    20,
+  );
+  const socialLinks = filterLinks(
+    resolvedLinks,
+    (resolved) => isSocialHost(resolved.hostname),
+    20,
+  );
 
   return {
     url: finalUrl.toString(),
+    raw_html: html,
     title: extractTitle(html),
     description: extractMetaDescription(html),
     headings: {
@@ -152,6 +193,20 @@ export async function getWebContext(url: string): Promise<WebContext> {
       h2: extractTagContents(html, "h2", 20),
     },
     content: extractVisibleText(html, 4000),
-    links: extractLinks(html, finalUrl, 20),
+    internal_links: internalLinks,
+    social_links: socialLinks,
+    links: [...internalLinks, ...socialLinks],
+  };
+}
+
+export async function getWebContext(url: string): Promise<WebContext> {
+  const page = await fetchWebPage(url);
+  return {
+    url: page.url,
+    title: page.title,
+    description: page.description,
+    headings: page.headings,
+    content: page.content,
+    links: page.links,
   };
 }

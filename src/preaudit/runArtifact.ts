@@ -53,6 +53,8 @@ export type PreauditRunArtifactV1 = {
   parse_error_message?: string;
   unexpected_message?: string;
   score_source?: "llm" | "deterministic";
+  tools_used?: string[];
+  facts_collection_source?: "tool-harness";
 };
 
 export type PreauditRunEventLine = {
