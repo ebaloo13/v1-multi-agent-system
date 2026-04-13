@@ -1,0 +1,32 @@
+{
+  "company_name": "Sample Growth Studio",
+  "industry": "Fitness studio",
+  "business_model": "Recurring memberships with additional revenue from private coaching and intro offers",
+  "location": "Vancouver, BC",
+  "business_goals": [
+    "Improve recurring membership retention",
+    "Convert more intro offers into ongoing memberships",
+    "Reduce manual admin work without adding headcount"
+  ],
+  "known_problems": [
+    "Lead follow-up is inconsistent after trial visits",
+    "Payment failures are noticed manually",
+    "Midday classes are underfilled"
+  ],
+  "available_assets": [
+    "Website with free trial form",
+    "Email list",
+    "Instagram account"
+  ],
+  "systems_available": [
+    "Mindbody",
+    "Stripe",
+    "Mailchimp",
+    "Google Sheets"
+  ],
+  "sales_notes": "Trial visitors get ad hoc follow-up and there is no consistent lead stage tracking after the first visit.",
+  "operations_notes": "Scheduling and class repackaging decisions are still manual, especially for underused midday slots.",
+  "collections_notes": "Failed recurring payments are retried manually and paused memberships are not reviewed on a fixed cadence.",
+  "digital_presence": "Website, Instagram, email list",
+  "notes": "Owner wants practical recommendations that fit the current team."
+}

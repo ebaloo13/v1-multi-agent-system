@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AuditOutput } from "../schemas/audit.js";
 import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
+import { artifactRunPath } from "../common/clientArtifacts.js";
 
 export type AuditRunArtifactStatus =
   | "success"
@@ -47,6 +48,13 @@ export type AuditRunArtifactV1 = {
   parse_error_message?: string;
   unexpected_message?: string;
   score_source?: "llm" | "deterministic";
+  audit_input_source?: "mock" | "structured";
+  intake_path?: string;
+  artifact_client_path?: string;
+  artifact_agent_path?: string;
+  source_preaudit_run_id?: string;
+  source_preaudit_display_run_id?: string;
+  source_preaudit_path?: string;
 };
 
 export type AuditRunEventLine = {
@@ -82,8 +90,20 @@ export function getGitCommit(repoRoot: string): string | null {
   }
 }
 
-export function auditRunDirFor(repoRoot: string, runId: string): string {
-  return path.join(repoRoot, "artifacts", "runs", runId);
+export function auditRunDirFor(
+  repoRoot: string,
+  params: {
+    runId: string;
+    clientSlug?: string;
+    displayRunId?: string;
+  },
+): string {
+  return artifactRunPath(repoRoot, {
+    runId: params.runId,
+    clientSlug: params.clientSlug,
+    displayRunId: params.displayRunId,
+    agent: "audit",
+  });
 }
 
 export function auditEventLineFromSdkMessage(message: {

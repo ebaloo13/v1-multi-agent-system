@@ -2,6 +2,13 @@ import "dotenv/config";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
+  artifactAgentPath,
+  artifactClientPath,
+  artifactRelativePath,
+  relocateRunDir,
+  writeLatestClientRunPointer,
+} from "../common/clientArtifacts.js";
+import {
   deriveClientSlugFromRecord,
   nextDisplayRunId,
 } from "../common/runNaming.js";
@@ -47,13 +54,20 @@ export async function runAuditAgent(
   const auditVariant = "pi-ai" as const;
   const repoRoot = resolveRepoRootFromModuleUrl(import.meta.url);
   const runId = createAuditRunId();
-  const runDir = auditRunDirFor(repoRoot, runId);
+  let runDir = auditRunDirFor(repoRoot, { runId });
   await fs.mkdir(runDir, { recursive: true });
 
   const startedAt = new Date().toISOString();
   const gitCommit = getGitCommit(repoRoot);
-  const auditDataPath = path.join(repoRoot, "data", "mock", "audit.json");
-  const inputSource = "mock";
+  const structuredAuditInputPath = process.env.AUDIT_INPUT_PATH?.trim();
+  const auditDataPath = structuredAuditInputPath || path.join(repoRoot, "data", "mock", "audit.json");
+  const inputSource = structuredAuditInputPath ? "live" : "mock";
+  const auditInputSource = structuredAuditInputPath ? "structured" : "mock";
+  const intakePath = process.env.AUDIT_INTAKE_PATH?.trim() || undefined;
+  const sourcePreauditRunId = process.env.SOURCE_PREAUDIT_RUN_ID?.trim() || undefined;
+  const sourcePreauditDisplayRunId =
+    process.env.SOURCE_PREAUDIT_DISPLAY_RUN_ID?.trim() || undefined;
+  const sourcePreauditPath = process.env.SOURCE_PREAUDIT_PATH?.trim() || undefined;
   let displayRunId = "";
   let clientSlug = "generic-client";
   let auditDataSha = "";
@@ -87,6 +101,13 @@ export async function runAuditAgent(
     git_commit: gitCommit,
     prompt_sha256: promptSha,
     score_source: "llm",
+    audit_input_source: auditInputSource,
+    intake_path: intakePath,
+    artifact_client_path: artifactRelativePath(repoRoot, artifactClientPath(repoRoot, clientSlug)),
+    artifact_agent_path: artifactRelativePath(repoRoot, artifactAgentPath(repoRoot, clientSlug, "audit")),
+    source_preaudit_run_id: sourcePreauditRunId,
+    source_preaudit_display_run_id: sourcePreauditDisplayRunId,
+    source_preaudit_path: sourcePreauditPath,
   });
 
   try {
@@ -172,6 +193,14 @@ export async function runAuditAgent(
       process.env.AUDIT_CLIENT_SLUG?.trim() ||
       deriveClientSlugFromRecord(selectedScenario, "generic-client");
     displayRunId = await nextDisplayRunId(repoRoot, "audit", clientSlug);
+    runDir = await relocateRunDir(
+      runDir,
+      auditRunDirFor(repoRoot, {
+        runId,
+        clientSlug,
+        displayRunId,
+      }),
+    );
     const scenarioText = JSON.stringify(selectedScenario, null, 2);
     prompt = buildAuditPrompt(scenarioText);
     promptSha = sha256Utf8(prompt);
@@ -233,11 +262,19 @@ export async function runAuditAgent(
         raw_model_output: terminalResult.result,
         validated_output: output,
       });
+      await writeLatestClientRunPointer(repoRoot, {
+        clientSlug,
+        agent: "audit",
+        displayRunId,
+        runId,
+        runDir,
+      });
 
       console.log("[audit] success");
       console.log(`display_run_id: ${displayRunId || runId}`);
       console.log("runtime: pi-ai");
       console.log(`input_source: ${inputSource}`);
+      console.log(`audit_input_source: ${auditInputSource}`);
       console.log(`duration_ms: ${completedDurationMs}`);
       console.log(`run_json: ${path.join(runDir, "run.json")}`);
 

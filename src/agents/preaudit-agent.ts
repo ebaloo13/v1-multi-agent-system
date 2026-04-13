@@ -2,6 +2,13 @@ import "dotenv/config";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
+  artifactAgentPath,
+  artifactClientPath,
+  artifactRelativePath,
+  relocateRunDir,
+  writeLatestClientRunPointer,
+} from "../common/clientArtifacts.js";
+import {
   deriveClientSlugFromRecord,
   nextDisplayRunId,
 } from "../common/runNaming.js";
@@ -65,7 +72,7 @@ export async function runPreauditAgent(
   const index = scenarioIndex ?? 0;
   const repoRoot = resolveRepoRootFromModuleUrl(import.meta.url);
   const runId = createPreauditRunId();
-  const runDir = preauditRunDirFor(repoRoot, runId);
+  let runDir = preauditRunDirFor(repoRoot, { runId });
   await fs.mkdir(runDir, { recursive: true });
 
   const startedAt = new Date().toISOString();
@@ -118,6 +125,11 @@ export async function runPreauditAgent(
     scope_confidence: scopeConfidence,
     tools_used: toolsUsed,
     facts_collection_source: factsCollectionSource,
+    artifact_client_path: artifactRelativePath(repoRoot, artifactClientPath(repoRoot, clientSlug)),
+    artifact_agent_path: artifactRelativePath(
+      repoRoot,
+      artifactAgentPath(repoRoot, clientSlug, "preaudit"),
+    ),
   });
 
   try {
@@ -203,6 +215,14 @@ export async function runPreauditAgent(
       process.env.PREAUDIT_CLIENT_SLUG?.trim() ||
       deriveClientSlugFromRecord(selectedScenario, "generic-client");
     displayRunId = await nextDisplayRunId(repoRoot, "preaudit", clientSlug);
+    runDir = await relocateRunDir(
+      runDir,
+      preauditRunDirFor(repoRoot, {
+        runId,
+        clientSlug,
+        displayRunId,
+      }),
+    );
     const scope = classifyPreauditScope(selectedScenario);
     siteType = scope.site_type;
     frameworkFit = scope.framework_fit;
@@ -270,6 +290,13 @@ export async function runPreauditAgent(
         sdk,
         raw_model_output: terminalResult.result,
         validated_output: output,
+      });
+      await writeLatestClientRunPointer(repoRoot, {
+        clientSlug,
+        agent: "preaudit",
+        displayRunId,
+        runId,
+        runDir,
       });
 
       console.log("[preaudit] success");

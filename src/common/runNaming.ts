@@ -57,6 +57,18 @@ export function deriveClientSlugFromRecord(record: unknown, fallback = "generic-
       return slugifyClientName(companyName);
     }
 
+    const companyProfileName =
+      "company_profile" in record &&
+      record.company_profile &&
+      typeof record.company_profile === "object" &&
+      "name" in record.company_profile &&
+      typeof record.company_profile.name === "string"
+        ? record.company_profile.name
+        : "";
+    if (companyProfileName.trim().length > 0) {
+      return slugifyClientName(companyProfileName);
+    }
+
     const website = "website" in record && typeof record.website === "string" ? record.website : "";
     if (website.trim().length > 0) {
       try {
@@ -76,29 +88,28 @@ export async function nextDisplayRunId(
   clientSlug: string,
 ): Promise<string> {
   const safeSlug = slugifyClientName(clientSlug);
-  const runsDir = path.join(repoRoot, "artifacts", "runs");
-  const entries = await fs.readdir(runsDir, { withFileTypes: true }).catch(() => []);
+  const agentDir = path.join(repoRoot, "artifacts", "clients", safeSlug, agent);
+  const entries = await fs.readdir(agentDir, { withFileTypes: true }).catch(() => []);
   const prefix = `${agent}-${safeSlug}-`;
   let highestSequence = 0;
 
   for (const entry of entries) {
-    if (!entry.isDirectory()) {
+    if (!entry.isDirectory() || !entry.name.startsWith(prefix)) {
       continue;
     }
 
-    const runJsonPath = path.join(runsDir, entry.name, "run.json");
-    let parsed: RunJsonWithDisplayId;
+    const runJsonPath = path.join(agentDir, entry.name, "run.json");
+    let displayRunId = entry.name;
     try {
-      parsed = JSON.parse(await fs.readFile(runJsonPath, "utf8")) as RunJsonWithDisplayId;
+      const parsed = JSON.parse(await fs.readFile(runJsonPath, "utf8")) as RunJsonWithDisplayId;
+      if (typeof parsed.display_run_id === "string" && parsed.display_run_id.startsWith(prefix)) {
+        displayRunId = parsed.display_run_id;
+      }
     } catch {
-      continue;
+      // Fall back to folder name
     }
 
-    if (typeof parsed.display_run_id !== "string" || !parsed.display_run_id.startsWith(prefix)) {
-      continue;
-    }
-
-    const sequenceText = parsed.display_run_id.slice(prefix.length);
+    const sequenceText = displayRunId.slice(prefix.length);
     const sequence = Number.parseInt(sequenceText, 10);
     if (Number.isInteger(sequence) && sequence > highestSequence) {
       highestSequence = sequence;

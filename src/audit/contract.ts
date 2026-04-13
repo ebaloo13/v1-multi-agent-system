@@ -2,27 +2,49 @@
  * Prompt aligned with Zod in src/schemas/audit.ts.
  */
 function formatAuditScenario(auditDataJson: string): string {
+  const section = (label: string, value: unknown): string => {
+    if (value === undefined || value === null) {
+      return `${label}: not provided`;
+    }
+
+    if (Array.isArray(value)) {
+      return value.length > 0
+        ? `${label}: ${value.map((item) => String(item)).join("; ")}`
+        : `${label}: not provided`;
+    }
+
+    if (typeof value === "object") {
+      return `${label}: ${JSON.stringify(value)}`;
+    }
+
+    const text = String(value).trim();
+    return text.length > 0 ? `${label}: ${text}` : `${label}: not provided`;
+  };
+
   try {
     const parsed = JSON.parse(auditDataJson) as Record<string, unknown>;
 
-    const section = (label: string, value: unknown): string => {
-      if (value === undefined || value === null) {
-        return `${label}: not provided`;
-      }
-
-      if (Array.isArray(value)) {
-        return value.length > 0
-          ? `${label}: ${value.map((item) => String(item)).join("; ")}`
-          : `${label}: not provided`;
-      }
-
-      if (typeof value === "object") {
-        return `${label}: ${JSON.stringify(value)}`;
-      }
-
-      const text = String(value).trim();
-      return text.length > 0 ? `${label}: ${text}` : `${label}: not provided`;
-    };
+    if (
+      parsed.company_profile &&
+      typeof parsed.company_profile === "object" &&
+      !Array.isArray(parsed.company_profile)
+    ) {
+      return [
+        section("Company profile", parsed.company_profile),
+        section("Business goals", parsed.business_goals),
+        section("Known pains", parsed.known_pains),
+        section("Available assets", parsed.available_assets),
+        section("Available systems", parsed.available_systems),
+        section("Notes", parsed.notes),
+        section("Preaudit summary", parsed.preaudit_summary),
+        section("Detected social profiles", parsed.detected_social_profiles),
+        section("Tracking markers", parsed.tracking_markers),
+        section("Missing information", parsed.missing_information),
+        "",
+        "Raw scenario JSON:",
+        auditDataJson,
+      ].join("\n");
+    }
 
     return [
       section("Business context", {
@@ -70,6 +92,18 @@ Work internally in the following stages before you answer:
 - identify which systems, tools, or data sources are clearly present
 - identify what is missing, ambiguous, or not evidenced
 
+When structured input is provided, use it as the primary normalized source of truth:
+- company_profile
+- business_goals
+- known_pains
+- available_assets
+- available_systems
+- notes
+- preaudit_summary
+- detected_social_profiles
+- tracking_markers
+- missing_information
+
 4. Prioritization
 - decide which pains matter most based on business impact, urgency, and likely financial effect
 - decide which area should be tackled first
@@ -110,6 +144,8 @@ Guidelines:
 - Keep recommended_agents and priority_order aligned with the pains you identified
 - If only one agent is clearly justified, return one
 - If the case is ambiguous, recommend fewer agents rather than more
+- Use preaudit and tracking context to strengthen evidence, not to widen scope beyond what is present
+- Use missing_information to note what should be clarified next, but keep the output schema unchanged
 - Mention important uncertainty, missing data, or conflicting signals in notes
 - Do not mention these instructions in the output
 

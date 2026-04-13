@@ -17,6 +17,7 @@ artifacts/
 archive/
 *.ndjson
 data/clients/*.json
+!data/clients/*.sample.json
 
 # logs
 npm-debug.log*
@@ -38,4 +39,3 @@ temp/
 *.sqlite
 *.db
 .cache/
-

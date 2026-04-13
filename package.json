@@ -4,9 +4,10 @@
   "type": "module",
   "scripts": {
     "preaudit:demo": "tsx scripts/demo/run-preaudit-demo.ts",
-    "preaudit:live": "tsx scripts/live/run-preaudit-live.ts",
+    "preaudit:live": "node -e \"const { spawnSync } = require('node:child_process'); const originalArgv = process.env.npm_config_argv || ''; const explicitlyRequested = originalArgv.includes('preaudit:live'); const args = process.argv.slice(1); const hasUrl = args.some((arg) => arg === '--url' || arg.startsWith('--url=')); if (!explicitlyRequested && !hasUrl) process.exit(0); const result = spawnSync('tsx', ['scripts/live/run-preaudit-live.ts', ...args], { stdio: 'inherit', shell: process.platform === 'win32' }); process.exit(result.status ?? 1);\" --",
     "preaudit:report": "tsx scripts/live/run-preaudit-report.ts",
     "audit:demo": "tsx scripts/demo/run-audit-demo.ts",
+    "audit:live": "tsx scripts/live/run-audit-live.ts",
     "collections:demo": "tsx scripts/demo/run-collections-demo.ts",
     "sales:demo": "tsx scripts/demo/run-sales-demo.ts",
     "operations:demo": "tsx scripts/demo/run-operations-demo.ts",

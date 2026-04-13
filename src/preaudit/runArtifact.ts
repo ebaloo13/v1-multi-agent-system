@@ -10,6 +10,7 @@ import type {
   PreauditSiteType,
 } from "./scope.js";
 import type { PreauditOutput } from "../schemas/preaudit.js";
+import { artifactRunPath } from "../common/clientArtifacts.js";
 
 export type PreauditRunArtifactStatus =
   | "success"
@@ -55,6 +56,8 @@ export type PreauditRunArtifactV1 = {
   score_source?: "llm" | "deterministic";
   tools_used?: string[];
   facts_collection_source?: "tool-harness";
+  artifact_client_path?: string;
+  artifact_agent_path?: string;
 };
 
 export type PreauditRunEventLine = {
@@ -90,8 +93,20 @@ export function getGitCommit(repoRoot: string): string | null {
   }
 }
 
-export function preauditRunDirFor(repoRoot: string, runId: string): string {
-  return path.join(repoRoot, "artifacts", "runs", runId);
+export function preauditRunDirFor(
+  repoRoot: string,
+  params: {
+    runId: string;
+    clientSlug?: string;
+    displayRunId?: string;
+  },
+): string {
+  return artifactRunPath(repoRoot, {
+    runId: params.runId,
+    clientSlug: params.clientSlug,
+    displayRunId: params.displayRunId,
+    agent: "preaudit",
+  });
 }
 
 export function preauditEventLineFromSdkMessage(message: {

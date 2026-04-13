@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { artifactClientsDir } from "../../src/common/clientArtifacts.js";
 import { generatePreauditReport } from "../../src/preaudit/report.js";
 import type { PreauditOutput } from "../../src/schemas/preaudit.js";
 
@@ -12,7 +13,11 @@ type PreauditRunJson = {
   validated_output?: PreauditOutput;
 };
 
-async function getLatestPreauditRunDir(runsDir: string): Promise<string> {
+type LatestPointerJson = {
+  path?: unknown;
+};
+
+async function getLatestPreauditRunDirFromLegacy(runsDir: string): Promise<string> {
   const entries = await fs.readdir(runsDir, { withFileTypes: true });
   const preauditRunDirs = entries
     .filter((entry) => entry.isDirectory() && entry.name.startsWith("preaudit-"))
@@ -37,10 +42,49 @@ async function getLatestPreauditRunDir(runsDir: string): Promise<string> {
   throw new Error("No completed preaudit runs with run.json found in artifacts/runs");
 }
 
+async function getLatestPreauditRunDirFromClients(repoRoot: string): Promise<string | null> {
+  const clientsDir = artifactClientsDir(repoRoot);
+  const clientEntries = await fs.readdir(clientsDir, { withFileTypes: true }).catch(() => []);
+  const candidates: Array<{ runDir: string; mtimeMs: number }> = [];
+
+  for (const clientEntry of clientEntries) {
+    if (!clientEntry.isDirectory()) {
+      continue;
+    }
+
+    const latestJsonPath = path.join(clientsDir, clientEntry.name, "preaudit", "latest.json");
+    let stat;
+    let parsed: LatestPointerJson;
+    try {
+      stat = await fs.stat(latestJsonPath);
+      parsed = JSON.parse(await fs.readFile(latestJsonPath, "utf8")) as LatestPointerJson;
+    } catch {
+      continue;
+    }
+
+    if (typeof parsed.path !== "string" || parsed.path.trim().length === 0) {
+      continue;
+    }
+
+    const runDir = path.isAbsolute(parsed.path) ? parsed.path : path.join(repoRoot, parsed.path);
+    try {
+      await fs.access(path.join(runDir, "run.json"));
+      candidates.push({ runDir, mtimeMs: stat.mtimeMs });
+    } catch {
+      continue;
+    }
+  }
+
+  candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  return candidates[0]?.runDir ?? null;
+}
+
 async function main() {
   const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
   const runsDir = path.join(repoRoot, "artifacts", "runs");
-  const runDir = await getLatestPreauditRunDir(runsDir);
+  const runDir =
+    (await getLatestPreauditRunDirFromClients(repoRoot)) ??
+    (await getLatestPreauditRunDirFromLegacy(runsDir));
   const runJsonPath = path.join(runDir, "run.json");
   const runJsonRaw = await fs.readFile(runJsonPath, "utf8");
   const runJson = JSON.parse(runJsonRaw) as PreauditRunJson;
