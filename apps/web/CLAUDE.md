@@ -1,51 +1,100 @@
 # Frontend App Context
 
-This directory contains the TanStack Start frontend shell for the B2B audit
-workflow. It is not the agent engine.
+This directory contains the TanStack Start frontend shell for the product UX.
+It is not the agent engine.
+
+## Product Layers
+
+The web app is intentionally split into two layers:
+
+- Public layer:
+  marketing, positioning, lead capture, and free preaudit entry at `/`
+- Client workspace layer:
+  Workspace v2 under `/workspace/$clientSlug`
+
+Workspace v2 is organized around:
+
+- `Dashboard`
+- `Diagnosis`
+- `Workstreams`
+- `Agents`
+
+Visible future-facing sections may appear as `Soon`, but they should not route
+to broken pages:
+
+- `Playbooks`
+- `Reports`
+- `Activity`
+
+Legacy standalone workflow routes remain only as compatibility redirects.
 
 ## Scope
 
-- Keep work inside `apps/web` unless a small repo-level metadata change is
-  explicitly required.
-- Do not restructure the repo root engine.
-- Do not move or rewrite the existing root `src/`, `scripts/`, `docs/`,
-  `data/`, or `artifacts/` trees from here.
+- Keep work inside `apps/web` unless a very small repo-level metadata change is
+  required.
+- Do not restructure or relocate the repo-root engine.
+- Do not move or rewrite existing root `src/`, `scripts/`, `docs/`, `data/`,
+  or `artifacts/` trees from here.
 
-## Product Boundary
+## Workflow Boundary
 
-The UX flow represented here is:
+The app still bridges into the existing local workflow:
 
-`preaudit:live -> preaudit report -> audit intake form -> audit:live`
+`landing -> preaudit:live -> workspace/diagnosis -> audit:live`
 
-For now this app is a shell:
-
-- route structure
-- business-facing screen copy
-- editable intake form shape
-- placeholder audit output structure
-
-It now includes a thin local server-function bridge that:
+The server-function bridge:
 
 - invokes the existing live scripts from the repo root
 - reads `artifacts/clients/<client-slug>/<agent>/latest.json`
 - reads per-run `run.json` and `report.md`
 - reads and writes `data/clients/*audit-intake*.json`
+- stores lightweight local client context in `data/clients/*-workspace.json`
 
-It still does not introduce a separate backend architecture.
+Local dev currently runs this bridge in a Node-compatible Vite/TanStack Start
+path so filesystem access works against the existing repo workflow. Treat that
+as a temporary development adapter, not the long-term production architecture.
 
-## Source of Truth
+## Local Client Context
+
+There is still no real auth, email delivery, or backend CRM model.
+
+For now, the public landing captures `website + email` and stores that email in
+a local workspace context file so the client workspace can show the linked lead
+record.
+
+Keep this simple and swappable. Do not overbuild a second persistence layer.
+
+## Source Of Truth
 
 Use these docs when changing UX or form structure:
 
 - `../../docs/product/audit-intake-form.md`
 - `../../docs/product/preaudit-to-audit-flow.md`
 
+Treat the existing file workflow as the source of truth. The frontend should
+present it more clearly, not replace it.
+
 ## Implementation Notes
 
 - Preserve TanStack Start conventions already scaffolded here.
-- Keep navigation and route structure simple unless a real integration requires
-  more.
+- Keep public copy business-facing and easy to understand.
+- Keep workspace copy structured, calm, and operational.
+- Treat the workspace as a client operating system, not a report page.
+- Reduce duplication aggressively by keeping shared client metadata and primary
+  next-action framing at the shell level.
+- Keep public navigation and workspace navigation separate.
+- Do not expose broken routes or fake sections.
 - Avoid inventing internal business facts in the intake draft. Only prefill
   what public-site evidence could plausibly support.
-- Treat the repo file workflow as the source of truth. Avoid adding alternative
-  persistence layers here.
+- Diagnosis is the hub for preaudit, intake, and audit. Older workspace routes
+  can redirect into it when needed.
+- Workstreams and Agents should stay connected to the real workflow artifacts
+  and audit conclusions, even if execution is still future-facing.
+
+## Current Limitations
+
+- no real authentication
+- no production persistence
+- no email sending
+- no CRM integrations
+- local-first behavior only

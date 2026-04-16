@@ -1,6 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
 import type { WorkflowSearch } from './workflow'
 import {
+  loadWorkspaceAgents,
+  loadWorkspaceDiagnosis,
+  loadWorkspaceOverview,
+  loadWorkspaceWorkstreams,
   loadAuditIntakeView,
   loadAuditView,
   loadPreauditView,
@@ -12,6 +16,30 @@ export const getPreauditView = createServerFn({ method: 'GET' })
   .inputValidator((data: WorkflowSearch) => data)
   .handler(async ({ data }) => {
     return loadPreauditView(data)
+  })
+
+export const getWorkspaceOverview = createServerFn({ method: 'GET' })
+  .inputValidator((data: { clientSlug: string }) => data)
+  .handler(async ({ data }) => {
+    return loadWorkspaceOverview(data.clientSlug)
+  })
+
+export const getWorkspaceDiagnosis = createServerFn({ method: 'GET' })
+  .inputValidator((data: { clientSlug: string }) => data)
+  .handler(async ({ data }) => {
+    return loadWorkspaceDiagnosis(data.clientSlug)
+  })
+
+export const getWorkspaceWorkstreams = createServerFn({ method: 'GET' })
+  .inputValidator((data: { clientSlug: string }) => data)
+  .handler(async ({ data }) => {
+    return loadWorkspaceWorkstreams(data.clientSlug)
+  })
+
+export const getWorkspaceAgents = createServerFn({ method: 'GET' })
+  .inputValidator((data: { clientSlug: string }) => data)
+  .handler(async ({ data }) => {
+    return loadWorkspaceAgents(data.clientSlug)
   })
 
 export const getAuditIntakeView = createServerFn({ method: 'GET' })
@@ -27,9 +55,9 @@ export const getAuditView = createServerFn({ method: 'GET' })
   })
 
 export const startPreaudit = createServerFn({ method: 'POST' })
-  .inputValidator((data: { url: string }) => data)
+  .inputValidator((data: { url: string; email: string }) => data)
   .handler(async ({ data }) => {
-    return runPreauditWorkflow(data.url)
+    return runPreauditWorkflow(data.url, data.email)
   })
 
 export const saveAndRunAudit = createServerFn({ method: 'POST' })

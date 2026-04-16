@@ -13,6 +13,14 @@ import { Route as PreauditResultRouteImport } from './routes/preaudit-result'
 import { Route as AuditResultRouteImport } from './routes/audit-result'
 import { Route as AuditIntakeRouteImport } from './routes/audit-intake'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkspaceClientSlugRouteImport } from './routes/workspace.$clientSlug'
+import { Route as WorkspaceClientSlugIndexRouteImport } from './routes/workspace.$clientSlug.index'
+import { Route as WorkspaceClientSlugWorkstreamsRouteImport } from './routes/workspace.$clientSlug.workstreams'
+import { Route as WorkspaceClientSlugPreauditRouteImport } from './routes/workspace.$clientSlug.preaudit'
+import { Route as WorkspaceClientSlugIntakeRouteImport } from './routes/workspace.$clientSlug.intake'
+import { Route as WorkspaceClientSlugDiagnosisRouteImport } from './routes/workspace.$clientSlug.diagnosis'
+import { Route as WorkspaceClientSlugAuditRouteImport } from './routes/workspace.$clientSlug.audit'
+import { Route as WorkspaceClientSlugAgentsRouteImport } from './routes/workspace.$clientSlug.agents'
 
 const PreauditResultRoute = PreauditResultRouteImport.update({
   id: '/preaudit-result',
@@ -34,18 +42,80 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceClientSlugRoute = WorkspaceClientSlugRouteImport.update({
+  id: '/workspace/$clientSlug',
+  path: '/workspace/$clientSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceClientSlugIndexRoute =
+  WorkspaceClientSlugIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugWorkstreamsRoute =
+  WorkspaceClientSlugWorkstreamsRouteImport.update({
+    id: '/workstreams',
+    path: '/workstreams',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugPreauditRoute =
+  WorkspaceClientSlugPreauditRouteImport.update({
+    id: '/preaudit',
+    path: '/preaudit',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugIntakeRoute =
+  WorkspaceClientSlugIntakeRouteImport.update({
+    id: '/intake',
+    path: '/intake',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugDiagnosisRoute =
+  WorkspaceClientSlugDiagnosisRouteImport.update({
+    id: '/diagnosis',
+    path: '/diagnosis',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugAuditRoute =
+  WorkspaceClientSlugAuditRouteImport.update({
+    id: '/audit',
+    path: '/audit',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugAgentsRoute =
+  WorkspaceClientSlugAgentsRouteImport.update({
+    id: '/agents',
+    path: '/agents',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit-intake': typeof AuditIntakeRoute
   '/audit-result': typeof AuditResultRoute
   '/preaudit-result': typeof PreauditResultRoute
+  '/workspace/$clientSlug': typeof WorkspaceClientSlugRouteWithChildren
+  '/workspace/$clientSlug/agents': typeof WorkspaceClientSlugAgentsRoute
+  '/workspace/$clientSlug/audit': typeof WorkspaceClientSlugAuditRoute
+  '/workspace/$clientSlug/diagnosis': typeof WorkspaceClientSlugDiagnosisRoute
+  '/workspace/$clientSlug/intake': typeof WorkspaceClientSlugIntakeRoute
+  '/workspace/$clientSlug/preaudit': typeof WorkspaceClientSlugPreauditRoute
+  '/workspace/$clientSlug/workstreams': typeof WorkspaceClientSlugWorkstreamsRoute
+  '/workspace/$clientSlug/': typeof WorkspaceClientSlugIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit-intake': typeof AuditIntakeRoute
   '/audit-result': typeof AuditResultRoute
   '/preaudit-result': typeof PreauditResultRoute
+  '/workspace/$clientSlug/agents': typeof WorkspaceClientSlugAgentsRoute
+  '/workspace/$clientSlug/audit': typeof WorkspaceClientSlugAuditRoute
+  '/workspace/$clientSlug/diagnosis': typeof WorkspaceClientSlugDiagnosisRoute
+  '/workspace/$clientSlug/intake': typeof WorkspaceClientSlugIntakeRoute
+  '/workspace/$clientSlug/preaudit': typeof WorkspaceClientSlugPreauditRoute
+  '/workspace/$clientSlug/workstreams': typeof WorkspaceClientSlugWorkstreamsRoute
+  '/workspace/$clientSlug': typeof WorkspaceClientSlugIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +123,57 @@ export interface FileRoutesById {
   '/audit-intake': typeof AuditIntakeRoute
   '/audit-result': typeof AuditResultRoute
   '/preaudit-result': typeof PreauditResultRoute
+  '/workspace/$clientSlug': typeof WorkspaceClientSlugRouteWithChildren
+  '/workspace/$clientSlug/agents': typeof WorkspaceClientSlugAgentsRoute
+  '/workspace/$clientSlug/audit': typeof WorkspaceClientSlugAuditRoute
+  '/workspace/$clientSlug/diagnosis': typeof WorkspaceClientSlugDiagnosisRoute
+  '/workspace/$clientSlug/intake': typeof WorkspaceClientSlugIntakeRoute
+  '/workspace/$clientSlug/preaudit': typeof WorkspaceClientSlugPreauditRoute
+  '/workspace/$clientSlug/workstreams': typeof WorkspaceClientSlugWorkstreamsRoute
+  '/workspace/$clientSlug/': typeof WorkspaceClientSlugIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/audit-intake' | '/audit-result' | '/preaudit-result'
+  fullPaths:
+    | '/'
+    | '/audit-intake'
+    | '/audit-result'
+    | '/preaudit-result'
+    | '/workspace/$clientSlug'
+    | '/workspace/$clientSlug/agents'
+    | '/workspace/$clientSlug/audit'
+    | '/workspace/$clientSlug/diagnosis'
+    | '/workspace/$clientSlug/intake'
+    | '/workspace/$clientSlug/preaudit'
+    | '/workspace/$clientSlug/workstreams'
+    | '/workspace/$clientSlug/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/audit-intake' | '/audit-result' | '/preaudit-result'
-  id: '__root__' | '/' | '/audit-intake' | '/audit-result' | '/preaudit-result'
+  to:
+    | '/'
+    | '/audit-intake'
+    | '/audit-result'
+    | '/preaudit-result'
+    | '/workspace/$clientSlug/agents'
+    | '/workspace/$clientSlug/audit'
+    | '/workspace/$clientSlug/diagnosis'
+    | '/workspace/$clientSlug/intake'
+    | '/workspace/$clientSlug/preaudit'
+    | '/workspace/$clientSlug/workstreams'
+    | '/workspace/$clientSlug'
+  id:
+    | '__root__'
+    | '/'
+    | '/audit-intake'
+    | '/audit-result'
+    | '/preaudit-result'
+    | '/workspace/$clientSlug'
+    | '/workspace/$clientSlug/agents'
+    | '/workspace/$clientSlug/audit'
+    | '/workspace/$clientSlug/diagnosis'
+    | '/workspace/$clientSlug/intake'
+    | '/workspace/$clientSlug/preaudit'
+    | '/workspace/$clientSlug/workstreams'
+    | '/workspace/$clientSlug/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +181,7 @@ export interface RootRouteChildren {
   AuditIntakeRoute: typeof AuditIntakeRoute
   AuditResultRoute: typeof AuditResultRoute
   PreauditResultRoute: typeof PreauditResultRoute
+  WorkspaceClientSlugRoute: typeof WorkspaceClientSlugRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -99,14 +214,94 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspace/$clientSlug': {
+      id: '/workspace/$clientSlug'
+      path: '/workspace/$clientSlug'
+      fullPath: '/workspace/$clientSlug'
+      preLoaderRoute: typeof WorkspaceClientSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workspace/$clientSlug/': {
+      id: '/workspace/$clientSlug/'
+      path: '/'
+      fullPath: '/workspace/$clientSlug/'
+      preLoaderRoute: typeof WorkspaceClientSlugIndexRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/workstreams': {
+      id: '/workspace/$clientSlug/workstreams'
+      path: '/workstreams'
+      fullPath: '/workspace/$clientSlug/workstreams'
+      preLoaderRoute: typeof WorkspaceClientSlugWorkstreamsRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/preaudit': {
+      id: '/workspace/$clientSlug/preaudit'
+      path: '/preaudit'
+      fullPath: '/workspace/$clientSlug/preaudit'
+      preLoaderRoute: typeof WorkspaceClientSlugPreauditRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/intake': {
+      id: '/workspace/$clientSlug/intake'
+      path: '/intake'
+      fullPath: '/workspace/$clientSlug/intake'
+      preLoaderRoute: typeof WorkspaceClientSlugIntakeRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/diagnosis': {
+      id: '/workspace/$clientSlug/diagnosis'
+      path: '/diagnosis'
+      fullPath: '/workspace/$clientSlug/diagnosis'
+      preLoaderRoute: typeof WorkspaceClientSlugDiagnosisRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/audit': {
+      id: '/workspace/$clientSlug/audit'
+      path: '/audit'
+      fullPath: '/workspace/$clientSlug/audit'
+      preLoaderRoute: typeof WorkspaceClientSlugAuditRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/agents': {
+      id: '/workspace/$clientSlug/agents'
+      path: '/agents'
+      fullPath: '/workspace/$clientSlug/agents'
+      preLoaderRoute: typeof WorkspaceClientSlugAgentsRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
   }
 }
+
+interface WorkspaceClientSlugRouteChildren {
+  WorkspaceClientSlugAgentsRoute: typeof WorkspaceClientSlugAgentsRoute
+  WorkspaceClientSlugAuditRoute: typeof WorkspaceClientSlugAuditRoute
+  WorkspaceClientSlugDiagnosisRoute: typeof WorkspaceClientSlugDiagnosisRoute
+  WorkspaceClientSlugIntakeRoute: typeof WorkspaceClientSlugIntakeRoute
+  WorkspaceClientSlugPreauditRoute: typeof WorkspaceClientSlugPreauditRoute
+  WorkspaceClientSlugWorkstreamsRoute: typeof WorkspaceClientSlugWorkstreamsRoute
+  WorkspaceClientSlugIndexRoute: typeof WorkspaceClientSlugIndexRoute
+}
+
+const WorkspaceClientSlugRouteChildren: WorkspaceClientSlugRouteChildren = {
+  WorkspaceClientSlugAgentsRoute: WorkspaceClientSlugAgentsRoute,
+  WorkspaceClientSlugAuditRoute: WorkspaceClientSlugAuditRoute,
+  WorkspaceClientSlugDiagnosisRoute: WorkspaceClientSlugDiagnosisRoute,
+  WorkspaceClientSlugIntakeRoute: WorkspaceClientSlugIntakeRoute,
+  WorkspaceClientSlugPreauditRoute: WorkspaceClientSlugPreauditRoute,
+  WorkspaceClientSlugWorkstreamsRoute: WorkspaceClientSlugWorkstreamsRoute,
+  WorkspaceClientSlugIndexRoute: WorkspaceClientSlugIndexRoute,
+}
+
+const WorkspaceClientSlugRouteWithChildren =
+  WorkspaceClientSlugRoute._addFileChildren(WorkspaceClientSlugRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditIntakeRoute: AuditIntakeRoute,
   AuditResultRoute: AuditResultRoute,
   PreauditResultRoute: PreauditResultRoute,
+  WorkspaceClientSlugRoute: WorkspaceClientSlugRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

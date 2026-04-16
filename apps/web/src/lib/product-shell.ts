@@ -1,5 +1,196 @@
 export const DEFAULT_WEBSITE = 'https://www.harborview-demo.com'
 
+export const publicNavItems = [
+  {
+    label: 'How It Works',
+    href: '#how-it-works',
+  },
+  {
+    label: 'What It Checks',
+    href: '#preaudit-checks',
+  },
+  {
+    label: 'Why It Matters',
+    href: '#why-it-matters',
+  },
+  {
+    label: 'Run Diagnostic',
+    href: '#lead-capture',
+  },
+] as const
+
+export const heroProofPoints = [
+  'Fast preaudit for service-led businesses and local operators',
+  'Website, lead flow, tracking, and operations reviewed in one pass',
+  'Clear handoff into a client workspace and deeper audit path',
+] as const
+
+export const capabilityModules = [
+  {
+    title: 'Conversion diagnostics',
+    detail: 'Identify weak calls to action, friction in inquiry paths, and unclear purchase momentum.',
+  },
+  {
+    title: 'Search visibility',
+    detail: 'Surface relevance gaps that reduce discoverability for local and service-led demand.',
+  },
+  {
+    title: 'Follow-up weakness',
+    detail: 'Spot where leads may be lost between form capture, sales response, and operational handoff.',
+  },
+  {
+    title: 'Tracking coverage',
+    detail: 'Review whether core measurement signals exist before deeper attribution and reporting work.',
+  },
+  {
+    title: 'CRM and ops gaps',
+    detail: 'Flag early signs of fragmented systems, manual workarounds, or missing workflow clarity.',
+  },
+  {
+    title: 'Next-step recommendations',
+    detail: 'Translate diagnostic findings into the most useful next move: intake, audit, or implementation.',
+  },
+] as const
+
+export const platformShowcasePanels = [
+  {
+    eyebrow: 'Signal capture',
+    title: 'Website and market-facing diagnostics',
+    detail:
+      'The platform starts with the public website: offer clarity, trust signals, routing, and conversion readiness.',
+  },
+  {
+    eyebrow: 'Operational readout',
+    title: 'Lead handling and measurement context',
+    detail:
+      'It turns scattered public signals into a sharper view of response speed, tracking coverage, and likely process bottlenecks.',
+  },
+  {
+    eyebrow: 'Execution path',
+    title: 'From preaudit to deeper audit',
+    detail:
+      'After the free diagnostic, the platform moves into intake, fuller audit framing, and future execution workstreams.',
+  },
+] as const
+
+export const showcaseStatTiles = [
+  {
+    value: '5',
+    label: 'Core diagnostic lenses',
+  },
+  {
+    value: '1',
+    label: 'Free preaudit entry point',
+  },
+  {
+    value: '3',
+    label: 'Workflow stages after landing',
+  },
+] as const
+
+export const audienceFits = [
+  'SMEs',
+  'Service businesses',
+  'Real estate teams',
+  'Clinics',
+  'Gyms',
+  'Local businesses',
+] as const
+
+export const howItWorksSteps = [
+  {
+    step: '01',
+    title: 'Enter your website',
+    detail: 'Submit a public URL and the best email to associate the diagnostic with your client record.',
+  },
+  {
+    step: '02',
+    title: 'Receive the preaudit',
+    detail: 'The existing preaudit workflow runs against the real site and generates report, scores, and draft intake context.',
+  },
+  {
+    step: '03',
+    title: 'Review opportunities',
+    detail: 'See visible friction, measurement gaps, and quick wins translated into business language.',
+  },
+  {
+    step: '04',
+    title: 'Continue to full audit',
+    detail: 'Move into a structured client workspace to confirm intake and progress toward the deeper audit.',
+  },
+] as const
+
+export const preauditChecks = [
+  {
+    title: 'Search visibility',
+    detail: 'Whether the site communicates relevance, clarity, and local demand capture potential.',
+  },
+  {
+    title: 'Conversion friction',
+    detail: 'Where the funnel loses momentum through weak calls to action, trust gaps, or unclear next steps.',
+  },
+  {
+    title: 'Tracking coverage',
+    detail: 'Whether essential measurement markers appear present before deeper attribution work begins.',
+  },
+  {
+    title: 'Digital presence',
+    detail: 'The public-facing signals around positioning, proof, and channel consistency.',
+  },
+  {
+    title: 'Quick wins',
+    detail: 'Practical near-term fixes that can improve clarity, lead quality, or follow-up readiness.',
+  },
+] as const
+
+export const whyItMattersPoints = [
+  {
+    title: 'Missed leads',
+    detail: 'A weak first impression or unclear CTA path can waste expensive traffic and referrals.',
+  },
+  {
+    title: 'Weak visibility',
+    detail: 'If the market cannot quickly understand the offer, the business loses qualified attention.',
+  },
+  {
+    title: 'Poor conversion',
+    detail: 'Lead capture issues compound when trust, routing, and response expectations are vague.',
+  },
+  {
+    title: 'Blind spots in decisions',
+    detail: 'When measurement is partial, channel spend and operational fixes are harder to prioritize.',
+  },
+] as const
+
+export const trustPositioningPoints = [
+  'The preaudit gives a fast read on website clarity, lead capture, and measurement coverage.',
+  'If the opportunity is real, we collect missing business context and open the deeper audit.',
+  'From there, the work can expand into focused improvement workstreams across marketing, sales, and operations.',
+] as const
+
+export const workspaceSectionMeta = {
+  dashboard: {
+    title: 'Dashboard',
+    summary:
+      'Command center for stage, next action, active workstreams, and execution readiness.',
+  },
+  diagnosis: {
+    title: 'Diagnosis',
+    summary:
+      'Unified diagnosis system for preaudit findings, intake context, and audit conclusions.',
+  },
+  workstreams: {
+    title: 'Workstreams',
+    summary:
+      'Turn findings into operational tracks with owners, next steps, and likely agent support.',
+  },
+  agents: {
+    title: 'Agents',
+    summary:
+      'Initial agent architecture for this client across sales, operations, growth, research, and future execution.',
+  },
+} as const
+
 export type IntakeDraft = {
   businessName: string
   industry: string
@@ -33,32 +224,53 @@ export type IntakeSection = {
   fields: IntakeField[]
 }
 
-export const flowStages = [
+export const workspaceTabs = [
   {
-    id: 'preaudit-live',
-    label: 'New Preaudit',
-    path: '/',
-    detail: 'Capture a public website URL and start the workflow.',
+    id: 'dashboard',
+    label: 'Dashboard',
+    href: '',
   },
   {
-    id: 'preaudit-report',
-    label: 'Preaudit Result',
-    path: '/preaudit-result',
-    detail: 'Translate public-site signals into a business-facing report.',
+    id: 'diagnosis',
+    label: 'Diagnosis',
+    href: '/diagnosis',
   },
   {
-    id: 'audit-intake',
-    label: 'Audit Intake',
-    path: '/audit-intake',
-    detail: 'Confirm only the missing business context the audit needs.',
+    id: 'workstreams',
+    label: 'Workstreams',
+    href: '/workstreams',
   },
   {
-    id: 'audit-live',
-    label: 'Audit Result',
-    path: '/audit-result',
-    detail: 'Prepare the richer diagnostic that will later feed the orchestrator.',
+    id: 'agents',
+    label: 'Agents',
+    href: '/agents',
   },
 ] as const
+
+export type WorkspaceSectionId = (typeof workspaceTabs)[number]['id']
+export type WorkspaceTabId = WorkspaceSectionId
+export const diagnosisPanels = ['overview', 'preaudit', 'intake', 'audit'] as const
+export type DiagnosisPanelId = (typeof diagnosisPanels)[number]
+
+export function workspaceHref(clientSlug: string, section: WorkspaceSectionId = 'dashboard') {
+  const basePath = `/workspace/${encodeURIComponent(clientSlug)}`
+  const tab = workspaceTabs.find((item) => item.id === section)
+
+  return `${basePath}${tab?.href ?? ''}`
+}
+
+export function workspaceDiagnosisHref(
+  clientSlug: string,
+  panel: DiagnosisPanelId = 'overview',
+) {
+  const basePath = workspaceHref(clientSlug, 'diagnosis')
+
+  return panel === 'overview' ? basePath : `${basePath}?panel=${panel}`
+}
+
+export function getWorkspaceSectionMeta(section: WorkspaceSectionId) {
+  return workspaceSectionMeta[section]
+}
 
 export const preauditSnapshot = {
   summary:
@@ -305,6 +517,14 @@ export function normalizeWebsite(rawWebsite?: string) {
   } catch {
     return DEFAULT_WEBSITE
   }
+}
+
+export function formatClientName(value: string) {
+  return value
+    .split(/[-_\s]+/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 export function buildIntakeDraft(rawWebsite?: string): IntakeDraft {

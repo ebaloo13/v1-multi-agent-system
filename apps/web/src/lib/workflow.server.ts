@@ -5,10 +5,24 @@ import { spawn } from 'node:child_process'
 import type {
   AuditIntakeView,
   AuditView,
+  WorkspaceAgent,
+  WorkspaceAgentsView,
+  WorkspaceArtifactSummary,
+  WorkspaceDashboardView,
+  WorkspaceDiagnosisView,
+  WorkspaceSectionId,
+  WorkspaceWorkstream,
+  WorkspaceWorkstreamsView,
   PreauditView,
+  WorkspaceClient,
   WorkflowSearch,
 } from './workflow'
-import { DEFAULT_WEBSITE, type IntakeDraft, normalizeWebsite } from './product-shell'
+import {
+  DEFAULT_WEBSITE,
+  formatClientName,
+  type IntakeDraft,
+  normalizeWebsite,
+} from './product-shell'
 
 type LatestPointer = {
   display_run_id: string
@@ -49,6 +63,15 @@ type AuditRunJson = {
   client_slug?: string
   intake_path?: string
   validated_output?: AuditValidatedOutput
+}
+
+type ClientContextFile = {
+  client_slug: string
+  client_name?: string
+  website?: string
+  email?: string
+  created_at: string
+  updated_at: string
 }
 
 type AuditIntakeFile = {
@@ -146,6 +169,10 @@ function intakePath(clientSlug: string) {
   return path.join(clientsDataDir(), `${clientSlug}-audit-intake.json`)
 }
 
+function clientContextPath(clientSlug: string) {
+  return path.join(clientsDataDir(), `${clientSlug}-workspace.json`)
+}
+
 async function readJsonFile<T>(filePath: string): Promise<T> {
   return JSON.parse(await fs.readFile(filePath, 'utf8')) as T
 }
@@ -176,6 +203,19 @@ async function readTextIfExists(filePath: string) {
 
 async function ensureDirectory(filePath: string) {
   await fs.mkdir(path.dirname(filePath), { recursive: true })
+}
+
+async function readMtimeMsIfExists(filePath: string) {
+  try {
+    const stats = await fs.stat(filePath)
+    return stats.mtimeMs
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return undefined
+    }
+
+    throw error
+  }
 }
 
 async function runCommand(command: string, args: string[]) {
@@ -282,6 +322,27 @@ function maybeUrlFromSearch(url?: string) {
   return url ? normalizeWebsite(url) : DEFAULT_WEBSITE
 }
 
+function normalizeEmail(rawEmail: string) {
+  const email = rawEmail.trim().toLowerCase()
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('Enter a valid email address before running the preaudit.')
+  }
+
+  return email
+}
+
+function deriveClientName(clientSlug: string, sources: Array<string | undefined>) {
+  for (const source of sources) {
+    const normalized = source?.trim()
+    if (normalized) {
+      return normalized
+    }
+  }
+
+  return formatClientName(clientSlug)
+}
+
 async function findLatestClientSlugForAgent(agent: 'preaudit' | 'audit') {
   const root = clientArtifactsDir()
   const clients = await fs.readdir(root, { withFileTypes: true }).catch(() => [])
@@ -365,6 +426,18 @@ async function readLatestPointer(clientSlug: string, agent: 'preaudit' | 'audit'
   return pointer
 }
 
+async function readLatestPointerIfExists(clientSlug: string, agent: 'preaudit' | 'audit') {
+  try {
+    return await readLatestPointer(clientSlug, agent)
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('No latest')) {
+      return undefined
+    }
+
+    throw error
+  }
+}
+
 async function readPreauditRun(clientSlug: string) {
   const pointer = await readLatestPointer(clientSlug, 'preaudit')
   const runPath = path.join(REPO_ROOT, pointer.path, 'run.json')
@@ -401,6 +474,36 @@ async function readAuditRun(clientSlug: string) {
   }
 }
 
+async function readClientContext(clientSlug: string) {
+  return readJsonIfExists<ClientContextFile>(clientContextPath(clientSlug))
+}
+
+async function saveClientContext(
+  clientSlug: string,
+  patch: {
+    clientName?: string
+    website?: string
+    email?: string
+  },
+) {
+  const existing = await readClientContext(clientSlug)
+  const now = new Date().toISOString()
+  const filePath = clientContextPath(clientSlug)
+  const next: ClientContextFile = {
+    client_slug: clientSlug,
+    client_name: patch.clientName?.trim() || existing?.client_name || formatClientName(clientSlug),
+    website: patch.website?.trim() || existing?.website || DEFAULT_WEBSITE,
+    email: patch.email?.trim() || existing?.email,
+    created_at: existing?.created_at || now,
+    updated_at: now,
+  }
+
+  await ensureDirectory(filePath)
+  await fs.writeFile(filePath, `${JSON.stringify(next, null, 2)}\n`, 'utf8')
+
+  return next
+}
+
 async function deriveWebsiteFromPreaudit(runJson: PreauditRunJson, clientSlug: string) {
   const draft = await readJsonIfExists<AuditIntakeFile>(intakeDraftPath(clientSlug))
   const fromDraft = draft?._autofilled_from_preaudit?.website?.trim()
@@ -419,6 +522,316 @@ async function deriveWebsiteFromPreaudit(runJson: PreauditRunJson, clientSlug: s
   const record = payload?.[index]
 
   return record?.extracted_context?.url ?? record?.website ?? DEFAULT_WEBSITE
+}
+
+async function buildWorkspaceClient(
+  clientSlug: string,
+  options?: {
+    website?: string
+    draft?: AuditIntakeFile
+    saved?: AuditIntakeFile
+  },
+): Promise<WorkspaceClient> {
+  const context = await readClientContext(clientSlug)
+  const saved = options?.saved ?? (await readJsonIfExists<AuditIntakeFile>(intakePath(clientSlug)))
+  const draft =
+    options?.draft ?? (await readJsonIfExists<AuditIntakeFile>(intakeDraftPath(clientSlug)))
+  const website = maybeUrlFromSearch(
+    options?.website ??
+      context?.website ??
+      saved?._autofilled_from_preaudit?.website ??
+      draft?._autofilled_from_preaudit?.website,
+  )
+  const clientName = deriveClientName(clientSlug, [
+    saved?.company_profile?.name,
+    draft?.company_profile?.name,
+    context?.client_name,
+  ])
+
+  return {
+    clientSlug,
+    clientName,
+    website,
+    email: context?.email,
+  }
+}
+
+function buildStageStatus(
+  label: string,
+  detail: string,
+  tone: 'success' | 'progress' | 'pending',
+) {
+  return { label, detail, tone }
+}
+
+function toneFromWorkstreamStatus(
+  status: WorkspaceWorkstream['status'],
+): WorkspaceWorkstream['tone'] {
+  switch (status) {
+    case 'complete':
+      return 'success'
+    case 'active':
+    case 'ready for design':
+      return 'progress'
+    case 'blocked':
+    case 'needs input':
+      return 'pending'
+    default:
+      return 'neutral'
+  }
+}
+
+function toneFromAgentStatus(status: WorkspaceAgent['status']): WorkspaceAgent['tone'] {
+  switch (status) {
+    case 'active':
+    case 'ready':
+      return 'success'
+    case 'recommended':
+    case 'candidate':
+      return 'progress'
+    case 'setup needed':
+      return 'pending'
+    default:
+      return 'neutral'
+  }
+}
+
+function deriveWorkspaceFocusAreas(clientSlug: string) {
+  if (clientSlug === 'morales-propiedades') {
+    return [
+      'Website improvement',
+      'Sales follow-up',
+      'Market study',
+      'CRM / back-office review',
+    ]
+  }
+
+  return [
+    'Website improvement',
+    'Lead handling',
+    'Tracking clarity',
+    'Operational handoff',
+  ]
+}
+
+function statusFromStage(
+  currentStage: string,
+  title: string,
+): WorkspaceWorkstream['status'] {
+  if (currentStage === 'Audit completed') {
+    if (title === 'Market study') {
+      return 'identified'
+    }
+
+    return 'ready for design'
+  }
+
+  if (currentStage === 'Intake ready') {
+    if (title === 'Market study') {
+      return 'identified'
+    }
+
+    return 'ready for design'
+  }
+
+  if (currentStage === 'Preaudit completed') {
+    return title === 'Website improvement' ? 'identified' : 'needs input'
+  }
+
+  return 'blocked'
+}
+
+function deriveWorkspaceWorkstreams(options: {
+  clientSlug: string
+  currentStage: string
+  preaudit?: PreauditView
+  intake?: AuditIntakeView
+  audit?: AuditView
+}): WorkspaceWorkstream[] {
+  const { clientSlug, currentStage, preaudit, intake, audit } = options
+  const focusAreas = deriveWorkspaceFocusAreas(clientSlug)
+  const preauditSummary = preaudit?.summary ?? preaudit?.companySummary
+  const topPain = audit?.mainPains[0]
+  const savedSystems =
+    intake?.form.systems.trim() || audit?.availableData.join(', ') || 'No confirmed operating system yet.'
+
+  return focusAreas.map((title) => {
+    switch (title) {
+      case 'Website improvement': {
+        const status = statusFromStage(currentStage, title)
+        return {
+          title,
+          status,
+          tone: toneFromWorkstreamStatus(status),
+          whyItMatters:
+            preaudit?.priorityAlerts[4] ??
+            preauditSummary ??
+            'The public website is still the first point of trust, conversion, and demand capture.',
+          linkedSource: audit ? 'preaudit + audit' : 'preaudit',
+          suggestedNextStep:
+            currentStage === 'Preaudit completed'
+              ? 'Confirm business goals and lead paths in intake before redesigning the funnel.'
+              : 'Translate the diagnostic into a concrete conversion and visibility improvement brief.',
+          suggestedAgent: 'Web/Growth Agent',
+        }
+      }
+      case 'Sales follow-up': {
+        const status = intake ? statusFromStage(currentStage, title) : 'needs input'
+        return {
+          title,
+          status,
+          tone: toneFromWorkstreamStatus(status),
+          whyItMatters:
+            audit?.mainPains.find((item) => /follow-up|sales pipeline|response/i.test(item)) ??
+            'Manual response and weak ownership reduce the value of every inquiry that reaches the team.',
+          linkedSource: audit ? 'intake + audit' : intake ? 'intake' : 'preaudit',
+          suggestedNextStep:
+            intake
+              ? 'Clarify ownership, response time, and funnel handoff before enabling automation.'
+              : 'Collect the missing lead-handling context before scoping this workstream.',
+          suggestedAgent: 'Sales Agent',
+        }
+      }
+      case 'Market study': {
+        const status = statusFromStage(currentStage, title)
+        return {
+          title,
+          status,
+          tone: toneFromWorkstreamStatus(status),
+          whyItMatters:
+            preaudit?.priorityAlerts[2] ??
+            'Weak visibility and demand mapping make it harder to know which segments deserve focused effort.',
+          linkedSource: preaudit ? 'preaudit' : 'workspace context',
+          suggestedNextStep:
+            'Validate search demand, local positioning, and channel opportunity before expanding acquisition work.',
+          suggestedAgent: 'Research Agent',
+        }
+      }
+      case 'CRM / back-office review': {
+        const status = intake ? statusFromStage(currentStage, title) : 'needs input'
+        return {
+          title,
+          status,
+          tone: toneFromWorkstreamStatus(status),
+          whyItMatters:
+            topPain ??
+            `Current systems point to manual process risk: ${savedSystems}.`,
+          linkedSource: audit ? 'intake + audit' : intake ? 'intake' : 'workspace context',
+          suggestedNextStep:
+            intake
+              ? 'Map spreadsheets, WhatsApp, and follow-up steps into a clearer operating process.'
+              : 'Confirm the current systems and source-of-truth setup first.',
+          suggestedAgent: 'Operations Agent',
+        }
+      }
+      default: {
+        const status = statusFromStage(currentStage, title)
+        return {
+          title,
+          status,
+          tone: toneFromWorkstreamStatus(status),
+          whyItMatters: 'This workstream is part of the current transformation program.',
+          linkedSource: audit ? 'audit' : preaudit ? 'preaudit' : 'workspace context',
+          suggestedNextStep: 'Validate the next step before moving into execution.',
+        }
+      }
+    }
+  })
+}
+
+function deriveWorkspaceAgents(options: {
+  currentStage: string
+  workstreams: WorkspaceWorkstream[]
+  intake?: AuditIntakeView
+  audit?: AuditView
+}): WorkspaceAgent[] {
+  const { currentStage, workstreams, intake, audit } = options
+  const recommended = new Set(audit?.recommendedAgents ?? [])
+  const hasIntake = Boolean(intake)
+
+  const cards: Array<Omit<WorkspaceAgent, 'tone'>> = [
+    {
+      slug: 'sales',
+      label: 'Sales Agent',
+      role: 'Lead handling, response flow, attribution, and qualification design.',
+      status: recommended.has('sales')
+        ? currentStage === 'Audit completed'
+          ? 'ready'
+          : 'recommended'
+        : hasIntake
+          ? 'candidate'
+          : 'setup needed',
+      linkedWorkstream: 'Sales follow-up',
+      currentRelevance:
+        recommended.has('sales')
+          ? 'Audit output points directly at follow-up and lead source visibility.'
+          : 'This becomes relevant once lead handling and response ownership are confirmed.',
+      requiredInputs: ['Lead sources', 'Lead handling', 'Approximate response time'],
+      potentialOutput: 'Funnel handoff, response standards, and sales process improvements.',
+    },
+    {
+      slug: 'operations',
+      label: 'Operations Agent',
+      role: 'Back-office process mapping, routing, and operating rhythm design.',
+      status: recommended.has('operations')
+        ? currentStage === 'Audit completed'
+          ? 'ready'
+          : 'recommended'
+        : hasIntake
+          ? 'candidate'
+          : 'setup needed',
+      linkedWorkstream: 'CRM / back-office review',
+      currentRelevance:
+        recommended.has('operations')
+          ? 'Manual follow-up and spreadsheet dependence are already visible in the workflow.'
+          : 'Operations becomes relevant once the current systems and constraints are confirmed.',
+      requiredInputs: ['Systems', 'Source of truth', 'Constraints'],
+      potentialOutput: 'Operating flow, handoff design, and automation candidates.',
+    },
+    {
+      slug: 'collections',
+      label: 'Collections Agent',
+      role: 'Receivables, payment recovery, and post-sale workflow optimization.',
+      status: 'not relevant',
+      linkedWorkstream: 'No active collections track',
+      currentRelevance:
+        'No collections or payment-recovery pain is visible in the current preaudit or audit output.',
+      requiredInputs: ['Invoice process', 'Payment terms', 'Collections workflow'],
+      potentialOutput: 'Collections playbook and escalation workflow.',
+    },
+    {
+      slug: 'web-growth',
+      label: 'Web/Growth Agent',
+      role: 'Website conversion, visibility, tracking, and offer-path improvement.',
+      status:
+        workstreams.find((item) => item.title === 'Website improvement')?.status === 'ready for design'
+          ? 'recommended'
+          : audit
+            ? 'candidate'
+            : 'setup needed',
+      linkedWorkstream: 'Website improvement',
+      currentRelevance:
+        'The public site is already showing SEO, CTA, and instrumentation gaps that limit growth.',
+      requiredInputs: ['Confirmed primary goal', 'Tracking priorities', 'Offer or funnel constraints'],
+      potentialOutput: 'Conversion brief, instrumentation plan, and visibility upgrades.',
+    },
+    {
+      slug: 'research',
+      label: 'Research Agent',
+      role: 'Demand mapping, market framing, and positioning analysis.',
+      status: audit ? 'candidate' : 'setup needed',
+      linkedWorkstream: 'Market study',
+      currentRelevance:
+        'Useful for validating demand, search intent, and positioning once the core funnel issues are clearer.',
+      requiredInputs: ['Target market', 'Lead sources', 'Competitive context'],
+      potentialOutput: 'Market study, opportunity framing, and channel hypotheses.',
+    },
+  ]
+
+  return cards.map((card) => ({
+    ...card,
+    tone: toneFromAgentStatus(card.status),
+  }))
 }
 
 function formFromIntake(record: AuditIntakeFile): IntakeDraft {
@@ -516,28 +929,20 @@ function parseIntakeForm(formData: FormData): IntakeDraft {
   }
 }
 
-export async function runPreauditWorkflow(url: string) {
-  const website = normalizeWebsite(url)
-  await runRepoNodeScript('scripts/live/run-preaudit-live.ts', ['--url', website])
-  const clientSlug = slugifyHostnameLabel(new URL(website).hostname)
-  await readPreauditRun(clientSlug)
-
-  return {
-    clientSlug,
-    website,
-  }
-}
-
-export async function loadPreauditView(search: WorkflowSearch): Promise<PreauditView> {
-  const clientSlug = await resolveClientSlug(search, 'preaudit')
+async function loadPreauditViewForClient(
+  clientSlug: string,
+  websiteOverride?: string,
+): Promise<PreauditView> {
   const { pointer, reportPath, report, runJson } = await readPreauditRun(clientSlug)
-  const website = await deriveWebsiteFromPreaudit(runJson, clientSlug)
+  const website = websiteOverride ?? (await deriveWebsiteFromPreaudit(runJson, clientSlug))
+  const draft = await readJsonIfExists<AuditIntakeFile>(intakeDraftPath(clientSlug))
+  const client = await buildWorkspaceClient(clientSlug, { website, draft })
   const summary = parseSectionParagraph(report, 'Executive Summary') || runJson.validated_output!.summary
   const businessImpact = parseSectionBullets(report, 'Business Impact')
 
   return {
-    clientSlug,
-    website: maybeUrlFromSearch(search.url || website),
+    ...client,
+    website,
     displayRunId: pointer.display_run_id,
     reportPath: path.relative(REPO_ROOT, reportPath),
     draftPath: path.relative(REPO_ROOT, intakeDraftPath(clientSlug)),
@@ -554,8 +959,10 @@ export async function loadPreauditView(search: WorkflowSearch): Promise<Preaudit
   }
 }
 
-export async function loadAuditIntakeView(search: WorkflowSearch): Promise<AuditIntakeView> {
-  const clientSlug = await resolveClientSlug(search, 'intake')
+async function loadAuditIntakeViewForClient(
+  clientSlug: string,
+  websiteOverride?: string,
+): Promise<AuditIntakeView> {
   const draftFilePath = intakeDraftPath(clientSlug)
   const savedFilePath = intakePath(clientSlug)
   const draft = await readJsonIfExists<AuditIntakeFile>(draftFilePath)
@@ -568,13 +975,15 @@ export async function loadAuditIntakeView(search: WorkflowSearch): Promise<Audit
   const source = saved ? 'saved' : 'draft'
   const base = saved ?? draft!
   const website =
+    websiteOverride ??
     base._autofilled_from_preaudit?.website ??
     draft?._autofilled_from_preaudit?.website ??
-    maybeUrlFromSearch(search.url)
+    DEFAULT_WEBSITE
+  const client = await buildWorkspaceClient(clientSlug, { website, draft, saved })
 
   return {
-    clientSlug,
-    website,
+    ...client,
+    website: client.website,
     source,
     draftPath: path.relative(REPO_ROOT, draftFilePath),
     intakePath: path.relative(REPO_ROOT, savedFilePath),
@@ -586,6 +995,388 @@ export async function loadAuditIntakeView(search: WorkflowSearch): Promise<Audit
     todo: draft?._todo ?? [],
     form: formFromIntake(base),
   }
+}
+
+async function loadAuditViewForClient(
+  clientSlug: string,
+  websiteOverride?: string,
+): Promise<AuditView> {
+  const { pointer, runJson } = await readAuditRun(clientSlug)
+  const draft = await readJsonIfExists<AuditIntakeFile>(intakeDraftPath(clientSlug))
+  const saved = await readJsonIfExists<AuditIntakeFile>(intakePath(clientSlug))
+  const client = await buildWorkspaceClient(clientSlug, {
+    website: websiteOverride || draft?._autofilled_from_preaudit?.website,
+    draft,
+    saved,
+  })
+
+  return {
+    ...client,
+    website: client.website,
+    displayRunId: pointer.display_run_id,
+    intakePath: runJson.intake_path ? path.relative(REPO_ROOT, runJson.intake_path) : undefined,
+    companySummary: runJson.validated_output!.company_summary,
+    industry: runJson.validated_output!.industry,
+    mainPains: runJson.validated_output!.main_pains,
+    availableData: runJson.validated_output!.available_data,
+    recommendedAgents: runJson.validated_output!.recommended_agents,
+    priorityOrder: runJson.validated_output!.priority_order,
+    notes: runJson.validated_output!.notes,
+  }
+}
+
+function isMissingWorkflowResource(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.message.startsWith('No latest') ||
+      error.message.startsWith('No intake draft or saved intake'))
+  )
+}
+
+async function loadWorkspaceBundle(clientSlugInput: string) {
+  const clientSlug = slugifyClientName(clientSlugInput)
+  const draftFilePath = intakeDraftPath(clientSlug)
+  const savedFilePath = intakePath(clientSlug)
+  const draft = await readJsonIfExists<AuditIntakeFile>(draftFilePath)
+  const saved = await readJsonIfExists<AuditIntakeFile>(savedFilePath)
+  const preauditLatestPath = path.join(clientArtifactPath(clientSlug, 'preaudit'), 'latest.json')
+  const auditLatestPath = path.join(clientArtifactPath(clientSlug, 'audit'), 'latest.json')
+  const preauditPointer = await readLatestPointerIfExists(clientSlug, 'preaudit')
+  const auditPointer = await readLatestPointerIfExists(clientSlug, 'audit')
+  const preauditUpdatedAt = await readMtimeMsIfExists(preauditLatestPath)
+  const draftUpdatedAt = await readMtimeMsIfExists(draftFilePath)
+  const savedUpdatedAt = await readMtimeMsIfExists(savedFilePath)
+  const auditUpdatedAt = await readMtimeMsIfExists(auditLatestPath)
+  const client = await buildWorkspaceClient(clientSlug, { draft, saved })
+  const intakeReady = Boolean(saved || draft)
+  const newestUpstreamUpdate = Math.max(
+    preauditUpdatedAt ?? 0,
+    draftUpdatedAt ?? 0,
+    savedUpdatedAt ?? 0,
+  )
+  const auditIsCurrent = Boolean(
+    auditPointer && typeof auditUpdatedAt === 'number' && auditUpdatedAt >= newestUpstreamUpdate,
+  )
+
+  const currentStage = auditIsCurrent
+    ? 'Audit completed'
+    : intakeReady
+      ? 'Intake ready'
+      : preauditPointer
+        ? 'Preaudit completed'
+        : 'Lead captured'
+  const currentStageDetail = auditIsCurrent
+    ? 'The completed audit is still current relative to the latest preaudit and intake context.'
+    : intakeReady
+      ? auditPointer
+        ? 'Newer preaudit or intake context exists after the last audit artifact. Confirm the intake details and run the full audit again.'
+        : 'The preaudit is done and the missing business context is ready for the full audit step.'
+      : preauditPointer
+        ? 'The preaudit is complete. Review it, then continue through intake before running the full audit.'
+        : 'Client context exists locally, but no preaudit artifact has been generated yet.'
+
+  let recommendedNextSection: WorkspaceSectionId = 'diagnosis'
+  let recommendedNextLabel = 'Review diagnosis'
+  let recommendedNextDetail =
+    'Use the diagnosis hub to review the preaudit, confirm intake context, and decide the next move.'
+
+  if (intakeReady && !auditIsCurrent) {
+    recommendedNextSection = 'diagnosis'
+    recommendedNextLabel = 'Run full audit'
+    recommendedNextDetail =
+      'The consulting flow is ready for the full audit step. Confirm the intake context in Diagnosis and run the audit.'
+  } else if (auditIsCurrent) {
+    recommendedNextSection = 'workstreams'
+    recommendedNextLabel = 'Activate workstreams'
+    recommendedNextDetail =
+      'The audit artifact is current. Use it to move from diagnosis into workstreams and agent setup.'
+  }
+
+  const preaudit = preauditPointer
+    ? await loadPreauditViewForClient(clientSlug, client.website).catch((error) => {
+        if (isMissingWorkflowResource(error)) {
+          return undefined
+        }
+
+        throw error
+      })
+    : undefined
+  const intake = intakeReady
+    ? await loadAuditIntakeViewForClient(clientSlug, client.website).catch((error) => {
+        if (isMissingWorkflowResource(error)) {
+          return undefined
+        }
+
+        throw error
+      })
+    : undefined
+  const audit = auditPointer
+    ? await loadAuditViewForClient(clientSlug, client.website).catch((error) => {
+        if (isMissingWorkflowResource(error)) {
+          return undefined
+        }
+
+        throw error
+      })
+    : undefined
+  const workflowStatus = [
+    {
+      label: 'Preaudit',
+      status: preauditPointer
+        ? buildStageStatus(
+            'Completed',
+            `Latest preaudit artifact: ${preauditPointer.display_run_id}`,
+            'success',
+          )
+        : buildStageStatus('Pending', 'No preaudit artifact has been found yet.', 'pending'),
+      detail: 'Public-site signal, visibility, conversion friction, and quick-win framing.',
+    },
+    {
+      label: 'Intake',
+      status: saved
+        ? buildStageStatus(
+            'Ready',
+            `Editable intake stored at ${path.relative(REPO_ROOT, savedFilePath)}`,
+            'success',
+          )
+        : draft
+          ? buildStageStatus(
+              'Draft ready',
+              `Generated intake draft available at ${path.relative(REPO_ROOT, draftFilePath)}`,
+              'progress',
+            )
+          : buildStageStatus('Not started', 'No intake draft has been generated yet.', 'pending'),
+      detail: 'Business, systems, lead process, and constraint context for the deeper audit.',
+    },
+    {
+      label: 'Audit',
+      status: auditIsCurrent
+        ? buildStageStatus(
+            'Completed',
+            `Latest audit artifact: ${auditPointer!.display_run_id}`,
+            'success',
+          )
+        : auditPointer
+          ? buildStageStatus(
+              'Needs rerun',
+              'Newer preaudit or intake context exists after the current audit artifact.',
+              'progress',
+            )
+          : intakeReady
+            ? buildStageStatus(
+                'Ready to run',
+                'The intake context is ready and the next step is to run the full audit.',
+                'progress',
+              )
+            : buildStageStatus(
+                'Blocked',
+                'Finish preaudit review and intake before the full audit can run.',
+                'pending',
+              ),
+      detail: 'Decision-ready diagnosis, priorities, and recommended execution modules.',
+    },
+  ] as const
+  const workstreams = deriveWorkspaceWorkstreams({
+    clientSlug,
+    currentStage,
+    preaudit,
+    intake,
+    audit,
+  })
+  const agents = deriveWorkspaceAgents({
+    currentStage,
+    workstreams,
+    intake,
+    audit,
+  })
+  const artifacts: WorkspaceArtifactSummary[] = [
+    {
+      label: 'Preaudit artifact',
+      value: preaudit?.displayRunId ?? 'Not generated',
+      detail: preaudit ? preaudit.reportPath : 'No preaudit report linked yet.',
+      href: '/workspace/' + clientSlug + '/diagnosis?panel=preaudit',
+      tone: preaudit ? 'success' : 'pending',
+    },
+    {
+      label: 'Intake record',
+      value: intake ? (intake.source === 'saved' ? 'Saved intake' : 'Draft intake') : 'Missing',
+      detail: intake ? intake.intakePath : 'No intake record has been loaded yet.',
+      href: '/workspace/' + clientSlug + '/diagnosis?panel=intake',
+      tone: intake ? (intake.source === 'saved' ? 'success' : 'progress') : 'pending',
+    },
+    {
+      label: 'Audit artifact',
+      value: audit?.displayRunId ?? 'Not generated',
+      detail: audit
+        ? auditIsCurrent
+          ? 'Current audit output available for workstream design.'
+          : 'An audit exists, but newer context means it should be rerun.'
+        : 'No audit output has been generated yet.',
+      href: '/workspace/' + clientSlug + '/diagnosis?panel=audit',
+      tone: audit ? (auditIsCurrent ? 'success' : 'progress') : 'pending',
+    },
+  ]
+  const keyFacts = [
+    { label: 'Website', value: client.website },
+    { label: 'Lead email', value: client.email ?? 'Not captured yet' },
+    { label: 'Workspace key', value: client.clientSlug },
+    {
+      label: 'Industry',
+      value: audit?.industry ?? intake?.form.industry ?? 'Not confirmed yet',
+    },
+  ]
+  const accountReadiness = [
+    {
+      label: 'Primary next action',
+      value: recommendedNextLabel,
+      detail: recommendedNextDetail,
+    },
+    {
+      label: 'Execution readiness',
+      value: auditIsCurrent ? 'Ready for workstreams' : intakeReady ? 'Needs audit run' : 'Needs diagnosis input',
+      detail: auditIsCurrent
+        ? 'The current audit is strong enough to shape workstreams and agent setup.'
+        : intakeReady
+          ? 'Diagnosis is advanced enough to run or rerun the audit.'
+          : 'The account still needs more structured input before deeper execution.',
+    },
+    {
+      label: 'Agent readiness',
+      value: String(agents.filter((agent) => ['recommended', 'ready', 'active'].includes(agent.status)).length),
+      detail: 'Specialized agents become more concrete as diagnosis output and intake context improve.',
+    },
+  ]
+  const efficiencySignals = [
+    {
+      label: 'Leak' as const,
+      title: 'Lost visibility and attribution',
+      detail:
+        preaudit?.businessImpact[2] ??
+        'Weak measurement makes it harder to know which channels or changes are producing revenue.',
+    },
+    {
+      label: 'Leak' as const,
+      title: 'Manual follow-up drag',
+      detail:
+        audit?.mainPains[1] ??
+        'The current lead process likely depends too heavily on manual action and memory.',
+    },
+    {
+      label: 'Gain' as const,
+      title: 'Clearer next-step execution',
+      detail:
+        audit?.notes ??
+        'Once the diagnosis is confirmed, the account can move into scoped workstreams and specialized agents.',
+    },
+  ]
+  const focusAreas = deriveWorkspaceFocusAreas(clientSlug)
+
+  return {
+    client,
+    currentStage,
+    currentStageDetail,
+    preauditStatus: workflowStatus[0].status,
+    intakeStatus: workflowStatus[1].status,
+    auditStatus: workflowStatus[2].status,
+    quickSummary: [
+      {
+        label: 'Current stage',
+        value: currentStage,
+        detail: currentStageDetail,
+      },
+      {
+        label: 'Website',
+        value: client.website,
+        detail: 'Public site currently linked to this client workspace.',
+      },
+      {
+        label: 'Client slug',
+        value: client.clientSlug,
+        detail: 'Local file and artifact linkage continues to use the client slug.',
+      },
+      {
+        label: 'Lead email',
+        value: client.email ?? 'Not captured yet',
+        detail: client.email
+          ? 'Stored locally with the client context for later formal handoff.'
+          : 'Older runs may not have an email attached until a new landing submission occurs.',
+      },
+      {
+        label: 'Next action',
+        value: recommendedNextLabel,
+        detail: recommendedNextDetail,
+      },
+    ],
+    focusAreas,
+    workflowStatus: [...workflowStatus],
+    workstreams,
+    agents,
+    artifacts,
+    keyFacts,
+    accountReadiness,
+    efficiencySignals,
+    recommendedNextSection,
+    recommendedNextLabel,
+    recommendedNextDetail,
+    preaudit,
+    intake,
+    audit,
+  }
+}
+
+export async function loadWorkspaceOverview(
+  clientSlugInput: string,
+): Promise<WorkspaceDashboardView> {
+  const bundle = await loadWorkspaceBundle(clientSlugInput)
+
+  return {
+    ...bundle.client,
+    currentStage: bundle.currentStage,
+    currentStageDetail: bundle.currentStageDetail,
+    preauditStatus: bundle.preauditStatus,
+    intakeStatus: bundle.intakeStatus,
+    auditStatus: bundle.auditStatus,
+    quickSummary: bundle.quickSummary,
+    focusAreas: bundle.focusAreas,
+    workflowStatus: bundle.workflowStatus,
+    workstreams: bundle.workstreams,
+    agents: bundle.agents,
+    artifacts: bundle.artifacts,
+    keyFacts: bundle.keyFacts,
+    accountReadiness: bundle.accountReadiness,
+    efficiencySignals: bundle.efficiencySignals,
+    recommendedNextSection: bundle.recommendedNextSection,
+    recommendedNextLabel: bundle.recommendedNextLabel,
+    recommendedNextDetail: bundle.recommendedNextDetail,
+  }
+}
+
+export async function runPreauditWorkflow(url: string, email: string) {
+  const website = normalizeWebsite(url)
+  const normalizedEmail = normalizeEmail(email)
+  await runRepoNodeScript('scripts/live/run-preaudit-live.ts', ['--url', website])
+  const clientSlug = slugifyHostnameLabel(new URL(website).hostname)
+  await readPreauditRun(clientSlug)
+  await saveClientContext(clientSlug, {
+    clientName: formatClientName(clientSlug),
+    website,
+    email: normalizedEmail,
+  })
+
+  return {
+    clientSlug,
+    website,
+  }
+}
+
+export async function loadPreauditView(search: WorkflowSearch): Promise<PreauditView> {
+  const clientSlug = await resolveClientSlug(search, 'preaudit')
+  return loadPreauditViewForClient(clientSlug, search.url ? maybeUrlFromSearch(search.url) : undefined)
+}
+
+export async function loadAuditIntakeView(search: WorkflowSearch): Promise<AuditIntakeView> {
+  const clientSlug = await resolveClientSlug(search, 'intake')
+  return loadAuditIntakeViewForClient(clientSlug, search.url ? maybeUrlFromSearch(search.url) : undefined)
 }
 
 export async function saveAuditIntakeFromForm(formData: FormData) {
@@ -608,6 +1399,12 @@ export async function saveAuditIntakeFromForm(formData: FormData) {
 
   await ensureDirectory(outputPath)
   await fs.writeFile(outputPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
+  await saveClientContext(clientSlug, {
+    clientName: form.businessName.trim() || undefined,
+    website:
+      payload._autofilled_from_preaudit?.website ??
+      (typeof rawWebsite === 'string' ? normalizeWebsite(rawWebsite) : undefined),
+  })
 
   return {
     clientSlug,
@@ -640,20 +1437,91 @@ export async function runAuditWorkflow(formData: FormData) {
 
 export async function loadAuditView(search: WorkflowSearch): Promise<AuditView> {
   const clientSlug = await resolveClientSlug(search, 'audit')
-  const { pointer, runJson } = await readAuditRun(clientSlug)
-  const draft = await readJsonIfExists<AuditIntakeFile>(intakeDraftPath(clientSlug))
+  return loadAuditViewForClient(clientSlug, search.url ? maybeUrlFromSearch(search.url) : undefined)
+}
+
+export async function loadWorkspaceDiagnosis(
+  clientSlugInput: string,
+): Promise<WorkspaceDiagnosisView> {
+  const bundle = await loadWorkspaceBundle(clientSlugInput)
 
   return {
-    clientSlug,
-    website: maybeUrlFromSearch(search.url || draft?._autofilled_from_preaudit?.website),
-    displayRunId: pointer.display_run_id,
-    intakePath: runJson.intake_path ? path.relative(REPO_ROOT, runJson.intake_path) : undefined,
-    companySummary: runJson.validated_output!.company_summary,
-    industry: runJson.validated_output!.industry,
-    mainPains: runJson.validated_output!.main_pains,
-    availableData: runJson.validated_output!.available_data,
-    recommendedAgents: runJson.validated_output!.recommended_agents,
-    priorityOrder: runJson.validated_output!.priority_order,
-    notes: runJson.validated_output!.notes,
+    ...bundle.client,
+    currentStage: bundle.currentStage,
+    currentStageDetail: bundle.currentStageDetail,
+    preauditStatus: bundle.preauditStatus,
+    intakeStatus: bundle.intakeStatus,
+    auditStatus: bundle.auditStatus,
+    quickSummary: bundle.quickSummary,
+    focusAreas: bundle.focusAreas,
+    workflowStatus: bundle.workflowStatus,
+    workstreams: bundle.workstreams,
+    agents: bundle.agents,
+    artifacts: bundle.artifacts,
+    keyFacts: bundle.keyFacts,
+    accountReadiness: bundle.accountReadiness,
+    efficiencySignals: bundle.efficiencySignals,
+    recommendedNextSection: bundle.recommendedNextSection,
+    recommendedNextLabel: bundle.recommendedNextLabel,
+    recommendedNextDetail: bundle.recommendedNextDetail,
+    preaudit: bundle.preaudit,
+    intake: bundle.intake,
+    audit: bundle.audit,
+  }
+}
+
+export async function loadWorkspaceWorkstreams(
+  clientSlugInput: string,
+): Promise<WorkspaceWorkstreamsView> {
+  const bundle = await loadWorkspaceBundle(clientSlugInput)
+
+  return {
+    ...bundle.client,
+    currentStage: bundle.currentStage,
+    currentStageDetail: bundle.currentStageDetail,
+    preauditStatus: bundle.preauditStatus,
+    intakeStatus: bundle.intakeStatus,
+    auditStatus: bundle.auditStatus,
+    quickSummary: bundle.quickSummary,
+    focusAreas: bundle.focusAreas,
+    workflowStatus: bundle.workflowStatus,
+    workstreams: bundle.workstreams,
+    agents: bundle.agents,
+    artifacts: bundle.artifacts,
+    keyFacts: bundle.keyFacts,
+    accountReadiness: bundle.accountReadiness,
+    efficiencySignals: bundle.efficiencySignals,
+    recommendedNextSection: bundle.recommendedNextSection,
+    recommendedNextLabel: bundle.recommendedNextLabel,
+    recommendedNextDetail: bundle.recommendedNextDetail,
+    latestOutputs: bundle.artifacts,
+  }
+}
+
+export async function loadWorkspaceAgents(
+  clientSlugInput: string,
+): Promise<WorkspaceAgentsView> {
+  const bundle = await loadWorkspaceBundle(clientSlugInput)
+
+  return {
+    ...bundle.client,
+    currentStage: bundle.currentStage,
+    currentStageDetail: bundle.currentStageDetail,
+    preauditStatus: bundle.preauditStatus,
+    intakeStatus: bundle.intakeStatus,
+    auditStatus: bundle.auditStatus,
+    quickSummary: bundle.quickSummary,
+    focusAreas: bundle.focusAreas,
+    workflowStatus: bundle.workflowStatus,
+    workstreams: bundle.workstreams,
+    agents: bundle.agents,
+    artifacts: bundle.artifacts,
+    keyFacts: bundle.keyFacts,
+    accountReadiness: bundle.accountReadiness,
+    efficiencySignals: bundle.efficiencySignals,
+    recommendedNextSection: bundle.recommendedNextSection,
+    recommendedNextLabel: bundle.recommendedNextLabel,
+    recommendedNextDetail: bundle.recommendedNextDetail,
+    latestOutputs: bundle.artifacts,
   }
 }

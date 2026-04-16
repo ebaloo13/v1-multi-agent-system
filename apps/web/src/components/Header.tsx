@@ -1,64 +1,64 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
+import { publicNavItems } from '../lib/product-shell'
 
 export default function Header() {
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const workspaceMatch = pathname.match(/^\/workspace\/([^/]+)/)
+  const clientSlug = workspaceMatch?.[1]
+  const isWorkspace = Boolean(clientSlug)
+  const isPublicLanding = pathname === '/'
+
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--border-soft)] bg-[var(--surface-glass)] px-4 backdrop-blur-xl">
-      <nav className="page-wrap flex flex-wrap items-center gap-3 py-4">
+    <header className={isPublicLanding && !isWorkspace ? 'app-header app-header-public px-4' : 'app-header px-4'}>
+      <nav className="page-wrap header-bar">
         <h1 className="m-0 flex-shrink-0 text-base font-semibold tracking-tight">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-3 rounded-full border border-[var(--border-soft)] bg-[var(--surface-strong)] px-4 py-2 text-sm text-[var(--ink-strong)] no-underline shadow-[0_16px_40px_rgba(34,42,39,0.08)]"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-bold text-white">
-              UX
+          <Link to="/" className={isPublicLanding && !isWorkspace ? 'brand-lockup brand-lockup-public' : 'brand-lockup'}>
+            <span className="brand-mark">CX</span>
+            <span>
+              <span className={isPublicLanding && !isWorkspace ? 'block text-sm font-semibold text-white' : 'block text-sm font-semibold text-[var(--ink-strong)]'}>
+                Client Growth Audit
+              </span>
+              <span className={isPublicLanding && !isWorkspace ? 'block text-xs text-[rgba(214,227,255,0.64)]' : 'block text-xs text-[var(--ink-subtle)]'}>
+                Public landing + client workspace
+              </span>
             </span>
-            B2B Audit Flow
           </Link>
         </h1>
 
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-subtle)]">
-          <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-strong)] px-3 py-2">
-            Local file workflow
-          </span>
-          <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-strong)] px-3 py-2">
-            Existing engine
-          </span>
-        </div>
+        {isWorkspace && clientSlug ? (
+          <div className="header-actions">
+            <span className="header-context">Client workspace</span>
+            <span className="header-badge">{clientSlug}</span>
+            <Link to="/" className="secondary-button header-button no-underline">
+              Public landing
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div className="header-nav">
+              {publicNavItems.map((item) => (
+                <a
+                  key={item.href}
+                  href={pathname === '/' ? item.href : `/${item.href}`}
+                  className={isPublicLanding ? 'nav-link nav-link-public' : 'nav-link'}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
 
-        <div className="flex w-full flex-wrap items-center gap-5 text-sm font-semibold">
-          <Link
-            to="/"
-            className="nav-link"
-            activeProps={{ className: 'nav-link is-active' }}
-            activeOptions={{ exact: true, includeSearch: false }}
-          >
-            New Preaudit
-          </Link>
-          <Link
-            to="/preaudit-result"
-            className="nav-link"
-            activeProps={{ className: 'nav-link is-active' }}
-            activeOptions={{ exact: true, includeSearch: false }}
-          >
-            Preaudit Result
-          </Link>
-          <Link
-            to="/audit-intake"
-            className="nav-link"
-            activeProps={{ className: 'nav-link is-active' }}
-            activeOptions={{ exact: true, includeSearch: false }}
-          >
-            Audit Intake
-          </Link>
-          <Link
-            to="/audit-result"
-            className="nav-link"
-            activeProps={{ className: 'nav-link is-active' }}
-            activeOptions={{ exact: true, includeSearch: false }}
-          >
-            Audit Result
-          </Link>
-        </div>
+            <div className="header-actions">
+              <span className={isPublicLanding ? 'header-badge header-badge-public' : 'header-badge'}>
+                Local-first UX
+              </span>
+              <a href="#lead-capture" className={isPublicLanding ? 'primary-button primary-button-public header-button no-underline' : 'primary-button header-button no-underline'}>
+                Run free preaudit
+              </a>
+            </div>
+          </>
+        )}
       </nav>
     </header>
   )

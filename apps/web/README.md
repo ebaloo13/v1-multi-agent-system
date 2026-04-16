@@ -1,109 +1,122 @@
 # `apps/web`
 
-TanStack Start frontend shell for the B2B audit workflow:
+TanStack Start UX layer for the local B2B audit product shell.
 
-`preaudit:live -> preaudit report -> audit intake form -> audit:live`
+This frontend is now split into two product layers:
 
-This app is intentionally scoped to the UX/product layer. The existing agent
-engine, scripts, artifacts, and source tree in the repo root are unchanged.
+- public landing and lead capture at `/`
+- client workspace shell under `/workspace/$clientSlug`
 
-## Scaffold
+The repo-root agent engine is unchanged. This app still invokes the existing
+local scripts and reads or writes the same file-backed workflow artifacts.
 
-Exact scaffold command used:
+## Local Dev Runtime
 
-```bash
-npx @tanstack/cli@latest create web \
-  --target-dir apps/web \
-  --framework React \
-  --package-manager pnpm \
-  --deployment cloudflare \
-  --no-toolchain \
-  --no-examples \
-  --non-interactive \
-  --no-install \
-  --no-git
-```
+For local `pnpm dev`, the app now runs without the Cloudflare Vite plugin so
+TanStack Start server work executes in a Node-compatible environment. This is
+intentional for now because the current workflow bridge needs direct filesystem
+and child-process access to the repo-root engine.
 
-Install commands used after scaffolding:
+Production-oriented builds still keep the Cloudflare plugin enabled.
 
-```bash
-corepack pnpm install
-corepack pnpm add -D @tanstack/intent@latest
-```
+## Current Route Structure
 
-## Chosen Stack
+- `/`
+  Business-facing marketing landing page with website + email capture.
+- `/workspace/$clientSlug`
+  Workspace v2 dashboard for stage, next action, workstreams, and readiness.
+- `/workspace/$clientSlug/diagnosis`
+  Unified diagnosis hub for preaudit, intake, and audit material.
+- `/workspace/$clientSlug/workstreams`
+  Workstreams hub that turns findings into active consulting tracks.
+- `/workspace/$clientSlug/agents`
+  Agent gallery and readiness surface for client-specific execution modules.
 
-- Framework: TanStack Start with React
-- Routing: TanStack Router file-based routes
-- Styling: Tailwind CSS v4 plus app-level CSS variables
-- Package manager: pnpm (app-local)
-- Deployment target: Cloudflare via `wrangler.jsonc`
-- Tooling posture: minimal scaffold, no added integrations
+Legacy routes still exist as compatibility redirects:
 
-## TanStack Intent Guidance Inspected
+- `/preaudit-result`
+- `/audit-intake`
+- `/audit-result`
+- `/workspace/$clientSlug/preaudit`
+- `/workspace/$clientSlug/intake`
+- `/workspace/$clientSlug/audit`
 
-Installed `@tanstack/intent` and inspected the local skill inventory with:
+## Current Flow
 
-```bash
-corepack pnpm exec intent list
-```
+`landing -> preaudit:live -> workspace/diagnosis -> audit:live -> workstreams / agents`
 
-Available TanStack skills in this scaffold came from:
+Concretely:
 
-- `@tanstack/router-plugin`
-- `@tanstack/router-core`
-- `@tanstack/virtual-file-routes`
+1. A prospect submits `website URL + email` on `/`.
+2. The app runs the existing repo-root preaudit workflow.
+3. The app stores lightweight client context locally in
+   `data/clients/<client-slug>-workspace.json`.
+4. The app redirects into the client workspace and continues using the same
+   artifact and intake files that already exist in the repo workflow.
+5. Diagnosis acts as the operational hub for preaudit, intake editing, and
+   audit review.
+6. Workstreams and Agents turn those findings into a more scalable product
+   model for future execution.
 
-The route shell implementation was kept aligned to the relevant bundled
-guidance:
+## Local Persistence
 
-- preserve TanStack Start / router plugin conventions
-- keep navigation link-first where possible
-- avoid premature loader/server-function complexity for this first shell
-- rely on router type inference instead of extra type plumbing
+There is still:
 
-## Environment Requirements
+- no auth
+- no database
+- no real email delivery
+- no CRM integration
+- no production-safe multi-user persistence
 
-- Node.js `24.x` worked in this repo
-- Corepack-enabled `pnpm`
-- Cloudflare tooling from local dependencies when deploying:
-  - `pnpm deploy`
+The app depends on local files only:
 
-Run locally:
+- `artifacts/clients/<client-slug>/preaudit/...`
+- `artifacts/clients/<client-slug>/audit/...`
+- `data/clients/<client-slug>-audit-intake.draft.json`
+- `data/clients/<client-slug>-audit-intake.json`
+- `data/clients/<client-slug>-workspace.json`
+
+`*-workspace.json` is the lightweight client association file used by the UX
+layer. It currently stores:
+
+- `client_slug`
+- `client_name`
+- `website`
+- `email`
+- `created_at`
+- `updated_at`
+
+This exists only so a free preaudit submission can be linked to a client
+workspace until a real backend is added.
+
+## Architectural Constraints Kept
+
+- `apps/web` remains UX-only.
+- The repo-root engine was not moved or rewritten.
+- Existing `preaudit:live` and `audit:live` scripts are still the workflow
+  bridge.
+- Existing artifacts and intake JSON remain the source of truth.
+- Public navigation and workspace navigation are separated so dead or
+  misleading links are not exposed.
+- Workspace v2 uses a new navigation model:
+  `Dashboard / Diagnosis / Workstreams / Agents`
+- Future-facing sections remain visible but non-interactive:
+  `Playbooks / Reports / Activity`
+
+## Production Gaps
+
+To make this production-ready, the next major pieces are:
+
+1. Real backend persistence for leads, clients, and workflow state.
+2. Authentication and client-specific access control for `/workspace/*`.
+3. Real email sending or CRM handoff for captured leads.
+4. A proper multi-user audit history model instead of local files.
+5. Decisions about whether to keep or remove legacy redirect routes once public
+   links are updated.
+
+## Run Locally
 
 ```bash
 cd apps/web
 corepack pnpm dev
 ```
-
-Build:
-
-```bash
-cd apps/web
-corepack pnpm build
-```
-
-## Structure
-
-- `src/routes/index.tsx`: Home / New Preaudit
-- `src/routes/preaudit-result.tsx`: Preaudit report shell
-- `src/routes/audit-intake.tsx`: Prefilled editable intake shell
-- `src/routes/audit-result.tsx`: Audit result placeholder shell
-- `src/lib/product-shell.ts`: Doc-derived mock content and intake structure
-- `src/components/StageRail.tsx`: Shared stage navigator
-
-## Architectural Decisions
-
-- `apps/web` is app-local and uses its own `pnpm-lock.yaml`
-- no repo-root restructure, no workspace conversion, no engine changes
-- local workflow bridge lives inside TanStack Start server functions
-- preaudit and audit execution call the existing live scripts directly with `node --import tsx/esm`
-- preaudit, report, latest pointers, and intake JSON files remain the source of truth
-- prefilled intake content only fills what public preaudit could plausibly infer
-- internal business goals, pains, systems, and constraints remain user-editable
-
-## Next Steps
-
-1. Exercise the home page against a real URL outside the sandboxed environment to validate the full `preaudit:live` round-trip.
-2. Refine how the intake UI maps to the current JSON shape if operators want more exact sales or operations fields preserved.
-3. Decide whether local-only Node workflow bridging should stay in this app or be isolated behind a future dedicated local adapter.
