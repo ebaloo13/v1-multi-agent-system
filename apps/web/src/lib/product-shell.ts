@@ -177,7 +177,7 @@ export const workspaceSectionMeta = {
   diagnosis: {
     title: 'Diagnosis',
     summary:
-      'Unified diagnosis system for preaudit findings, intake context, and audit conclusions.',
+      'Unified diagnosis system for preaudit findings, Business Context, and audit conclusions.',
   },
   workstreams: {
     title: 'Workstreams',

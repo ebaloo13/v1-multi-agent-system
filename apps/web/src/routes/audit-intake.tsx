@@ -27,5 +27,5 @@ function LegacyIntakeRedirect() {
     })
   }, [data.clientSlug, navigate])
 
-  return <LegacyRedirectNotice label="workspace intake" />
+  return <LegacyRedirectNotice label="workspace Business Context" />
 }

@@ -30,15 +30,15 @@ export type WorkspaceShellStatusChip = {
 const upcomingWorkspaceItems = [
   {
     label: 'Reports',
-    detail: 'Soon',
+    detail: 'Future outputs',
   },
   {
     label: 'Activity',
-    detail: 'Soon',
+    detail: 'Future history',
   },
   {
     label: 'Playbooks',
-    detail: 'Soon',
+    detail: 'Future workflows',
   },
 ] as const
 
@@ -110,7 +110,7 @@ export default function WorkspaceShell({
 
           <div className="workspace-sidebar-section">
             <div className="workspace-sidebar-section-head">
-              <p className="workspace-sidebar-section-title">Upcoming</p>
+              <p className="workspace-sidebar-section-title">Future modules</p>
             </div>
             <div className="workspace-upcoming-list">
               {upcomingWorkspaceItems.map((item) => (
@@ -119,6 +119,9 @@ export default function WorkspaceShell({
                   <small>{item.detail}</small>
                 </div>
               ))}
+            </div>
+            <div className="workspace-activity-preview" aria-disabled="true">
+              <span>Activity will show client-safe progress history here later.</span>
             </div>
           </div>
 
@@ -169,7 +172,7 @@ export default function WorkspaceShell({
 
             {statusChips.length > 0 ? (
               <div className="workspace-header-status-row">
-                {statusChips.slice(0, 2).map((item) => (
+                {statusChips.slice(0, 3).map((item) => (
                   <div
                     key={`${item.label}-${item.value}`}
                     className={`workspace-header-status-chip tone-${item.tone ?? 'neutral'}`}

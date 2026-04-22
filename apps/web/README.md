@@ -10,6 +10,12 @@ This frontend is now split into two product layers:
 The repo-root agent engine is unchanged. This app still invokes the existing
 local scripts and reads or writes the same file-backed workflow artifacts.
 
+Naming convention:
+
+- Client-facing label: **Business Context**
+- Spanish reference: **Contexto del negocio**
+- Internal legacy term: `intake`, still used by existing route paths, file names, and workflow flags
+
 ## Local Dev Runtime
 
 For local `pnpm dev`, the app now runs without the Cloudflare Vite plugin so
@@ -26,7 +32,7 @@ Production-oriented builds still keep the Cloudflare plugin enabled.
 - `/workspace/$clientSlug`
   Workspace v2 dashboard for stage, next action, workstreams, and readiness.
 - `/workspace/$clientSlug/diagnosis`
-  Unified diagnosis hub for preaudit, intake, and audit material.
+  Unified diagnosis hub for preaudit, Business Context, and audit material.
 - `/workspace/$clientSlug/workstreams`
   Workstreams hub that turns findings into active consulting tracks.
 - `/workspace/$clientSlug/agents`
@@ -41,6 +47,8 @@ Legacy routes still exist as compatibility redirects:
 - `/workspace/$clientSlug/intake`
 - `/workspace/$clientSlug/audit`
 
+These legacy route names are implementation compatibility paths, not preferred product labels.
+
 ## Current Flow
 
 `landing -> preaudit:live -> workspace/diagnosis -> audit:live -> workstreams / agents`
@@ -52,8 +60,8 @@ Concretely:
 3. The app stores lightweight client context locally in
    `data/clients/<client-slug>-workspace.json`.
 4. The app redirects into the client workspace and continues using the same
-   artifact and intake files that already exist in the repo workflow.
-5. Diagnosis acts as the operational hub for preaudit, intake editing, and
+   artifact and legacy `intake` files that already exist in the repo workflow.
+5. Diagnosis acts as the operational hub for preaudit, Business Context editing, and
    audit review.
 6. Workstreams and Agents turn those findings into a more scalable product
    model for future execution.
@@ -95,7 +103,7 @@ workspace until a real backend is added.
 - The repo-root engine was not moved or rewritten.
 - Existing `preaudit:live` and `audit:live` scripts are still the workflow
   bridge.
-- Existing artifacts and intake JSON remain the source of truth.
+- Existing artifacts and legacy `intake` JSON remain the source of truth.
 - Public navigation and workspace navigation are separated so dead or
   misleading links are not exposed.
 - Workspace v2 uses a new navigation model:

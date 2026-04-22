@@ -626,7 +626,7 @@ function statusFromStage(
     return 'ready for design'
   }
 
-  if (currentStage === 'Intake ready') {
+  if (currentStage === 'Business Context ready') {
     if (title === 'Market study') {
       return 'identified'
     }
@@ -670,7 +670,7 @@ function deriveWorkspaceWorkstreams(options: {
           linkedSource: audit ? 'preaudit + audit' : 'preaudit',
           suggestedNextStep:
             currentStage === 'Preaudit completed'
-              ? 'Confirm business goals and lead paths in intake before redesigning the funnel.'
+              ? 'Confirm business goals and lead paths in Business Context before redesigning the funnel.'
               : 'Translate the diagnostic into a concrete conversion and visibility improvement brief.',
           suggestedAgent: 'Web/Growth Agent',
         }
@@ -684,7 +684,7 @@ function deriveWorkspaceWorkstreams(options: {
           whyItMatters:
             audit?.mainPains.find((item) => /follow-up|sales pipeline|response/i.test(item)) ??
             'Manual response and weak ownership reduce the value of every inquiry that reaches the team.',
-          linkedSource: audit ? 'intake + audit' : intake ? 'intake' : 'preaudit',
+          linkedSource: audit ? 'Business Context + audit' : intake ? 'Business Context' : 'preaudit',
           suggestedNextStep:
             intake
               ? 'Clarify ownership, response time, and funnel handoff before enabling automation.'
@@ -716,7 +716,7 @@ function deriveWorkspaceWorkstreams(options: {
           whyItMatters:
             topPain ??
             `Current systems point to manual process risk: ${savedSystems}.`,
-          linkedSource: audit ? 'intake + audit' : intake ? 'intake' : 'workspace context',
+          linkedSource: audit ? 'Business Context + audit' : intake ? 'Business Context' : 'workspace context',
           suggestedNextStep:
             intake
               ? 'Map spreadsheets, WhatsApp, and follow-up steps into a clearer operating process.'
@@ -1061,30 +1061,30 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
   const currentStage = auditIsCurrent
     ? 'Audit completed'
     : intakeReady
-      ? 'Intake ready'
+      ? 'Business Context ready'
       : preauditPointer
         ? 'Preaudit completed'
         : 'Lead captured'
   const currentStageDetail = auditIsCurrent
-    ? 'The completed audit is still current relative to the latest preaudit and intake context.'
+    ? 'The completed audit is still current relative to the latest preaudit and Business Context.'
     : intakeReady
       ? auditPointer
-        ? 'Newer preaudit or intake context exists after the last audit artifact. Confirm the intake details and run the full audit again.'
-        : 'The preaudit is done and the missing business context is ready for the full audit step.'
+        ? 'Newer preaudit or Business Context exists after the last audit artifact. Confirm the details and run the full audit again.'
+        : 'The preaudit is done and the missing Business Context is ready for the full audit step.'
       : preauditPointer
-        ? 'The preaudit is complete. Review it, then continue through intake before running the full audit.'
+        ? 'The preaudit is complete. Review it, then complete Business Context before running the full audit.'
         : 'Client context exists locally, but no preaudit artifact has been generated yet.'
 
   let recommendedNextSection: WorkspaceSectionId = 'diagnosis'
   let recommendedNextLabel = 'Review diagnosis'
   let recommendedNextDetail =
-    'Use the diagnosis hub to review the preaudit, confirm intake context, and decide the next move.'
+    'Use the diagnosis hub to review the preaudit, confirm Business Context, and decide the next move.'
 
   if (intakeReady && !auditIsCurrent) {
     recommendedNextSection = 'diagnosis'
     recommendedNextLabel = 'Run full audit'
     recommendedNextDetail =
-      'The consulting flow is ready for the full audit step. Confirm the intake context in Diagnosis and run the audit.'
+      'The consulting flow is ready for the full audit step. Confirm Business Context in Diagnosis and run the audit.'
   } else if (auditIsCurrent) {
     recommendedNextSection = 'workstreams'
     recommendedNextLabel = 'Activate workstreams'
@@ -1125,27 +1125,27 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
       status: preauditPointer
         ? buildStageStatus(
             'Completed',
-            `Latest preaudit artifact: ${preauditPointer.display_run_id}`,
+            'Preaudit findings are available in Diagnosis.',
             'success',
           )
-        : buildStageStatus('Pending', 'No preaudit artifact has been found yet.', 'pending'),
+        : buildStageStatus('Pending', 'Preaudit has not run yet.', 'pending'),
       detail: 'Public-site signal, visibility, conversion friction, and quick-win framing.',
     },
     {
-      label: 'Intake',
+      label: 'Business Context',
       status: saved
         ? buildStageStatus(
             'Ready',
-            `Editable intake stored at ${path.relative(REPO_ROOT, savedFilePath)}`,
+            'Business Context is saved and ready for the audit step.',
             'success',
           )
         : draft
           ? buildStageStatus(
               'Draft ready',
-              `Generated intake draft available at ${path.relative(REPO_ROOT, draftFilePath)}`,
+              'A Business Context draft is available for review.',
               'progress',
             )
-          : buildStageStatus('Not started', 'No intake draft has been generated yet.', 'pending'),
+          : buildStageStatus('Not started', 'No Business Context draft has been generated yet.', 'pending'),
       detail: 'Business, systems, lead process, and constraint context for the deeper audit.',
     },
     {
@@ -1153,24 +1153,24 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
       status: auditIsCurrent
         ? buildStageStatus(
             'Completed',
-            `Latest audit artifact: ${auditPointer!.display_run_id}`,
+            'Audit output is available for workstream planning.',
             'success',
           )
         : auditPointer
           ? buildStageStatus(
               'Needs rerun',
-              'Newer preaudit or intake context exists after the current audit artifact.',
+              'Newer preaudit or Business Context exists after the current audit artifact.',
               'progress',
             )
           : intakeReady
             ? buildStageStatus(
                 'Ready to run',
-                'The intake context is ready and the next step is to run the full audit.',
+                'Business Context is ready and the next step is to run the full audit.',
                 'progress',
               )
             : buildStageStatus(
                 'Blocked',
-                'Finish preaudit review and intake before the full audit can run.',
+                'Finish preaudit review and Business Context before the full audit can run.',
                 'pending',
               ),
       detail: 'Decision-ready diagnosis, priorities, and recommended execution modules.',
@@ -1198,9 +1198,11 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
       tone: preaudit ? 'success' : 'pending',
     },
     {
-      label: 'Intake record',
-      value: intake ? (intake.source === 'saved' ? 'Saved intake' : 'Draft intake') : 'Missing',
-      detail: intake ? intake.intakePath : 'No intake record has been loaded yet.',
+      label: 'Business Context',
+      value: intake ? (intake.source === 'saved' ? 'Saved' : 'Draft') : 'Missing',
+      detail: intake
+        ? 'Client operating context for the full audit.'
+        : 'No Business Context record has been loaded yet.',
       href: '/workspace/' + clientSlug + '/diagnosis?panel=intake',
       tone: intake ? (intake.source === 'saved' ? 'success' : 'progress') : 'pending',
     },
@@ -1233,7 +1235,7 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     },
     {
       label: 'Execution readiness',
-      value: auditIsCurrent ? 'Ready for workstreams' : intakeReady ? 'Needs audit run' : 'Needs diagnosis input',
+      value: auditIsCurrent ? 'Ready for workstreams' : intakeReady ? 'Needs audit run' : 'Needs Business Context',
       detail: auditIsCurrent
         ? 'The current audit is strong enough to shape workstreams and agent setup.'
         : intakeReady
@@ -1243,7 +1245,7 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     {
       label: 'Agent readiness',
       value: String(agents.filter((agent) => ['recommended', 'ready', 'active'].includes(agent.status)).length),
-      detail: 'Specialized agents become more concrete as diagnosis output and intake context improve.',
+      detail: 'Specialized agents become more concrete as diagnosis output and Business Context improve.',
     },
   ]
   const efficiencySignals = [

@@ -55,7 +55,7 @@ export default function Footer() {
           <p className="mt-3 text-sm leading-6">
             {isWorkspace
               ? 'Email is stored locally for client association. There is still no database, no email sending, no CRM sync, and no production-safe access control.'
-              : 'A submitted URL and email trigger the current preaudit workflow, then redirect into a client workspace backed by the same local artifacts and intake JSON.'}
+              : 'A submitted URL and email trigger the current preaudit workflow, then redirect into a client workspace backed by the same local artifacts and Business Context JSON.'}
           </p>
         </div>
       </div>

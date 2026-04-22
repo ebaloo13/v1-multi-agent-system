@@ -28,6 +28,12 @@ to broken pages:
 
 Legacy standalone workflow routes remain only as compatibility redirects.
 
+Naming convention:
+
+- Client-facing label: **Business Context**
+- Spanish reference: **Contexto del negocio**
+- Internal legacy term: `intake`, still used by existing file names, route paths, and workflow flags
+
 ## Scope
 
 - Keep work inside `apps/web` unless a very small repo-level metadata change is
@@ -47,7 +53,7 @@ The server-function bridge:
 - invokes the existing live scripts from the repo root
 - reads `artifacts/clients/<client-slug>/<agent>/latest.json`
 - reads per-run `run.json` and `report.md`
-- reads and writes `data/clients/*audit-intake*.json`
+- reads and writes `data/clients/*audit-intake*.json` as the legacy storage format for Business Context
 - stores lightweight local client context in `data/clients/*-workspace.json`
 
 Local dev currently runs this bridge in a Node-compatible Vite/TanStack Start
@@ -68,7 +74,7 @@ Keep this simple and swappable. Do not overbuild a second persistence layer.
 
 Use these docs when changing UX or form structure:
 
-- `../../docs/product/audit-intake-form.md`
+- `../../docs/product/audit-intake-form.md` (Business Context form; filename is legacy)
 - `../../docs/product/preaudit-to-audit-flow.md`
 
 Treat the existing file workflow as the source of truth. The frontend should
@@ -84,9 +90,9 @@ present it more clearly, not replace it.
   next-action framing at the shell level.
 - Keep public navigation and workspace navigation separate.
 - Do not expose broken routes or fake sections.
-- Avoid inventing internal business facts in the intake draft. Only prefill
+- Avoid inventing internal business facts in the Business Context draft. Only prefill
   what public-site evidence could plausibly support.
-- Diagnosis is the hub for preaudit, intake, and audit. Older workspace routes
+- Diagnosis is the hub for preaudit, Business Context, and audit. Older workspace routes
   can redirect into it when needed.
 - Workstreams and Agents should stay connected to the real workflow artifacts
   and audit conclusions, even if execution is still future-facing.
