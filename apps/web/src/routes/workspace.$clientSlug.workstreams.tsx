@@ -13,6 +13,9 @@ export const Route = createFileRoute('/workspace/$clientSlug/workstreams')({
 
 function WorkspaceWorkstreamsPage() {
   const data = Route.useLoaderData()
+  const scopedWorkstreams = data.workstreams.filter((item) =>
+    ['ready for design', 'active', 'complete'].includes(item.status),
+  )
 
   return (
     <WorkspaceShell
@@ -51,6 +54,19 @@ function WorkspaceWorkstreamsPage() {
         <article className="content-panel workspace-board-panel">
           <p className="eyebrow">Workstreams</p>
           <h2 className="workspace-panel-title">What are we actively working on?</h2>
+          {data.workstreams.length === 0 ? (
+            <WorkspaceWorkstreamsEmptyState
+              title="No workstreams have been identified yet"
+              detail="Workstreams will appear after EBC has enough diagnostic signal to define focused areas of work."
+              nextStep="Start with the preaudit, then complete Business Context and run the audit."
+            />
+          ) : scopedWorkstreams.length === 0 ? (
+            <WorkspaceWorkstreamsEmptyState
+              title="Workstreams are waiting on diagnosis"
+              detail="The likely work areas are visible, but they are not ready for activation until Business Context and audit output are available."
+              nextStep="Continue through Diagnosis so these tracks can move from identified to ready."
+            />
+          ) : null}
           <div className="workspace-workstream-board mt-4">
             {data.workstreams.map((item) => (
               <article key={item.title} className="workspace-workstream-board-card">
@@ -79,5 +95,24 @@ function WorkspaceWorkstreamsPage() {
         </article>
       </section>
     </WorkspaceShell>
+  )
+}
+
+function WorkspaceWorkstreamsEmptyState({
+  title,
+  detail,
+  nextStep,
+}: {
+  title: string
+  detail: string
+  nextStep: string
+}) {
+  return (
+    <div className="workspace-empty-state mt-4">
+      <span className="workspace-empty-state-kicker">Not active yet</span>
+      <strong>{title}</strong>
+      <p>{detail}</p>
+      <p className="workspace-empty-next">{nextStep}</p>
+    </div>
   )
 }

@@ -13,6 +13,10 @@ export const Route = createFileRoute('/workspace/$clientSlug/')({
 
 function WorkspaceDashboardPage() {
   const data = Route.useLoaderData()
+  const activeWorkstreams = data.workstreams.filter((item) =>
+    ['ready for design', 'active', 'complete'].includes(item.status),
+  )
+  const hasGeneratedOutputs = data.artifacts.some((artifact) => artifact.tone !== 'pending')
 
   return (
     <WorkspaceShell
@@ -72,6 +76,13 @@ function WorkspaceDashboardPage() {
               </article>
             ))}
           </div>
+          {data.preauditStatus.tone === 'pending' ? (
+            <WorkspaceDashboardEmptyState
+              title="Preaudit has not run yet"
+              detail="The workspace is ready, but the first diagnostic output is still missing."
+              nextStep="Run the preaudit so EBC can create the first findings and prepare Business Context."
+            />
+          ) : null}
         </article>
 
         <article className="content-panel">
@@ -112,6 +123,13 @@ function WorkspaceDashboardPage() {
           </div>
 
           <div className="workspace-workstream-grid mt-4">
+            {activeWorkstreams.length === 0 ? (
+              <WorkspaceDashboardEmptyState
+                title="No workstreams are active yet"
+                detail="Workstreams become useful after the preaudit and Business Context create enough signal to define focused tracks."
+                nextStep="Continue through Diagnosis first. Workstreams will move from identified to ready once the audit is available."
+              />
+            ) : null}
             {data.workstreams.map((item) => (
               <div key={item.title} className="workspace-workstream-card">
                 <div className="workspace-row-head">
@@ -136,6 +154,13 @@ function WorkspaceDashboardPage() {
           </div>
 
           <div className="workspace-list-grid mt-4">
+            {!hasGeneratedOutputs ? (
+              <WorkspaceDashboardEmptyState
+                title="No outputs are available yet"
+                detail="Preaudit, Business Context, and audit outputs will appear here as the diagnosis flow progresses."
+                nextStep="Start with the preaudit, then complete Business Context before running the full audit."
+              />
+            ) : null}
             {data.artifacts.map((artifact) => (
               <div key={artifact.label} className="workspace-artifact-row">
                 <div>
@@ -149,5 +174,24 @@ function WorkspaceDashboardPage() {
         </article>
       </section>
     </WorkspaceShell>
+  )
+}
+
+function WorkspaceDashboardEmptyState({
+  title,
+  detail,
+  nextStep,
+}: {
+  title: string
+  detail: string
+  nextStep: string
+}) {
+  return (
+    <div className="workspace-empty-state mt-4">
+      <span className="workspace-empty-state-kicker">Next step</span>
+      <strong>{title}</strong>
+      <p>{detail}</p>
+      <p className="workspace-empty-next">{nextStep}</p>
+    </div>
   )
 }

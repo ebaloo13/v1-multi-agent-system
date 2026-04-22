@@ -13,6 +13,9 @@ export const Route = createFileRoute('/workspace/$clientSlug/agents')({
 
 function WorkspaceAgentsPage() {
   const data = Route.useLoaderData()
+  const recommendedAgents = data.agents.filter((item) =>
+    ['recommended', 'ready', 'active'].includes(item.status),
+  )
 
   return (
     <WorkspaceShell
@@ -51,6 +54,19 @@ function WorkspaceAgentsPage() {
         <article className="content-panel workspace-board-panel">
           <p className="eyebrow">Agents</p>
           <h2 className="workspace-panel-title">What systems are relevant here?</h2>
+          {data.agents.length === 0 ? (
+            <WorkspaceAgentsEmptyState
+              title="No agents are available yet"
+              detail="Agent recommendations appear after the diagnosis has enough context to identify useful execution modules."
+              nextStep="Complete Business Context and run the audit first."
+            />
+          ) : recommendedAgents.length === 0 ? (
+            <WorkspaceAgentsEmptyState
+              title="No agents recommended yet"
+              detail="The agent catalog is prepared, but recommendations should wait until the deeper audit clarifies the implementation path."
+              nextStep="Use Diagnosis to complete Business Context and unlock audit-based recommendations."
+            />
+          ) : null}
           <div className="workspace-agent-gallery mt-4">
             {data.agents.map((agent) => (
               <article key={agent.slug} className="workspace-agent-gallery-card">
@@ -79,5 +95,24 @@ function WorkspaceAgentsPage() {
         </article>
       </section>
     </WorkspaceShell>
+  )
+}
+
+function WorkspaceAgentsEmptyState({
+  title,
+  detail,
+  nextStep,
+}: {
+  title: string
+  detail: string
+  nextStep: string
+}) {
+  return (
+    <div className="workspace-empty-state mt-4">
+      <span className="workspace-empty-state-kicker">Recommendation pending</span>
+      <strong>{title}</strong>
+      <p>{detail}</p>
+      <p className="workspace-empty-next">{nextStep}</p>
+    </div>
   )
 }
