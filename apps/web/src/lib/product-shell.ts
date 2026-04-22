@@ -189,6 +189,11 @@ export const workspaceSectionMeta = {
     summary:
       'Initial agent architecture for this client across sales, operations, growth, research, and future execution.',
   },
+  activity: {
+    title: 'Activity',
+    summary:
+      'Client-safe history of meaningful workspace progress, outputs, and next steps.',
+  },
 } as const
 
 export type IntakeDraft = {
@@ -244,6 +249,11 @@ export const workspaceTabs = [
     id: 'agents',
     label: 'Agents',
     href: '/agents',
+  },
+  {
+    id: 'activity',
+    label: 'Activity',
+    href: '/activity',
   },
 ] as const
 

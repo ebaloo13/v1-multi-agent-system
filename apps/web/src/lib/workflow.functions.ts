@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import type { WorkflowSearch } from './workflow'
 import {
   loadWorkspaceAgents,
+  loadWorkspaceActivity,
   loadWorkspaceDiagnosis,
   loadWorkspaceOverview,
   loadWorkspaceWorkstreams,
@@ -40,6 +41,12 @@ export const getWorkspaceAgents = createServerFn({ method: 'GET' })
   .inputValidator((data: { clientSlug: string }) => data)
   .handler(async ({ data }) => {
     return loadWorkspaceAgents(data.clientSlug)
+  })
+
+export const getWorkspaceActivity = createServerFn({ method: 'GET' })
+  .inputValidator((data: { clientSlug: string }) => data)
+  .handler(async ({ data }) => {
+    return loadWorkspaceActivity(data.clientSlug)
   })
 
 export const getAuditIntakeView = createServerFn({ method: 'GET' })
