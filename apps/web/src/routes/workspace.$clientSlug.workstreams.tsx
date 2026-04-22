@@ -28,11 +28,10 @@ function WorkspaceWorkstreamsPage() {
       statusChips={[
         { label: 'Workstreams', value: String(data.workstreams.length), tone: 'neutral' },
         {
-          label: 'Ready or active',
+          label: 'Ready',
           value: String(data.workstreams.filter((item) => ['ready for design', 'active'].includes(item.status)).length),
           tone: 'progress',
         },
-        { label: 'Recommended agents', value: String(data.agents.filter((item) => item.status !== 'not relevant').length), tone: 'neutral' },
       ]}
       action={
         <>
@@ -48,19 +47,20 @@ function WorkspaceWorkstreamsPage() {
         </>
       }
     >
-      <section className="workspace-v2-grid">
-        <article className="content-panel">
-          <p className="eyebrow">Workstream board</p>
-          <h2 className="workspace-panel-title">Operational tracks derived from the diagnosis</h2>
+      <section className="workspace-board-canvas">
+        <article className="content-panel workspace-board-panel">
+          <p className="eyebrow">Workstreams</p>
+          <h2 className="workspace-panel-title">What are we actively working on?</h2>
           <div className="workspace-workstream-board mt-4">
             {data.workstreams.map((item) => (
               <article key={item.title} className="workspace-workstream-board-card">
+                <div className={`workspace-card-status-bar tone-${item.tone}`} />
                 <div className="workspace-panel-head">
                   <div>
-                    <span className={`workspace-status-pill tone-${item.tone}`}>{item.status}</span>
+                    <span className="workspace-card-kicker">{item.linkedSource}</span>
                     <h3 className="workspace-board-title">{item.title}</h3>
                   </div>
-                  <span className="workspace-muted-tag">{item.linkedSource}</span>
+                  <span className={`workspace-status-pill tone-${item.tone}`}>{item.status}</span>
                 </div>
                 <p className="workspace-panel-copy mt-4">{item.whyItMatters}</p>
                 <div className="workspace-list-grid mt-4">
@@ -69,29 +69,11 @@ function WorkspaceWorkstreamsPage() {
                     <p>{item.suggestedNextStep}</p>
                   </div>
                   <div className="workspace-module-row">
-                    <strong>Suggested agent</strong>
+                    <strong>Agent</strong>
                     <p>{item.suggestedAgent ?? 'Not assigned yet'}</p>
                   </div>
                 </div>
               </article>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="workspace-v2-grid">
-        <article className="content-panel">
-          <p className="eyebrow">Latest linked outputs</p>
-          <h2 className="workspace-panel-title">Artifacts feeding this board</h2>
-          <div className="workspace-list-grid mt-4">
-            {data.latestOutputs.map((item) => (
-              <div key={item.label} className="workspace-artifact-row">
-                <div>
-                  <strong>{item.label}</strong>
-                  <p>{item.detail}</p>
-                </div>
-                <span className={`workspace-status-pill tone-${item.tone}`}>{item.value}</span>
-              </div>
             ))}
           </div>
         </article>

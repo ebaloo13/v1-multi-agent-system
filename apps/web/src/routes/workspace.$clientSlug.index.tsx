@@ -26,10 +26,8 @@ function WorkspaceDashboardPage() {
       primaryActionLabel={data.recommendedNextLabel}
       primaryActionDetail={data.recommendedNextDetail}
       statusChips={[
-        { label: 'Preaudit', value: data.preauditStatus.label, tone: data.preauditStatus.tone },
-        { label: 'Intake', value: data.intakeStatus.label, tone: data.intakeStatus.tone },
-        { label: 'Audit', value: data.auditStatus.label, tone: data.auditStatus.tone },
-        { label: 'Active workstreams', value: String(data.workstreams.length), tone: 'neutral' },
+        { label: 'Stage', value: data.currentStage, tone: 'progress' },
+        { label: 'Workstreams', value: String(data.workstreams.length), tone: 'neutral' },
       ]}
       action={
         <>
@@ -52,14 +50,13 @@ function WorkspaceDashboardPage() {
         </>
       }
     >
-      <section className="workspace-v2-grid workspace-v2-grid-wide">
+      <section className="workspace-dashboard-control-grid">
         <article className="content-panel">
           <div className="workspace-panel-head">
             <div>
-              <p className="eyebrow">Transformation pipeline</p>
-              <h2 className="workspace-panel-title">Current workflow status</h2>
+              <p className="eyebrow">Workflow</p>
+              <h2 className="workspace-panel-title">Where we are</h2>
             </div>
-            <span className="workspace-muted-tag">Live workflow state</span>
           </div>
 
           <div className="workspace-pipeline-grid mt-4">
@@ -71,7 +68,6 @@ function WorkspaceDashboardPage() {
                     {item.status.label}
                   </span>
                 </div>
-                <p className="workspace-pipeline-copy">{item.detail}</p>
                 <p className="workspace-pipeline-detail">{item.status.detail}</p>
               </article>
             ))}
@@ -79,37 +75,36 @@ function WorkspaceDashboardPage() {
         </article>
 
         <article className="content-panel">
-          <p className="eyebrow">Primary next action</p>
-          <h2 className="workspace-panel-title">What should happen now</h2>
+          <p className="eyebrow">Next action</p>
+          <h2 className="workspace-panel-title">{data.recommendedNextLabel}</h2>
           <div className="workspace-status-row mt-4">
             <div>
-              <strong>{data.recommendedNextLabel}</strong>
               <p>{data.recommendedNextDetail}</p>
             </div>
             <span className="workspace-status-pill tone-progress">{data.currentStage}</span>
           </div>
 
-          <div className="workspace-list-grid mt-4">
-            {data.accountReadiness.map((item) => (
-              <div key={item.label} className="workspace-module-row">
-                <strong>{item.label}</strong>
-                <p>
-                  {item.value}
-                  {' · '}
-                  {item.detail}
-                </p>
-              </div>
-            ))}
+          <div className="workspace-command-actions mt-4">
+            <a
+              href={
+                data.recommendedNextSection === 'diagnosis'
+                  ? workspaceDiagnosisHref(data.clientSlug)
+                  : workspaceHref(data.clientSlug, data.recommendedNextSection)
+              }
+              className="primary-button no-underline"
+            >
+              Continue
+            </a>
           </div>
         </article>
       </section>
 
-      <section className="workspace-v2-grid">
+      <section className="workspace-dashboard-board-grid">
         <article className="content-panel">
           <div className="workspace-panel-head">
             <div>
-              <p className="eyebrow">Active workstreams</p>
-              <h2 className="workspace-panel-title">Where the transformation is focused</h2>
+              <p className="eyebrow">Workstreams</p>
+              <h2 className="workspace-panel-title">Current areas of work</h2>
             </div>
             <a href={workspaceHref(data.clientSlug, 'workstreams')} className="workspace-text-link">
               Open workstreams
@@ -119,78 +114,21 @@ function WorkspaceDashboardPage() {
           <div className="workspace-workstream-grid mt-4">
             {data.workstreams.map((item) => (
               <div key={item.title} className="workspace-workstream-card">
-                <span className={`workspace-status-pill tone-${item.tone}`}>{item.status}</span>
-                <strong>{item.title}</strong>
-                <span>{item.whyItMatters}</span>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="content-panel">
-          <div className="workspace-panel-head">
-            <div>
-              <p className="eyebrow">Agent readiness</p>
-              <h2 className="workspace-panel-title">Which specialist modules matter</h2>
-            </div>
-            <a href={workspaceHref(data.clientSlug, 'agents')} className="workspace-text-link">
-              Open agents
-            </a>
-          </div>
-
-          <div className="workspace-agent-stack mt-4">
-            {data.agents.map((agent) => (
-              <div key={agent.slug} className="workspace-agent-list-row">
-                <div>
-                  <strong>{agent.label}</strong>
-                  <p>{agent.currentRelevance}</p>
-                </div>
-                <span className={`workspace-status-pill tone-${agent.tone}`}>{agent.status}</span>
-              </div>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="workspace-v2-grid">
-        <article className="content-panel">
-          <p className="eyebrow">Leaks vs gains</p>
-          <h2 className="workspace-panel-title">Business framing</h2>
-          <div className="workspace-list-grid mt-4">
-            {data.efficiencySignals.map((item) => (
-              <div key={item.title} className="workspace-signal-row">
-                <span className={`workspace-signal-badge ${item.label === 'Leak' ? 'is-leak' : 'is-gain'}`}>
-                  {item.label}
-                </span>
-                <div>
+                <div className="workspace-row-head">
                   <strong>{item.title}</strong>
-                  <p>{item.detail}</p>
+                  <span className={`workspace-status-pill tone-${item.tone}`}>{item.status}</span>
                 </div>
+                <span>{item.suggestedNextStep}</span>
               </div>
             ))}
           </div>
         </article>
 
-        <article className="content-panel">
-          <p className="eyebrow">Client context</p>
-          <h2 className="workspace-panel-title">Account facts</h2>
-          <div className="workspace-list-grid mt-4">
-            {data.keyFacts.map((fact) => (
-              <div key={fact.label} className="workspace-mini-record">
-                <span>{fact.label}</span>
-                <strong>{fact.value}</strong>
-              </div>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="workspace-v2-grid">
         <article className="content-panel">
           <div className="workspace-panel-head">
             <div>
-              <p className="eyebrow">Artifacts and outputs</p>
-              <h2 className="workspace-panel-title">What already exists</h2>
+              <p className="eyebrow">Outputs</p>
+              <h2 className="workspace-panel-title">Latest files</h2>
             </div>
             <a href={workspaceHref(data.clientSlug, 'diagnosis')} className="workspace-text-link">
               Open diagnosis

@@ -90,9 +90,7 @@ function WorkspaceDiagnosisPage() {
       primaryActionDetail={data.recommendedNextDetail}
       statusChips={[
         { label: 'Preaudit', value: data.preauditStatus.label, tone: data.preauditStatus.tone },
-        { label: 'Intake', value: data.intakeStatus.label, tone: data.intakeStatus.tone },
         { label: 'Audit', value: data.auditStatus.label, tone: data.auditStatus.tone },
-        { label: 'Focused panel', value: panel, tone: 'neutral' },
       ]}
       action={
         <>
@@ -108,10 +106,9 @@ function WorkspaceDiagnosisPage() {
       <section className="content-panel">
         <div className="workspace-panel-head">
           <div>
-            <p className="eyebrow">Diagnosis system</p>
-            <h2 className="workspace-panel-title">Preaudit, intake, and audit in one operating view</h2>
+            <p className="eyebrow">Diagnosis</p>
+            <h2 className="workspace-panel-title">What did we find?</h2>
           </div>
-          <span className="workspace-muted-tag">Unified workflow hub</span>
         </div>
 
         <div className="workspace-segmented-nav mt-4">
@@ -131,13 +128,10 @@ function WorkspaceDiagnosisPage() {
           ))}
         </div>
 
-        <div className="workspace-list-grid mt-4">
+        <div className="workspace-status-strip mt-4">
           {data.workflowStatus.map((item) => (
-            <div key={item.label} className="workspace-status-row">
-              <div>
-                <strong>{item.label}</strong>
-                <p>{item.detail}</p>
-              </div>
+            <div key={item.label} className="workspace-mini-record">
+              <span>{item.label}</span>
               <span className={`workspace-status-pill tone-${item.status.tone}`}>{item.status.label}</span>
             </div>
           ))}
@@ -145,17 +139,17 @@ function WorkspaceDiagnosisPage() {
       </section>
 
       {panel === 'overview' ? (
-        <section className="workspace-v2-grid">
+        <section className="workspace-diagnosis-overview-grid">
           <article className="content-panel">
             <p className="eyebrow">Preaudit signal</p>
-            <h2 className="workspace-panel-title">What was found before internal context</h2>
+            <h2 className="workspace-panel-title">Public-site findings</h2>
             {data.preaudit ? (
               <div className="workspace-list-grid mt-4">
                 <div className="workspace-module-row">
                   <strong>Summary</strong>
                   <p>{data.preaudit.summary}</p>
                 </div>
-                {data.preaudit.priorityAlerts.slice(0, 3).map((item) => (
+                {data.preaudit.priorityAlerts.slice(0, 2).map((item) => (
                   <div key={item} className="workspace-alert-row">
                     {item}
                   </div>
@@ -168,7 +162,7 @@ function WorkspaceDiagnosisPage() {
 
           <article className="content-panel">
             <p className="eyebrow">Intake context</p>
-            <h2 className="workspace-panel-title">What the business has confirmed</h2>
+            <h2 className="workspace-panel-title">Business context</h2>
             {data.intake ? (
               <div className="workspace-list-grid mt-4">
                 <div className="workspace-module-row">
@@ -179,7 +173,7 @@ function WorkspaceDiagnosisPage() {
                   </p>
                 </div>
                 {(data.intake.todo.length > 0
-                  ? data.intake.todo
+                  ? data.intake.todo.slice(0, 2)
                   : ['Intake data is present and ready to support the deeper audit flow.']).map(
                   (item) => (
                     <div key={item} className="workspace-alert-row">
@@ -195,14 +189,14 @@ function WorkspaceDiagnosisPage() {
 
           <article className="content-panel">
             <p className="eyebrow">Audit conclusion</p>
-            <h2 className="workspace-panel-title">What the full diagnosis now implies</h2>
+            <h2 className="workspace-panel-title">Audit implications</h2>
             {data.audit ? (
               <div className="workspace-list-grid mt-4">
                 <div className="workspace-module-row">
                   <strong>Company summary</strong>
                   <p>{data.audit.companySummary}</p>
                 </div>
-                {data.audit.mainPains.slice(0, 3).map((item) => (
+                {data.audit.mainPains.slice(0, 2).map((item) => (
                   <div key={item} className="workspace-alert-row">
                     {item}
                   </div>
@@ -219,21 +213,21 @@ function WorkspaceDiagnosisPage() {
 
       {panel === 'preaudit' ? (
         <>
-          <section className="workspace-v2-grid">
+          <section className="workspace-diagnosis-split-grid">
             <article className="content-panel">
               <p className="eyebrow">Preaudit summary</p>
-              <h2 className="workspace-panel-title">Surface-level diagnostic readout</h2>
+              <h2 className="workspace-panel-title">Initial diagnostic</h2>
               <p className="workspace-panel-copy">
                 {data.preaudit?.summary ?? 'No preaudit summary is available yet.'}
               </p>
             </article>
 
             <article className="content-panel">
-              <p className="eyebrow">Business impact</p>
-              <h2 className="workspace-panel-title">What this affects commercially</h2>
+              <p className="eyebrow">Top issues</p>
+              <h2 className="workspace-panel-title">What needs attention</h2>
               <div className="workspace-list-grid mt-4">
-                {(data.preaudit?.businessImpact ?? ['No business impact notes available yet.']).map((item) => (
-                  <div key={item} className="list-row">
+                {(data.preaudit?.priorityAlerts.slice(0, 4) ?? ['No priority alerts available yet.']).map((item) => (
+                  <div key={item} className="workspace-alert-row">
                     {item}
                   </div>
                 ))}
@@ -251,24 +245,12 @@ function WorkspaceDiagnosisPage() {
             ))}
           </section>
 
-          <section className="workspace-v2-grid">
-            <article className="content-panel">
-              <p className="eyebrow">Top issues</p>
-              <h2 className="workspace-panel-title">Priority alerts</h2>
-              <div className="workspace-list-grid mt-4">
-                {(data.preaudit?.priorityAlerts ?? ['No priority alerts available yet.']).map((item) => (
-                  <div key={item} className="workspace-alert-row">
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </article>
-
+          <section className="workspace-diagnosis-split-grid">
             <article className="content-panel">
               <p className="eyebrow">Quick wins</p>
-              <h2 className="workspace-panel-title">Immediate actions before deeper work</h2>
+              <h2 className="workspace-panel-title">Useful immediate actions</h2>
               <div className="workspace-action-grid mt-4">
-                {(data.preaudit?.quickWins ?? ['No quick wins available yet.']).map((item) => (
+                {(data.preaudit?.quickWins.slice(0, 4) ?? ['No quick wins available yet.']).map((item) => (
                   <div key={item} className="workspace-action-card">
                     <strong>{item}</strong>
                   </div>
@@ -340,9 +322,9 @@ function WorkspaceDiagnosisPage() {
           <div className="workspace-form-stack">
             <section className="content-panel">
               <p className="eyebrow">Intake editor</p>
-              <h2 className="workspace-panel-title">Collect the missing business context</h2>
+              <h2 className="workspace-panel-title">Business context</h2>
               <p className="workspace-panel-copy">
-                This editor still writes to the real intake JSON and can trigger the existing audit workflow.
+                Confirm the inputs needed before running the full audit.
               </p>
             </section>
 
@@ -360,7 +342,6 @@ function WorkspaceDiagnosisPage() {
                     <div className="workspace-form-section-header">
                       <div>
                         <p className="eyebrow">{section.title}</p>
-                        <p className="workspace-panel-copy">{section.description}</p>
                       </div>
                       <span className={`workspace-status-pill tone-${section.tone}`}>
                         {section.completed}/{section.total} complete
@@ -407,13 +388,12 @@ function WorkspaceDiagnosisPage() {
                   <div className="workspace-panel-head">
                     <div>
                       <p className="eyebrow">Run full audit</p>
-                      <h2 className="workspace-panel-title">Persist intake and generate the deeper diagnosis</h2>
+                      <h2 className="workspace-panel-title">Save intake and run audit</h2>
                     </div>
-                    <span className="workspace-muted-tag">Triggers the existing audit workflow</span>
                   </div>
 
                   <p className="workspace-panel-copy mt-4">
-                    Saving here writes back to the local intake JSON, then runs the repo-root audit script.
+                    This updates the local intake JSON, then runs the existing audit workflow.
                   </p>
 
                   <div className="workspace-command-actions mt-4">
@@ -444,10 +424,10 @@ function WorkspaceDiagnosisPage() {
 
       {panel === 'audit' ? (
         <>
-          <section className="workspace-v2-grid">
+          <section className="workspace-diagnosis-split-grid">
             <article className="content-panel">
               <p className="eyebrow">Audit summary</p>
-              <h2 className="workspace-panel-title">Decision-ready diagnosis</h2>
+              <h2 className="workspace-panel-title">What the audit concluded</h2>
               <p className="workspace-panel-copy">
                 {data.audit?.companySummary ??
                   'No audit artifact is available yet. Complete the intake and run the audit to unlock this section.'}
@@ -455,23 +435,19 @@ function WorkspaceDiagnosisPage() {
             </article>
 
             <article className="content-panel">
-              <p className="eyebrow">Recommended next inputs</p>
-              <h2 className="workspace-panel-title">What would sharpen execution</h2>
+              <p className="eyebrow">Recommended agents</p>
+              <h2 className="workspace-panel-title">Execution modules</h2>
               <div className="workspace-list-grid mt-4">
-                {(data.audit?.notes
-                  ? data.audit.notes.split('. ').filter(Boolean)
-                  : ['Detailed sales process', 'Team capacity', 'Operational constraints']).map(
-                  (item) => (
-                    <div key={item} className="workspace-module-row">
-                      <strong>{item.replace(/\.$/, '')}</strong>
-                    </div>
-                  ),
-                )}
+                {(data.audit?.recommendedAgents ?? ['No agents promoted yet']).map((agent) => (
+                  <div key={agent} className="workspace-module-row">
+                    <strong>{agent}</strong>
+                  </div>
+                ))}
               </div>
             </article>
           </section>
 
-          <section className="workspace-v2-grid">
+          <section className="workspace-diagnosis-split-grid">
             <article className="content-panel">
               <p className="eyebrow">Main pains</p>
               <h2 className="workspace-panel-title">Problems to solve first</h2>
@@ -481,27 +457,6 @@ function WorkspaceDiagnosisPage() {
                     {item}
                   </div>
                 ))}
-              </div>
-            </article>
-
-            <article className="content-panel">
-              <p className="eyebrow">Recommended agents</p>
-              <h2 className="workspace-panel-title">Likely execution modules</h2>
-              <div className="workspace-agent-grid mt-4">
-                {(data.audit?.recommendedAgents ?? []).map((agent) => (
-                  <div key={agent} className="workspace-agent-card">
-                    <span className="workspace-agent-state">Recommended</span>
-                    <strong>{agent}</strong>
-                    <p>Promoted from the current audit output.</p>
-                  </div>
-                ))}
-                {!data.audit?.recommendedAgents.length ? (
-                  <div className="workspace-agent-card">
-                    <span className="workspace-agent-state">Pending</span>
-                    <strong>No agents promoted yet</strong>
-                    <p>Run the audit to surface the first execution modules for this client.</p>
-                  </div>
-                ) : null}
               </div>
             </article>
           </section>
