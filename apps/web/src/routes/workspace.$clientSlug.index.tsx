@@ -2,7 +2,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
 import { workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
 import { getWorkspaceOverview } from '../lib/workflow.functions'
-import type { WorkspaceActivityItem, WorkspaceDashboardView } from '../lib/workflow'
+import type {
+  WorkspaceActivityItem,
+  WorkspaceDashboardView,
+  WorkspaceImpactItem,
+} from '../lib/workflow'
 
 export const Route = createFileRoute('/workspace/$clientSlug/')({
   loader: ({ params }) =>
@@ -18,6 +22,7 @@ function WorkspaceDashboardPage() {
     ['ready for design', 'active', 'complete'].includes(item.status),
   )
   const hasGeneratedOutputs = data.artifacts.some((artifact) => artifact.tone !== 'pending')
+  const topImpact = data.impact.slice(0, 3)
   const latestActivity = data.activity.slice(0, 3)
 
   return (
@@ -147,6 +152,26 @@ function WorkspaceDashboardPage() {
         <article className="content-panel">
           <div className="workspace-panel-head">
             <div>
+              <p className="eyebrow">Impact</p>
+              <h2 className="workspace-panel-title">Business value</h2>
+            </div>
+            <a href={workspaceHref(data.clientSlug, 'impact')} className="workspace-text-link">
+              View impact
+            </a>
+          </div>
+
+          <div className="workspace-impact-preview-list mt-4">
+            {topImpact.length === 0 ? (
+              <WorkspaceImpactEmptyState data={data} />
+            ) : (
+              topImpact.map((item) => <WorkspaceImpactPreviewItem key={item.id} item={item} />)
+            )}
+          </div>
+        </article>
+
+        <article className="content-panel">
+          <div className="workspace-panel-head">
+            <div>
               <p className="eyebrow">Outputs</p>
               <h2 className="workspace-panel-title">Latest Outputs</h2>
             </div>
@@ -179,10 +204,10 @@ function WorkspaceDashboardPage() {
           <div className="workspace-panel-head">
             <div>
               <p className="eyebrow">Activity</p>
-              <h2 className="workspace-panel-title">Recent Activity</h2>
+              <h2 className="workspace-panel-title">Recent activity</h2>
             </div>
             <a href={workspaceHref(data.clientSlug, 'activity')} className="workspace-text-link">
-              Open activity
+              View all
             </a>
           </div>
 
@@ -198,6 +223,38 @@ function WorkspaceDashboardPage() {
         </article>
       </section>
     </WorkspaceShell>
+  )
+}
+
+function WorkspaceImpactPreviewItem({ item }: { item: WorkspaceImpactItem }) {
+  return (
+    <div className={`workspace-impact-preview-row state-${item.impactState}`}>
+      <span className="workspace-impact-state">{impactStateLabel(item.impactState)}</span>
+      <div>
+        <strong>{item.title}</strong>
+        <p>{item.description}</p>
+      </div>
+    </div>
+  )
+}
+
+function WorkspaceImpactEmptyState({ data }: { data: WorkspaceDashboardView }) {
+  if (data.preauditStatus.tone === 'pending') {
+    return (
+      <WorkspaceDashboardEmptyState
+        title="Impact is waiting on diagnosis"
+        detail="The workspace needs the first diagnostic before value themes can be framed responsibly."
+        nextStep="Run the preaudit to identify the first business impact signals."
+      />
+    )
+  }
+
+  return (
+    <WorkspaceDashboardEmptyState
+      title="Not enough impact evidence yet"
+      detail="Impact will appear here when diagnosis, outputs, or workstreams create client-safe value signals."
+      nextStep="Continue through Diagnosis so value can be identified without inventing metrics."
+    />
   )
 }
 
@@ -234,7 +291,7 @@ function WorkspaceActivityEmptyState({ data }: { data: WorkspaceDashboardView })
     return (
       <WorkspaceDashboardEmptyState
         title="No recent visible updates"
-        detail="Progress exists, but there are no feed-worthy client updates to show yet."
+        detail="Progress exists, but there are no meaningful client updates to show yet."
         nextStep="Updates will appear when there is a meaningful output, recommendation, or next-step change."
       />
     )
@@ -247,6 +304,19 @@ function WorkspaceActivityEmptyState({ data }: { data: WorkspaceDashboardView })
       nextStep="Start with the preaudit to create the first visible client update."
     />
   )
+}
+
+function impactStateLabel(state: WorkspaceImpactItem['impactState']) {
+  switch (state) {
+    case 'identified':
+      return 'Identified'
+    case 'unlocking':
+      return 'Unlocking'
+    case 'observed':
+      return 'Observed'
+    case 'needs_attention':
+      return 'Needs attention'
+  }
 }
 
 function formatActivityTimestamp(timestamp: string) {

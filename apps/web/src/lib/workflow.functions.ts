@@ -4,6 +4,7 @@ import {
   loadWorkspaceAgents,
   loadWorkspaceActivity,
   loadWorkspaceDiagnosis,
+  loadWorkspaceImpact,
   loadWorkspaceOverview,
   loadWorkspaceWorkstreams,
   loadAuditIntakeView,
@@ -47,6 +48,12 @@ export const getWorkspaceActivity = createServerFn({ method: 'GET' })
   .inputValidator((data: { clientSlug: string }) => data)
   .handler(async ({ data }) => {
     return loadWorkspaceActivity(data.clientSlug)
+  })
+
+export const getWorkspaceImpact = createServerFn({ method: 'GET' })
+  .inputValidator((data: { clientSlug: string }) => data)
+  .handler(async ({ data }) => {
+    return loadWorkspaceImpact(data.clientSlug)
   })
 
 export const getAuditIntakeView = createServerFn({ method: 'GET' })

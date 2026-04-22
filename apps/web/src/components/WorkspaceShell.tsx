@@ -30,11 +30,9 @@ export type WorkspaceShellStatusChip = {
 const upcomingWorkspaceItems = [
   {
     label: 'Reports',
-    detail: 'Future outputs',
   },
   {
     label: 'Playbooks',
-    detail: 'Future workflows',
   },
 ] as const
 
@@ -43,6 +41,7 @@ const workspaceNavIcons: Record<WorkspaceSectionId, string> = {
   diagnosis: 'Di',
   workstreams: 'W',
   agents: 'A',
+  impact: 'I',
   activity: 'Ac',
 }
 
@@ -63,7 +62,7 @@ export default function WorkspaceShell({
   const sectionMeta = getWorkspaceSectionMeta(section)
 
   return (
-    <main className="page-wrap workspace-page px-4 pb-8 pt-6">
+    <main className={`page-wrap workspace-page workspace-section-${section} px-4 pb-8 pt-6`}>
       <div className="workspace-app-shell">
         <aside className="workspace-sidebar">
           <div className="workspace-sidebar-panel workspace-sidebar-panel-primary">
@@ -113,7 +112,6 @@ export default function WorkspaceShell({
               {upcomingWorkspaceItems.map((item) => (
                 <div key={item.label} className="workspace-upcoming-item" aria-disabled="true">
                   <span>{item.label}</span>
-                  <small>{item.detail}</small>
                 </div>
               ))}
             </div>

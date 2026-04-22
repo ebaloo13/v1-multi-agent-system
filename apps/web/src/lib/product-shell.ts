@@ -189,6 +189,11 @@ export const workspaceSectionMeta = {
     summary:
       'Initial agent architecture for this client across sales, operations, growth, research, and future execution.',
   },
+  impact: {
+    title: 'Impact',
+    summary:
+      'Business value surfaced by diagnosis, workstreams, outputs, and client-safe evidence.',
+  },
   activity: {
     title: 'Activity',
     summary:
@@ -249,6 +254,11 @@ export const workspaceTabs = [
     id: 'agents',
     label: 'Agents',
     href: '/agents',
+  },
+  {
+    id: 'impact',
+    label: 'Impact',
+    href: '/impact',
   },
   {
     id: 'activity',

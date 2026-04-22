@@ -16,6 +16,8 @@ import type {
   WorkspaceDashboardView,
   WorkspaceDiagnosisView,
   WorkspaceEventSummary,
+  WorkspaceImpactItem,
+  WorkspaceImpactView,
   WorkspaceOutputSummary,
   WorkspaceRunSummary,
   WorkspaceSectionId,
@@ -1416,6 +1418,10 @@ function relatedAgentLabel(agents: WorkspaceAgent[]) {
   return `${agents.length} agents`
 }
 
+function firstUsefulText(...values: Array<string | undefined>) {
+  return values.find((value) => value?.trim())
+}
+
 function buildWorkspaceActivity(options: {
   client: WorkspaceClient
   currentStage: string
@@ -1608,6 +1614,226 @@ function buildWorkspaceActivity(options: {
   }
 
   return activity.sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
+}
+
+function buildWorkspaceImpact(options: {
+  client: WorkspaceClient
+  preaudit?: PreauditView
+  intake?: AuditIntakeView
+  audit?: AuditView
+  workstreams: WorkspaceWorkstream[]
+  agents: WorkspaceAgent[]
+  outputs: WorkspaceOutputSummary[]
+  auditPointerExists: boolean
+  auditIsCurrent: boolean
+}): WorkspaceImpactItem[] {
+  const {
+    client,
+    preaudit,
+    intake,
+    audit,
+    workstreams,
+    agents,
+    outputs,
+    auditPointerExists,
+    auditIsCurrent,
+  } = options
+  const clientSlug = client.clientSlug
+  const impact: WorkspaceImpactItem[] = []
+
+  if (preaudit) {
+    impact.push({
+      id: `impact:${clientSlug}:growth-leaks`,
+      category: 'growth_leaks',
+      title: 'Growth leaks identified',
+      description:
+        firstUsefulText(
+          preaudit.businessImpact[0],
+          preaudit.priorityAlerts[0],
+          preaudit.summary,
+        ) ?? 'The initial diagnosis surfaced places where demand capture may be weaker than it should be.',
+      impactState: 'identified',
+      relatedEntityType: 'diagnosis',
+      relatedEntityLabel: 'Preaudit findings',
+      ctaLabel: 'Review preaudit',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'preaudit'),
+    })
+
+    impact.push({
+      id: `impact:${clientSlug}:visibility-gains`,
+      category: 'visibility_gains',
+      title: 'Visibility and conversion opportunities surfaced',
+      description:
+        firstUsefulText(
+          preaudit.priorityAlerts.find((item) =>
+            /visibility|search|seo|cta|conversion|tracking/i.test(item),
+          ),
+          preaudit.quickWins[0],
+        ) ?? 'The preaudit identified practical improvements to make the public funnel clearer and easier to act on.',
+      impactState: 'identified',
+      relatedEntityType: 'diagnosis',
+      relatedEntityLabel: 'Public-site signal',
+      ctaLabel: 'Open diagnosis',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'preaudit'),
+    })
+  }
+
+  if (audit) {
+    impact.push({
+      id: `impact:${clientSlug}:workflow-friction`,
+      category: 'workflow_friction',
+      title: 'Workflow friction clarified',
+      description:
+        firstUsefulText(
+          audit.mainPains[0],
+          'The audit clarified which operating frictions are most likely to limit follow-up, handoff, or execution quality.',
+        ) ?? 'The audit clarified which operating frictions need attention before execution scales.',
+      impactState: 'identified',
+      relatedEntityType: 'audit',
+      relatedEntityLabel: 'Audit output',
+      ctaLabel: 'Review audit',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'audit'),
+    })
+
+    if (audit.priorityOrder.length > 0) {
+      impact.push({
+        id: `impact:${clientSlug}:priority-path`,
+        category: 'outputs_enabling_action',
+        title: 'Priorities are ready to turn into action',
+        description: `The audit priority path starts with: ${audit.priorityOrder[0]}.`,
+        impactState: auditIsCurrent ? 'unlocking' : 'needs_attention',
+        relatedEntityType: 'output',
+        relatedEntityLabel: 'Audit priorities',
+        ctaLabel: 'Open workstreams',
+        ctaHref: auditIsCurrent
+          ? workspaceHref(clientSlug, 'workstreams')
+          : workspaceDiagnosisHref(clientSlug, 'audit'),
+      })
+    }
+  }
+
+  const readyWorkstreams = workstreams.filter((workstream) =>
+    ['ready for design', 'active', 'complete'].includes(workstream.status),
+  )
+  if (readyWorkstreams.length > 0) {
+    impact.push({
+      id: `impact:${clientSlug}:workstreams-unlocking`,
+      category: 'workflow_friction',
+      title: 'Focused workstreams are unlocking execution',
+      description:
+        readyWorkstreams.length === 1
+          ? `${readyWorkstreams[0].title} is ready to move from diagnosis into focused improvement work.`
+          : 'The current workstreams are ready to move from diagnosis into focused improvement work.',
+      impactState: 'unlocking',
+      relatedEntityType: 'workstream',
+      relatedEntityLabel: relatedWorkstreamLabel(readyWorkstreams),
+      ctaLabel: 'Open workstreams',
+      ctaHref: workspaceHref(clientSlug, 'workstreams'),
+    })
+  }
+
+  const recommendedAgents = agents.filter((agent) =>
+    ['recommended', 'ready', 'active'].includes(agent.status),
+  )
+  if (recommendedAgents.length > 0) {
+    impact.push({
+      id: `impact:${clientSlug}:agent-supported-progress`,
+      category: 'agent_supported_progress',
+      title: 'Agent-supported progress is taking shape',
+      description:
+        recommendedAgents.length === 1
+          ? `${recommendedAgents[0].label} is relevant to support the current improvement path.`
+          : 'Relevant agents have been identified to support the current improvement path.',
+      impactState: 'unlocking',
+      relatedEntityType: 'agent',
+      relatedEntityLabel: relatedAgentLabel(recommendedAgents),
+      ctaLabel: 'Open agents',
+      ctaHref: workspaceHref(clientSlug, 'agents'),
+    })
+  }
+
+  const readyOutputs = outputs.filter((output) => output.tone === 'success')
+  if (readyOutputs.length > 0) {
+    impact.push({
+      id: `impact:${clientSlug}:outputs-enabling-action`,
+      category: 'outputs_enabling_action',
+      title: 'Outputs are enabling clearer decisions',
+      description:
+        readyOutputs.length === 1
+          ? `${readyOutputs[0].label} is available as a decision input.`
+          : 'Current outputs are available as decision inputs for the next workspace step.',
+      impactState: 'unlocking',
+      relatedEntityType: 'output',
+      relatedEntityLabel:
+        readyOutputs.length === 1 ? readyOutputs[0].label : `${readyOutputs.length} outputs`,
+      ctaLabel: 'Open diagnosis',
+      ctaHref: workspaceDiagnosisHref(clientSlug),
+    })
+  }
+
+  if (!preaudit) {
+    impact.push({
+      id: `impact:${clientSlug}:needs-preaudit`,
+      category: 'needs_attention',
+      title: 'First diagnostic needed before impact can be framed',
+      description:
+        'The workspace needs the initial preaudit before value themes can be identified responsibly.',
+      impactState: 'needs_attention',
+      relatedEntityType: 'diagnosis',
+      relatedEntityLabel: 'Preaudit',
+      ctaLabel: 'Open diagnosis',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'preaudit'),
+    })
+  } else if (!intake) {
+    impact.push({
+      id: `impact:${clientSlug}:needs-business-context`,
+      category: 'needs_attention',
+      title: 'Business Context is needed to qualify value',
+      description:
+        'Confirmed goals, pains, systems, and constraints are needed before EBC can prioritize value with confidence.',
+      impactState: 'needs_attention',
+      relatedEntityType: 'business_context',
+      relatedEntityLabel: 'Business Context',
+      ctaLabel: 'Complete context',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'intake'),
+    })
+  } else if (!auditIsCurrent) {
+    impact.push({
+      id: `impact:${clientSlug}:needs-current-audit`,
+      category: 'needs_attention',
+      title: auditPointerExists ? 'Audit should be refreshed' : 'Full audit needed to confirm priorities',
+      description: auditPointerExists
+        ? 'Newer context exists after the latest audit, so the value path should be refreshed before execution decisions.'
+        : 'The full audit is needed to turn diagnosis and Business Context into a clearer implementation path.',
+      impactState: 'needs_attention',
+      relatedEntityType: 'audit',
+      relatedEntityLabel: 'Audit',
+      ctaLabel: 'Open audit',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'audit'),
+    })
+  } else if (readyWorkstreams.length === 0) {
+    impact.push({
+      id: `impact:${clientSlug}:needs-workstream-activation`,
+      category: 'needs_attention',
+      title: 'Implementation path still needs activation',
+      description:
+        'The diagnosis is current, but workstreams need to be activated before value can move from identified to unlocked.',
+      impactState: 'needs_attention',
+      relatedEntityType: 'workstream',
+      relatedEntityLabel: 'Workstreams',
+      ctaLabel: 'Open workstreams',
+      ctaHref: workspaceHref(clientSlug, 'workstreams'),
+    })
+  }
+
+  const stateOrder: Record<WorkspaceImpactItem['impactState'], number> = {
+    needs_attention: 0,
+    unlocking: 1,
+    identified: 2,
+    observed: 3,
+  }
+
+  return impact.sort((a, b) => stateOrder[a.impactState] - stateOrder[b.impactState])
 }
 
 async function loadWorkspaceBundle(clientSlugInput: string) {
@@ -1836,6 +2062,17 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     savedUpdatedAt: savedUpdatedAtIso,
     auditUpdatedAt: auditUpdatedAtIso,
   })
+  const impact = buildWorkspaceImpact({
+    client,
+    preaudit,
+    intake,
+    audit,
+    workstreams,
+    agents,
+    outputs,
+    auditPointerExists: Boolean(auditPointer),
+    auditIsCurrent,
+  })
   const keyFacts = [
     { label: 'Website', value: client.website },
     { label: 'Lead email', value: client.email ?? 'Not captured yet' },
@@ -1900,6 +2137,7 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     outputs,
     events,
     activity,
+    impact,
     preauditStatus: workflowStatus[0].status,
     intakeStatus: workflowStatus[1].status,
     auditStatus: workflowStatus[2].status,
@@ -1964,6 +2202,7 @@ export async function loadWorkspaceOverview(
     outputs: bundle.outputs,
     events: bundle.events,
     activity: bundle.activity,
+    impact: bundle.impact,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -2086,6 +2325,7 @@ export async function loadWorkspaceDiagnosis(
     outputs: bundle.outputs,
     events: bundle.events,
     activity: bundle.activity,
+    impact: bundle.impact,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -2122,6 +2362,7 @@ export async function loadWorkspaceWorkstreams(
     outputs: bundle.outputs,
     events: bundle.events,
     activity: bundle.activity,
+    impact: bundle.impact,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -2156,6 +2397,7 @@ export async function loadWorkspaceAgents(
     outputs: bundle.outputs,
     events: bundle.events,
     activity: bundle.activity,
+    impact: bundle.impact,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -2190,6 +2432,41 @@ export async function loadWorkspaceActivity(
     outputs: bundle.outputs,
     events: bundle.events,
     activity: bundle.activity,
+    impact: bundle.impact,
+    preauditStatus: bundle.preauditStatus,
+    intakeStatus: bundle.intakeStatus,
+    auditStatus: bundle.auditStatus,
+    quickSummary: bundle.quickSummary,
+    focusAreas: bundle.focusAreas,
+    workflowStatus: bundle.workflowStatus,
+    workstreams: bundle.workstreams,
+    agents: bundle.agents,
+    artifacts: bundle.artifacts,
+    keyFacts: bundle.keyFacts,
+    accountReadiness: bundle.accountReadiness,
+    efficiencySignals: bundle.efficiencySignals,
+    recommendedNextSection: bundle.recommendedNextSection,
+    recommendedNextLabel: bundle.recommendedNextLabel,
+    recommendedNextDetail: bundle.recommendedNextDetail,
+  }
+}
+
+export async function loadWorkspaceImpact(
+  clientSlugInput: string,
+): Promise<WorkspaceImpactView> {
+  const bundle = await loadWorkspaceBundle(clientSlugInput)
+
+  return {
+    ...bundle.client,
+    currentStage: bundle.currentStage,
+    currentStageDetail: bundle.currentStageDetail,
+    client: bundle.client,
+    clientContext: bundle.clientContext,
+    workflowRuns: bundle.workflowRuns,
+    outputs: bundle.outputs,
+    events: bundle.events,
+    activity: bundle.activity,
+    impact: bundle.impact,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
