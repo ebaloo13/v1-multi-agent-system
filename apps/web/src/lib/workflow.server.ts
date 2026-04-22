@@ -5,14 +5,21 @@ import { spawn } from 'node:child_process'
 import type {
   AuditIntakeView,
   AuditView,
+  ClientAgentEntityState,
+  ClientLifecycleState,
   WorkspaceAgent,
   WorkspaceAgentsView,
   WorkspaceArtifactSummary,
+  WorkspaceClientContextSummary,
   WorkspaceDashboardView,
   WorkspaceDiagnosisView,
+  WorkspaceEventSummary,
+  WorkspaceOutputSummary,
+  WorkspaceRunSummary,
   WorkspaceSectionId,
   WorkspaceWorkstream,
   WorkspaceWorkstreamsView,
+  WorkstreamEntityState,
   PreauditView,
   WorkspaceClient,
   WorkflowSearch,
@@ -161,6 +168,26 @@ function clientArtifactPath(clientSlug: string, agent: 'preaudit' | 'audit') {
   return path.join(clientArtifactsDir(), clientSlug, agent)
 }
 
+function clientEntityId(clientSlug: string) {
+  return `client:${clientSlug}`
+}
+
+function workflowRunEntityId(clientSlug: string, runType: 'preaudit' | 'audit') {
+  return `workflow_run:${clientSlug}:${runType}`
+}
+
+function outputEntityId(clientSlug: string, outputType: WorkspaceOutputSummary['outputType']) {
+  return `output:${clientSlug}:${outputType}`
+}
+
+function workstreamEntityId(clientSlug: string, title: string) {
+  return `workstream:${clientSlug}:${slugifyClientName(title)}`
+}
+
+function clientAgentEntityId(clientSlug: string, agentKey: string) {
+  return `client_agent:${clientSlug}:${agentKey}`
+}
+
 function intakeDraftPath(clientSlug: string) {
   return path.join(clientsDataDir(), `${clientSlug}-audit-intake.draft.json`)
 }
@@ -216,6 +243,11 @@ async function readMtimeMsIfExists(filePath: string) {
 
     throw error
   }
+}
+
+async function readMtimeIsoIfExists(filePath: string) {
+  const mtimeMs = await readMtimeMsIfExists(filePath)
+  return typeof mtimeMs === 'number' ? new Date(mtimeMs).toISOString() : undefined
 }
 
 async function runCommand(command: string, args: string[]) {
@@ -420,7 +452,7 @@ async function readLatestPointer(clientSlug: string, agent: 'preaudit' | 'audit'
   const pointer = await readJsonIfExists<LatestPointer>(latestPath)
 
   if (!pointer) {
-    throw new Error(`No latest ${agent} artifact found for client "${clientSlug}".`)
+    throw new Error(`No latest ${agent} output found for client "${clientSlug}".`)
   }
 
   return pointer
@@ -547,12 +579,20 @@ async function buildWorkspaceClient(
     draft?.company_profile?.name,
     context?.client_name,
   ])
+  const clientId = clientEntityId(clientSlug)
 
   return {
+    id: clientId,
+    slug: clientSlug,
+    name: clientName,
     clientSlug,
     clientName,
     website,
     email: context?.email,
+    primaryLifecycleState: 'lead',
+    source: context ? 'workspace_file' : 'derived',
+    createdAt: context?.created_at,
+    updatedAt: context?.updated_at,
   }
 }
 
@@ -593,6 +633,79 @@ function toneFromAgentStatus(status: WorkspaceAgent['status']): WorkspaceAgent['
       return 'pending'
     default:
       return 'neutral'
+  }
+}
+
+function clientLifecycleFromStage(currentStage: string): ClientLifecycleState {
+  switch (currentStage) {
+    case 'Audit completed':
+      return 'audit_completed'
+    case 'Business Context ready':
+      return 'business_context_ready'
+    case 'Preaudit completed':
+      return 'preaudit_completed'
+    default:
+      return 'lead'
+  }
+}
+
+function workstreamTypeFromTitle(title: string): WorkspaceWorkstream['type'] {
+  switch (title) {
+    case 'Website improvement':
+      return 'website_improvement'
+    case 'Sales follow-up':
+      return 'sales_follow_up'
+    case 'Market study':
+      return 'market_study'
+    case 'CRM / back-office review':
+      return 'crm_back_office_review'
+    default:
+      return 'general'
+  }
+}
+
+function workstreamStateFromStatus(status: WorkspaceWorkstream['status']): WorkstreamEntityState {
+  switch (status) {
+    case 'needs input':
+      return 'needs_input'
+    case 'ready for design':
+      return 'ready_for_design'
+    case 'active':
+      return 'active'
+    case 'blocked':
+      return 'blocked'
+    case 'complete':
+      return 'completed'
+    default:
+      return 'identified'
+  }
+}
+
+function workstreamPriorityFromTitle(title: string): WorkspaceWorkstream['priority'] {
+  switch (title) {
+    case 'Website improvement':
+    case 'Sales follow-up':
+      return 'high'
+    case 'CRM / back-office review':
+      return 'medium'
+    default:
+      return 'low'
+  }
+}
+
+function agentStateFromStatus(status: WorkspaceAgent['status']): ClientAgentEntityState {
+  switch (status) {
+    case 'not relevant':
+      return 'not_relevant'
+    case 'setup needed':
+      return 'setup_needed'
+    case 'candidate':
+    case 'recommended':
+    case 'ready':
+    case 'active':
+      return status
+    default:
+      return 'candidate'
   }
 }
 
@@ -649,6 +762,7 @@ function deriveWorkspaceWorkstreams(options: {
   audit?: AuditView
 }): WorkspaceWorkstream[] {
   const { clientSlug, currentStage, preaudit, intake, audit } = options
+  const clientId = clientEntityId(clientSlug)
   const focusAreas = deriveWorkspaceFocusAreas(clientSlug)
   const preauditSummary = preaudit?.summary ?? preaudit?.companySummary
   const topPain = audit?.mainPains[0]
@@ -656,10 +770,15 @@ function deriveWorkspaceWorkstreams(options: {
     intake?.form.systems.trim() || audit?.availableData.join(', ') || 'No confirmed operating system yet.'
 
   return focusAreas.map((title) => {
+    let workstream: Omit<
+      WorkspaceWorkstream,
+      'id' | 'clientId' | 'type' | 'state' | 'priority'
+    >
+
     switch (title) {
       case 'Website improvement': {
         const status = statusFromStage(currentStage, title)
-        return {
+        workstream = {
           title,
           status,
           tone: toneFromWorkstreamStatus(status),
@@ -674,10 +793,11 @@ function deriveWorkspaceWorkstreams(options: {
               : 'Translate the diagnostic into a concrete conversion and visibility improvement brief.',
           suggestedAgent: 'Web/Growth Agent',
         }
+        break
       }
       case 'Sales follow-up': {
         const status = intake ? statusFromStage(currentStage, title) : 'needs input'
-        return {
+        workstream = {
           title,
           status,
           tone: toneFromWorkstreamStatus(status),
@@ -691,10 +811,11 @@ function deriveWorkspaceWorkstreams(options: {
               : 'Collect the missing lead-handling context before scoping this workstream.',
           suggestedAgent: 'Sales Agent',
         }
+        break
       }
       case 'Market study': {
         const status = statusFromStage(currentStage, title)
-        return {
+        workstream = {
           title,
           status,
           tone: toneFromWorkstreamStatus(status),
@@ -706,10 +827,11 @@ function deriveWorkspaceWorkstreams(options: {
             'Validate search demand, local positioning, and channel opportunity before expanding acquisition work.',
           suggestedAgent: 'Research Agent',
         }
+        break
       }
       case 'CRM / back-office review': {
         const status = intake ? statusFromStage(currentStage, title) : 'needs input'
-        return {
+        workstream = {
           title,
           status,
           tone: toneFromWorkstreamStatus(status),
@@ -723,10 +845,11 @@ function deriveWorkspaceWorkstreams(options: {
               : 'Confirm the current systems and source-of-truth setup first.',
           suggestedAgent: 'Operations Agent',
         }
+        break
       }
       default: {
         const status = statusFromStage(currentStage, title)
-        return {
+        workstream = {
           title,
           status,
           tone: toneFromWorkstreamStatus(status),
@@ -736,20 +859,33 @@ function deriveWorkspaceWorkstreams(options: {
         }
       }
     }
+
+    return {
+      id: workstreamEntityId(clientSlug, title),
+      clientId,
+      type: workstreamTypeFromTitle(title),
+      state: workstreamStateFromStatus(workstream.status),
+      priority: workstreamPriorityFromTitle(title),
+      ...workstream,
+    }
   })
 }
 
 function deriveWorkspaceAgents(options: {
+  clientSlug: string
   currentStage: string
   workstreams: WorkspaceWorkstream[]
   intake?: AuditIntakeView
   audit?: AuditView
 }): WorkspaceAgent[] {
-  const { currentStage, workstreams, intake, audit } = options
+  const { clientSlug, currentStage, workstreams, intake, audit } = options
+  const clientId = clientEntityId(clientSlug)
   const recommended = new Set(audit?.recommendedAgents ?? [])
   const hasIntake = Boolean(intake)
 
-  const cards: Array<Omit<WorkspaceAgent, 'tone'>> = [
+  const cards: Array<
+    Omit<WorkspaceAgent, 'id' | 'clientId' | 'agentKey' | 'state' | 'linkedWorkstreamId' | 'tone'>
+  > = [
     {
       slug: 'sales',
       label: 'Sales Agent',
@@ -828,10 +964,19 @@ function deriveWorkspaceAgents(options: {
     },
   ]
 
-  return cards.map((card) => ({
-    ...card,
-    tone: toneFromAgentStatus(card.status),
-  }))
+  return cards.map((card) => {
+    const linkedWorkstream = workstreams.find((workstream) => workstream.title === card.linkedWorkstream)
+
+    return {
+      id: clientAgentEntityId(clientSlug, card.slug),
+      clientId,
+      agentKey: card.slug,
+      state: agentStateFromStatus(card.status),
+      linkedWorkstreamId: linkedWorkstream?.id,
+      ...card,
+      tone: toneFromAgentStatus(card.status),
+    }
+  })
 }
 
 function formFromIntake(record: AuditIntakeFile): IntakeDraft {
@@ -1033,6 +1178,208 @@ function isMissingWorkflowResource(error: unknown) {
   )
 }
 
+function buildClientContextSummary(options: {
+  client: WorkspaceClient
+  intake: AuditIntakeView
+  draftPath: string
+  savedPath: string
+  draftUpdatedAt?: string
+  savedUpdatedAt?: string
+}): WorkspaceClientContextSummary {
+  const { client, intake, draftPath, savedPath, draftUpdatedAt, savedUpdatedAt } = options
+  const sourcePath = intake.source === 'saved' ? savedPath : draftPath
+
+  return {
+    id: `client_context:${client.clientSlug}`,
+    clientId: client.id,
+    status: intake.source === 'saved' ? 'saved' : 'draft',
+    source: 'legacy_intake_file',
+    sourcePath,
+    draftPath,
+    updatedAt: intake.source === 'saved' ? savedUpdatedAt : draftUpdatedAt,
+    availableAssets: intake.availableAssets,
+    trackingMarkers: intake.trackingMarkers,
+    todo: intake.todo,
+    form: intake.form,
+  }
+}
+
+function buildWorkflowRunSummary(options: {
+  client: WorkspaceClient
+  runType: 'preaudit' | 'audit'
+  pointer?: LatestPointer
+  updatedAt?: string
+}): WorkspaceRunSummary {
+  const { client, runType, pointer, updatedAt } = options
+  const storagePath = pointer?.path
+
+  return {
+    id: workflowRunEntityId(client.clientSlug, runType),
+    clientId: client.id,
+    runType,
+    status: pointer ? 'completed' : 'missing',
+    displayRunId: pointer?.display_run_id,
+    runId: pointer?.run_id,
+    storagePath,
+    runJsonPath: storagePath ? path.join(storagePath, 'run.json') : undefined,
+    outputPath: storagePath ? path.join(storagePath, runType === 'preaudit' ? 'report.md' : 'run.json') : undefined,
+    updatedAt,
+  }
+}
+
+function buildWorkspaceOutputSummaries(options: {
+  client: WorkspaceClient
+  preaudit?: PreauditView
+  intake?: AuditIntakeView
+  audit?: AuditView
+  auditIsCurrent: boolean
+}): WorkspaceOutputSummary[] {
+  const { client, preaudit, intake, audit, auditIsCurrent } = options
+  const clientSlug = client.clientSlug
+
+  return [
+    {
+      id: outputEntityId(clientSlug, 'preaudit_report'),
+      clientId: client.id,
+      outputType: 'preaudit_report',
+      sourceEntity: 'workflow_run',
+      internalArtifactPath: preaudit?.reportPath,
+      runId: preaudit?.displayRunId,
+      label: 'Preaudit output',
+      value: preaudit?.displayRunId ?? 'Not generated',
+      detail: preaudit ? preaudit.reportPath : 'No preaudit report linked yet.',
+      href: '/workspace/' + clientSlug + '/diagnosis?panel=preaudit',
+      tone: preaudit ? 'success' : 'pending',
+    },
+    {
+      id: outputEntityId(clientSlug, 'business_context'),
+      clientId: client.id,
+      outputType: 'business_context',
+      sourceEntity: 'client_context',
+      internalArtifactPath: intake?.source === 'saved' ? intake.intakePath : intake?.draftPath,
+      label: 'Business Context',
+      value: intake ? (intake.source === 'saved' ? 'Saved' : 'Draft') : 'Missing',
+      detail: intake
+        ? 'Client operating context for the full audit.'
+        : 'No Business Context record has been loaded yet.',
+      href: '/workspace/' + clientSlug + '/diagnosis?panel=intake',
+      tone: intake ? (intake.source === 'saved' ? 'success' : 'progress') : 'pending',
+    },
+    {
+      id: outputEntityId(clientSlug, 'audit_output'),
+      clientId: client.id,
+      outputType: 'audit_output',
+      sourceEntity: 'workflow_run',
+      runId: audit?.displayRunId,
+      label: 'Audit output',
+      value: audit?.displayRunId ?? 'Not generated',
+      detail: audit
+        ? auditIsCurrent
+          ? 'Current audit output available for workstream design.'
+          : 'An audit exists, but newer context means it should be rerun.'
+        : 'No audit output has been generated yet.',
+      href: '/workspace/' + clientSlug + '/diagnosis?panel=audit',
+      tone: audit ? (auditIsCurrent ? 'success' : 'progress') : 'pending',
+    },
+  ]
+}
+
+function buildWorkspaceEvents(options: {
+  client: WorkspaceClient
+  currentStage: string
+  recommendedNextLabel: string
+  preauditUpdatedAt?: string
+  draftUpdatedAt?: string
+  savedUpdatedAt?: string
+  auditUpdatedAt?: string
+  hasPreaudit: boolean
+  hasDraft: boolean
+  hasSaved: boolean
+  hasCurrentAudit: boolean
+}): WorkspaceEventSummary[] {
+  const {
+    client,
+    currentStage,
+    recommendedNextLabel,
+    preauditUpdatedAt,
+    draftUpdatedAt,
+    savedUpdatedAt,
+    auditUpdatedAt,
+    hasPreaudit,
+    hasDraft,
+    hasSaved,
+    hasCurrentAudit,
+  } = options
+  const events: WorkspaceEventSummary[] = [
+    {
+      id: `event:${client.clientSlug}:client-state`,
+      clientId: client.id,
+      type: 'client_state_changed',
+      category: 'lifecycle',
+      visibility: 'both',
+      severity: 'info',
+      label: currentStage,
+      detail: 'Current workspace lifecycle state derived from file-backed workflow records.',
+    },
+    {
+      id: `event:${client.clientSlug}:next-action`,
+      clientId: client.id,
+      type: 'next_action_updated',
+      category: 'lifecycle',
+      visibility: 'both',
+      severity: 'info',
+      label: 'Next action updated',
+      detail: recommendedNextLabel,
+    },
+  ]
+
+  if (hasPreaudit) {
+    events.push({
+      id: `event:${client.clientSlug}:preaudit-completed`,
+      clientId: client.id,
+      type: 'preaudit_completed',
+      category: 'workflow',
+      visibility: 'both',
+      severity: 'info',
+      label: 'Preaudit completed',
+      detail: 'Preaudit output is available in Diagnosis.',
+      createdAt: preauditUpdatedAt,
+    })
+  }
+
+  if (hasSaved || hasDraft) {
+    events.push({
+      id: `event:${client.clientSlug}:business-context`,
+      clientId: client.id,
+      type: hasSaved ? 'business_context_saved' : 'business_context_draft_ready',
+      category: 'client_input',
+      visibility: 'both',
+      severity: 'info',
+      label: hasSaved ? 'Business Context saved' : 'Business Context draft ready',
+      detail: hasSaved
+        ? 'Client operating context is ready for audit.'
+        : 'A draft Business Context is available for review.',
+      createdAt: hasSaved ? savedUpdatedAt : draftUpdatedAt,
+    })
+  }
+
+  if (hasCurrentAudit) {
+    events.push({
+      id: `event:${client.clientSlug}:audit-completed`,
+      clientId: client.id,
+      type: 'audit_completed',
+      category: 'workflow',
+      visibility: 'both',
+      severity: 'info',
+      label: 'Audit completed',
+      detail: 'Audit recommendations are current and ready for workstream planning.',
+      createdAt: auditUpdatedAt,
+    })
+  }
+
+  return events
+}
+
 async function loadWorkspaceBundle(clientSlugInput: string) {
   const clientSlug = slugifyClientName(clientSlugInput)
   const draftFilePath = intakeDraftPath(clientSlug)
@@ -1047,7 +1394,11 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
   const draftUpdatedAt = await readMtimeMsIfExists(draftFilePath)
   const savedUpdatedAt = await readMtimeMsIfExists(savedFilePath)
   const auditUpdatedAt = await readMtimeMsIfExists(auditLatestPath)
-  const client = await buildWorkspaceClient(clientSlug, { draft, saved })
+  const preauditUpdatedAtIso = await readMtimeIsoIfExists(preauditLatestPath)
+  const draftUpdatedAtIso = await readMtimeIsoIfExists(draftFilePath)
+  const savedUpdatedAtIso = await readMtimeIsoIfExists(savedFilePath)
+  const auditUpdatedAtIso = await readMtimeIsoIfExists(auditLatestPath)
+  const baseClient = await buildWorkspaceClient(clientSlug, { draft, saved })
   const intakeReady = Boolean(saved || draft)
   const newestUpstreamUpdate = Math.max(
     preauditUpdatedAt ?? 0,
@@ -1069,11 +1420,15 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     ? 'The completed audit is still current relative to the latest preaudit and Business Context.'
     : intakeReady
       ? auditPointer
-        ? 'Newer preaudit or Business Context exists after the last audit artifact. Confirm the details and run the full audit again.'
+        ? 'Newer preaudit or Business Context exists after the last audit output. Confirm the details and run the full audit again.'
         : 'The preaudit is done and the missing Business Context is ready for the full audit step.'
       : preauditPointer
         ? 'The preaudit is complete. Review it, then complete Business Context before running the full audit.'
-        : 'Client context exists locally, but no preaudit artifact has been generated yet.'
+        : 'Client context exists locally, but no preaudit output has been generated yet.'
+  const client: WorkspaceClient = {
+    ...baseClient,
+    primaryLifecycleState: clientLifecycleFromStage(currentStage),
+  }
 
   let recommendedNextSection: WorkspaceSectionId = 'diagnosis'
   let recommendedNextLabel = 'Review diagnosis'
@@ -1089,7 +1444,7 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     recommendedNextSection = 'workstreams'
     recommendedNextLabel = 'Activate workstreams'
     recommendedNextDetail =
-      'The audit artifact is current. Use it to move from diagnosis into workstreams and agent setup.'
+      'The audit output is current. Use it to move from diagnosis into workstreams and agent setup.'
   }
 
   const preaudit = preauditPointer
@@ -1159,7 +1514,7 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
         : auditPointer
           ? buildStageStatus(
               'Needs rerun',
-              'Newer preaudit or Business Context exists after the current audit artifact.',
+              'Newer preaudit or Business Context exists after the current audit output.',
               'progress',
             )
           : intakeReady
@@ -1184,40 +1539,56 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     audit,
   })
   const agents = deriveWorkspaceAgents({
+    clientSlug,
     currentStage,
     workstreams,
     intake,
     audit,
   })
-  const artifacts: WorkspaceArtifactSummary[] = [
-    {
-      label: 'Preaudit artifact',
-      value: preaudit?.displayRunId ?? 'Not generated',
-      detail: preaudit ? preaudit.reportPath : 'No preaudit report linked yet.',
-      href: '/workspace/' + clientSlug + '/diagnosis?panel=preaudit',
-      tone: preaudit ? 'success' : 'pending',
-    },
-    {
-      label: 'Business Context',
-      value: intake ? (intake.source === 'saved' ? 'Saved' : 'Draft') : 'Missing',
-      detail: intake
-        ? 'Client operating context for the full audit.'
-        : 'No Business Context record has been loaded yet.',
-      href: '/workspace/' + clientSlug + '/diagnosis?panel=intake',
-      tone: intake ? (intake.source === 'saved' ? 'success' : 'progress') : 'pending',
-    },
-    {
-      label: 'Audit artifact',
-      value: audit?.displayRunId ?? 'Not generated',
-      detail: audit
-        ? auditIsCurrent
-          ? 'Current audit output available for workstream design.'
-          : 'An audit exists, but newer context means it should be rerun.'
-        : 'No audit output has been generated yet.',
-      href: '/workspace/' + clientSlug + '/diagnosis?panel=audit',
-      tone: audit ? (auditIsCurrent ? 'success' : 'progress') : 'pending',
-    },
+  const clientContext = intake
+    ? buildClientContextSummary({
+        client,
+        intake,
+        draftPath: path.relative(REPO_ROOT, draftFilePath),
+        savedPath: path.relative(REPO_ROOT, savedFilePath),
+        draftUpdatedAt: draftUpdatedAtIso,
+        savedUpdatedAt: savedUpdatedAtIso,
+      })
+    : undefined
+  const workflowRuns: WorkspaceRunSummary[] = [
+    buildWorkflowRunSummary({
+      client,
+      runType: 'preaudit',
+      pointer: preauditPointer,
+      updatedAt: preauditUpdatedAtIso,
+    }),
+    buildWorkflowRunSummary({
+      client,
+      runType: 'audit',
+      pointer: auditPointer,
+      updatedAt: auditUpdatedAtIso,
+    }),
   ]
+  const outputs = buildWorkspaceOutputSummaries({
+    client,
+    preaudit,
+    intake,
+    audit,
+    auditIsCurrent,
+  })
+  const events = buildWorkspaceEvents({
+    client,
+    currentStage,
+    recommendedNextLabel,
+    preauditUpdatedAt: preauditUpdatedAtIso,
+    draftUpdatedAt: draftUpdatedAtIso,
+    savedUpdatedAt: savedUpdatedAtIso,
+    auditUpdatedAt: auditUpdatedAtIso,
+    hasPreaudit: Boolean(preaudit),
+    hasDraft: Boolean(draft),
+    hasSaved: Boolean(saved),
+    hasCurrentAudit: auditIsCurrent,
+  })
   const keyFacts = [
     { label: 'Website', value: client.website },
     { label: 'Lead email', value: client.email ?? 'Not captured yet' },
@@ -1277,6 +1648,10 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     client,
     currentStage,
     currentStageDetail,
+    clientContext,
+    workflowRuns,
+    outputs,
+    events,
     preauditStatus: workflowStatus[0].status,
     intakeStatus: workflowStatus[1].status,
     auditStatus: workflowStatus[2].status,
@@ -1294,7 +1669,7 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
       {
         label: 'Client slug',
         value: client.clientSlug,
-        detail: 'Local file and artifact linkage continues to use the client slug.',
+        detail: 'Local file and output linkage continues to use the client slug.',
       },
       {
         label: 'Lead email',
@@ -1313,7 +1688,7 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     workflowStatus: [...workflowStatus],
     workstreams,
     agents,
-    artifacts,
+    artifacts: outputs,
     keyFacts,
     accountReadiness,
     efficiencySignals,
@@ -1335,6 +1710,11 @@ export async function loadWorkspaceOverview(
     ...bundle.client,
     currentStage: bundle.currentStage,
     currentStageDetail: bundle.currentStageDetail,
+    client: bundle.client,
+    clientContext: bundle.clientContext,
+    workflowRuns: bundle.workflowRuns,
+    outputs: bundle.outputs,
+    events: bundle.events,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -1451,6 +1831,11 @@ export async function loadWorkspaceDiagnosis(
     ...bundle.client,
     currentStage: bundle.currentStage,
     currentStageDetail: bundle.currentStageDetail,
+    client: bundle.client,
+    clientContext: bundle.clientContext,
+    workflowRuns: bundle.workflowRuns,
+    outputs: bundle.outputs,
+    events: bundle.events,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -1481,6 +1866,11 @@ export async function loadWorkspaceWorkstreams(
     ...bundle.client,
     currentStage: bundle.currentStage,
     currentStageDetail: bundle.currentStageDetail,
+    client: bundle.client,
+    clientContext: bundle.clientContext,
+    workflowRuns: bundle.workflowRuns,
+    outputs: bundle.outputs,
+    events: bundle.events,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -1509,6 +1899,11 @@ export async function loadWorkspaceAgents(
     ...bundle.client,
     currentStage: bundle.currentStage,
     currentStageDetail: bundle.currentStageDetail,
+    client: bundle.client,
+    clientContext: bundle.clientContext,
+    workflowRuns: bundle.workflowRuns,
+    outputs: bundle.outputs,
+    events: bundle.events,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,

@@ -42,7 +42,7 @@ export default function Footer() {
           </h2>
           <p className="mt-3 text-sm leading-6">
             {isWorkspace
-              ? 'This portal reads existing workflow artifacts and client files from the repo. It does not add real authentication, external delivery, or multi-user persistence yet.'
+              ? 'This portal reads existing workflow outputs and client files from the repo. It does not add real authentication, external delivery, or multi-user persistence yet.'
               : 'The landing page explains the service and captures lead context, but the repo-root agent engine and scripts remain unchanged.'}
           </p>
         </div>
@@ -55,7 +55,7 @@ export default function Footer() {
           <p className="mt-3 text-sm leading-6">
             {isWorkspace
               ? 'Email is stored locally for client association. There is still no database, no email sending, no CRM sync, and no production-safe access control.'
-              : 'A submitted URL and email trigger the current preaudit workflow, then redirect into a client workspace backed by the same local artifacts and Business Context JSON.'}
+              : 'A submitted URL and email trigger the current preaudit workflow, then redirect into a client workspace backed by the same local workflow outputs and Business Context JSON.'}
           </p>
         </div>
       </div>

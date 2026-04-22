@@ -146,7 +146,7 @@ function WorkspaceDashboardPage() {
           <div className="workspace-panel-head">
             <div>
               <p className="eyebrow">Outputs</p>
-              <h2 className="workspace-panel-title">Latest files</h2>
+              <h2 className="workspace-panel-title">Latest Outputs</h2>
             </div>
             <a href={workspaceHref(data.clientSlug, 'diagnosis')} className="workspace-text-link">
               Open diagnosis

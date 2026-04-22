@@ -22,14 +22,62 @@ export type WorkspaceSummaryCard = {
 export type WorkspaceSectionId = 'dashboard' | 'diagnosis' | 'workstreams' | 'agents'
 export type DiagnosisPanelId = 'overview' | 'preaudit' | 'intake' | 'audit'
 
-export type WorkspaceClient = {
+export type ClientLifecycleState =
+  | 'lead'
+  | 'preaudit_completed'
+  | 'business_context_ready'
+  | 'audit_completed'
+
+export type WorkspaceClientSummary = {
+  id: string
+  slug: string
+  name: string
   clientSlug: string
   clientName: string
   website: string
   email?: string
+  primaryLifecycleState: ClientLifecycleState
+  source: 'workspace_file' | 'derived'
+  createdAt?: string
+  updatedAt?: string
 }
 
-export type WorkspaceArtifactSummary = {
+export type WorkspaceClient = WorkspaceClientSummary
+
+export type WorkspaceClientContextSummary = {
+  id: string
+  clientId: string
+  status: 'missing' | 'draft' | 'saved'
+  source: 'legacy_intake_file' | 'derived'
+  sourcePath?: string
+  draftPath?: string
+  updatedAt?: string
+  availableAssets: string[]
+  trackingMarkers: string[]
+  todo: string[]
+  form: IntakeDraft
+}
+
+export type WorkspaceRunSummary = {
+  id: string
+  clientId: string
+  runType: 'preaudit' | 'audit'
+  status: 'missing' | 'completed'
+  displayRunId?: string
+  runId?: string
+  storagePath?: string
+  runJsonPath?: string
+  outputPath?: string
+  updatedAt?: string
+}
+
+export type WorkspaceOutputSummary = {
+  id: string
+  clientId: string
+  outputType: 'preaudit_report' | 'business_context' | 'audit_output'
+  sourceEntity: 'workflow_run' | 'client_context'
+  internalArtifactPath?: string
+  runId?: string
   label: string
   value: string
   detail: string
@@ -37,7 +85,24 @@ export type WorkspaceArtifactSummary = {
   tone: 'success' | 'progress' | 'pending' | 'neutral'
 }
 
-export type WorkspaceWorkstream = {
+export type WorkspaceArtifactSummary = WorkspaceOutputSummary
+
+export type WorkstreamEntityState =
+  | 'identified'
+  | 'needs_input'
+  | 'ready_for_design'
+  | 'ready_to_activate'
+  | 'active'
+  | 'blocked'
+  | 'completed'
+  | 'archived'
+
+export type WorkspaceWorkstreamSummary = {
+  id: string
+  clientId: string
+  type: 'website_improvement' | 'sales_follow_up' | 'market_study' | 'crm_back_office_review' | 'general'
+  state: WorkstreamEntityState
+  priority: 'high' | 'medium' | 'low'
   title: string
   whyItMatters: string
   status: 'identified' | 'needs input' | 'ready for design' | 'active' | 'blocked' | 'complete'
@@ -47,7 +112,24 @@ export type WorkspaceWorkstream = {
   suggestedAgent?: string
 }
 
-export type WorkspaceAgent = {
+export type WorkspaceWorkstream = WorkspaceWorkstreamSummary
+
+export type ClientAgentEntityState =
+  | 'not_relevant'
+  | 'candidate'
+  | 'recommended'
+  | 'setup_needed'
+  | 'ready'
+  | 'active'
+  | 'paused'
+  | 'retired'
+
+export type WorkspaceClientAgentSummary = {
+  id: string
+  clientId: string
+  agentKey: string
+  state: ClientAgentEntityState
+  linkedWorkstreamId?: string
   slug: string
   label: string
   role: string
@@ -59,9 +141,34 @@ export type WorkspaceAgent = {
   potentialOutput: string
 }
 
+export type WorkspaceAgent = WorkspaceClientAgentSummary
+
+export type WorkspaceEventSummary = {
+  id: string
+  clientId: string
+  type:
+    | 'client_state_changed'
+    | 'preaudit_completed'
+    | 'business_context_saved'
+    | 'business_context_draft_ready'
+    | 'audit_completed'
+    | 'next_action_updated'
+  category: 'lifecycle' | 'workflow' | 'client_input'
+  visibility: 'client' | 'internal' | 'both'
+  severity: 'info' | 'warning'
+  label: string
+  detail: string
+  createdAt?: string
+}
+
 export type WorkspaceDashboardView = WorkspaceClient & {
   currentStage: string
   currentStageDetail: string
+  client: WorkspaceClientSummary
+  clientContext?: WorkspaceClientContextSummary
+  workflowRuns: WorkspaceRunSummary[]
+  outputs: WorkspaceOutputSummary[]
+  events: WorkspaceEventSummary[]
   preauditStatus: WorkflowStageStatus
   intakeStatus: WorkflowStageStatus
   auditStatus: WorkflowStageStatus

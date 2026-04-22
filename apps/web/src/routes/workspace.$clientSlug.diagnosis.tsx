@@ -464,7 +464,7 @@ function WorkspaceDiagnosisPage() {
               <h2 className="workspace-panel-title">What the audit concluded</h2>
               <p className="workspace-panel-copy">
                 {data.audit?.companySummary ??
-                  'No audit artifact is available yet. Complete Business Context and run the audit to unlock this section.'}
+                  'No audit output is available yet. Complete Business Context and run the audit to unlock this section.'}
               </p>
             </article>
 
