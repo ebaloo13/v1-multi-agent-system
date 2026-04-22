@@ -3532,6 +3532,126 @@ button:disabled,
   color: var(--ink-muted);
 }
 
+.workspace-activity-preview-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.workspace-activity-preview-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.65rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(39, 61, 76, 0.065);
+  background: rgba(247, 250, 252, 0.74);
+  padding: 0.7rem 0.75rem;
+}
+
+.workspace-activity-preview-row strong {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--ink-strong);
+}
+
+.workspace-activity-preview-row span {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ink-subtle);
+}
+
+.workspace-activity-preview-row p {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.workspace-activity-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-top: 0.32rem;
+  border-radius: 999px;
+  background: #4f7fc4;
+  box-shadow: 0 0 0 0.25rem rgba(79, 127, 196, 0.1);
+}
+
+.workspace-activity-feed {
+  position: relative;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.workspace-activity-feed::before {
+  content: "";
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  left: 0.62rem;
+  width: 1px;
+  background: rgba(39, 61, 76, 0.1);
+}
+
+.workspace-activity-feed-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.35rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.workspace-activity-marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding-top: 0.75rem;
+}
+
+.workspace-activity-marker span {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  border: 2px solid white;
+  background: #4f7fc4;
+  box-shadow: 0 0 0 1px rgba(79, 127, 196, 0.22);
+}
+
+.workspace-activity-body {
+  border-radius: 0.95rem;
+  border: 1px solid rgba(39, 61, 76, 0.065);
+  background: rgba(247, 250, 252, 0.74);
+  padding: 0.85rem;
+}
+
+.workspace-activity-time {
+  display: inline-flex;
+  margin-bottom: 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-subtle);
+}
+
+.workspace-activity-title {
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.3;
+  color: var(--ink-strong);
+}
+
+.workspace-activity-body p {
+  margin: 0.45rem 0 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+
+.workspace-activity-body .workspace-text-link {
+  display: inline-flex;
+  margin-top: 0.7rem;
+}
+
 .workspace-status-pill {
   font-size: 0.66rem;
   padding: 0.28rem 0.55rem;

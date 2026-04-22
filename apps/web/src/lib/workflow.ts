@@ -19,7 +19,7 @@ export type WorkspaceSummaryCard = {
   detail: string
 }
 
-export type WorkspaceSectionId = 'dashboard' | 'diagnosis' | 'workstreams' | 'agents'
+export type WorkspaceSectionId = 'dashboard' | 'diagnosis' | 'workstreams' | 'agents' | 'activity'
 export type DiagnosisPanelId = 'overview' | 'preaudit' | 'intake' | 'audit'
 
 export type ClientLifecycleState =
@@ -161,6 +161,37 @@ export type WorkspaceEventSummary = {
   createdAt?: string
 }
 
+export type WorkspaceActivityType =
+  | 'preaudit_completed'
+  | 'business_context_saved'
+  | 'audit_completed'
+  | 'workstream_created'
+  | 'workstream_activated'
+  | 'agent_recommended'
+  | 'new_output_available'
+  | 'next_step_updated'
+
+export type WorkspaceActivityRelatedEntityType =
+  | 'workspace'
+  | 'diagnosis'
+  | 'business_context'
+  | 'audit'
+  | 'workstream'
+  | 'agent'
+  | 'output'
+
+export type WorkspaceActivityItem = {
+  id: string
+  type: WorkspaceActivityType
+  title: string
+  description: string
+  timestamp: string
+  relatedEntityType?: WorkspaceActivityRelatedEntityType
+  relatedEntityLabel?: string
+  ctaLabel?: string
+  ctaHref?: string
+}
+
 export type WorkspaceDashboardView = WorkspaceClient & {
   currentStage: string
   currentStageDetail: string
@@ -169,6 +200,7 @@ export type WorkspaceDashboardView = WorkspaceClient & {
   workflowRuns: WorkspaceRunSummary[]
   outputs: WorkspaceOutputSummary[]
   events: WorkspaceEventSummary[]
+  activity: WorkspaceActivityItem[]
   preauditStatus: WorkflowStageStatus
   intakeStatus: WorkflowStageStatus
   auditStatus: WorkflowStageStatus
@@ -200,6 +232,8 @@ export type WorkspaceDashboardView = WorkspaceClient & {
   recommendedNextLabel: string
   recommendedNextDetail: string
 }
+
+export type WorkspaceActivityView = WorkspaceDashboardView
 
 export type WorkspaceDiagnosisView = WorkspaceDashboardView & {
   preaudit?: PreauditView

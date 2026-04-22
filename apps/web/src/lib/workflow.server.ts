@@ -7,6 +7,8 @@ import type {
   AuditView,
   ClientAgentEntityState,
   ClientLifecycleState,
+  WorkspaceActivityItem,
+  WorkspaceActivityView,
   WorkspaceAgent,
   WorkspaceAgentsView,
   WorkspaceArtifactSummary,
@@ -29,6 +31,8 @@ import {
   formatClientName,
   type IntakeDraft,
   normalizeWebsite,
+  workspaceDiagnosisHref,
+  workspaceHref,
 } from './product-shell'
 
 type LatestPointer = {
@@ -1380,6 +1384,232 @@ function buildWorkspaceEvents(options: {
   return events
 }
 
+function newestIso(...values: Array<string | undefined>) {
+  const timestamps = values
+    .map((value) => {
+      if (!value) {
+        return undefined
+      }
+
+      const time = Date.parse(value)
+      return Number.isNaN(time) ? undefined : { value, time }
+    })
+    .filter((value): value is { value: string; time: number } => Boolean(value))
+    .sort((a, b) => b.time - a.time)
+
+  return timestamps[0]?.value
+}
+
+function relatedWorkstreamLabel(workstreams: WorkspaceWorkstream[]) {
+  if (workstreams.length === 1) {
+    return workstreams[0].title
+  }
+
+  return `${workstreams.length} workstreams`
+}
+
+function relatedAgentLabel(agents: WorkspaceAgent[]) {
+  if (agents.length === 1) {
+    return agents[0].label
+  }
+
+  return `${agents.length} agents`
+}
+
+function buildWorkspaceActivity(options: {
+  client: WorkspaceClient
+  currentStage: string
+  recommendedNextSection: WorkspaceSectionId
+  recommendedNextLabel: string
+  preaudit?: PreauditView
+  intake?: AuditIntakeView
+  audit?: AuditView
+  workstreams: WorkspaceWorkstream[]
+  agents: WorkspaceAgent[]
+  outputs: WorkspaceOutputSummary[]
+  auditIsCurrent: boolean
+  preauditUpdatedAt?: string
+  draftUpdatedAt?: string
+  savedUpdatedAt?: string
+  auditUpdatedAt?: string
+}): WorkspaceActivityItem[] {
+  const {
+    client,
+    currentStage,
+    recommendedNextSection,
+    recommendedNextLabel,
+    preaudit,
+    intake,
+    audit,
+    workstreams,
+    agents,
+    outputs,
+    auditIsCurrent,
+    preauditUpdatedAt,
+    draftUpdatedAt,
+    savedUpdatedAt,
+    auditUpdatedAt,
+  } = options
+  const clientSlug = client.clientSlug
+  const activity: WorkspaceActivityItem[] = []
+
+  if (preaudit && preauditUpdatedAt) {
+    activity.push({
+      id: `activity:${clientSlug}:preaudit-completed`,
+      type: 'preaudit_completed',
+      title: 'Preaudit completed',
+      description:
+        'Initial public-site signals were reviewed and the first findings are ready in Diagnosis.',
+      timestamp: preauditUpdatedAt,
+      relatedEntityType: 'diagnosis',
+      relatedEntityLabel: 'Preaudit',
+      ctaLabel: 'Review preaudit',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'preaudit'),
+    })
+  }
+
+  if (intake?.source === 'saved' && savedUpdatedAt) {
+    activity.push({
+      id: `activity:${clientSlug}:business-context-saved`,
+      type: 'business_context_saved',
+      title: 'Business Context saved',
+      description:
+        'Client operating context was saved and is ready to support the full audit.',
+      timestamp: savedUpdatedAt,
+      relatedEntityType: 'business_context',
+      relatedEntityLabel: 'Business Context',
+      ctaLabel: 'Open context',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'intake'),
+    })
+  }
+
+  if (audit && auditIsCurrent && auditUpdatedAt) {
+    activity.push({
+      id: `activity:${clientSlug}:audit-completed`,
+      type: 'audit_completed',
+      title: 'Audit completed',
+      description:
+        'The audit output is current and ready to guide workstreams and agent setup.',
+      timestamp: auditUpdatedAt,
+      relatedEntityType: 'audit',
+      relatedEntityLabel: 'Audit output',
+      ctaLabel: 'Review audit',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'audit'),
+    })
+  }
+
+  const workstreamReadyTimestamp = newestIso(auditUpdatedAt, savedUpdatedAt)
+  const createdWorkstreams = workstreams.filter((workstream) =>
+    ['identified', 'needs input', 'ready for design', 'active', 'complete'].includes(
+      workstream.status,
+    ),
+  )
+  if (
+    workstreamReadyTimestamp &&
+    createdWorkstreams.length > 0 &&
+    (currentStage === 'Business Context ready' || currentStage === 'Audit completed')
+  ) {
+    activity.push({
+      id: `activity:${clientSlug}:workstreams-created`,
+      type: 'workstream_created',
+      title: 'Workstreams created',
+      description:
+        'Initial workstreams were structured from the current diagnosis and Business Context.',
+      timestamp: workstreamReadyTimestamp,
+      relatedEntityType: 'workstream',
+      relatedEntityLabel: relatedWorkstreamLabel(createdWorkstreams),
+      ctaLabel: 'Open workstreams',
+      ctaHref: workspaceHref(clientSlug, 'workstreams'),
+    })
+  }
+
+  const activeWorkstreams = workstreams.filter((workstream) => workstream.status === 'active')
+  if (workstreamReadyTimestamp && activeWorkstreams.length > 0) {
+    activity.push({
+      id: `activity:${clientSlug}:workstreams-activated`,
+      type: 'workstream_activated',
+      title: 'Workstream activated',
+      description:
+        activeWorkstreams.length === 1
+          ? `${activeWorkstreams[0].title} is now active.`
+          : `${activeWorkstreams.length} workstreams are now active.`,
+      timestamp: workstreamReadyTimestamp,
+      relatedEntityType: 'workstream',
+      relatedEntityLabel: relatedWorkstreamLabel(activeWorkstreams),
+      ctaLabel: 'Open workstreams',
+      ctaHref: workspaceHref(clientSlug, 'workstreams'),
+    })
+  }
+
+  const recommendedAgents = agents.filter((agent) =>
+    ['recommended', 'ready', 'active'].includes(agent.status),
+  )
+  const agentTimestamp = newestIso(auditUpdatedAt, savedUpdatedAt)
+  if (agentTimestamp && recommendedAgents.length > 0) {
+    activity.push({
+      id: `activity:${clientSlug}:agents-recommended`,
+      type: 'agent_recommended',
+      title:
+        recommendedAgents.length === 1
+          ? `${recommendedAgents[0].label} recommended`
+          : 'Agent recommendations updated',
+      description:
+        recommendedAgents.length === 1
+          ? `${recommendedAgents[0].label} is relevant for the current workstream path.`
+          : 'Relevant agents were identified for the current workstream path.',
+      timestamp: agentTimestamp,
+      relatedEntityType: 'agent',
+      relatedEntityLabel: relatedAgentLabel(recommendedAgents),
+      ctaLabel: 'Open agents',
+      ctaHref: workspaceHref(clientSlug, 'agents'),
+    })
+  }
+
+  const progressOutput = outputs.find((output) => output.tone === 'progress')
+  const progressOutputTimestamp =
+    progressOutput?.outputType === 'business_context'
+      ? draftUpdatedAt
+      : progressOutput?.outputType === 'audit_output'
+        ? auditUpdatedAt
+        : preauditUpdatedAt
+  if (progressOutput && progressOutputTimestamp) {
+    activity.push({
+      id: `activity:${clientSlug}:output-${progressOutput.outputType}`,
+      type: 'new_output_available',
+      title: 'New output available',
+      description:
+        progressOutput.outputType === 'business_context'
+          ? 'A draft Business Context is ready to review.'
+          : `${progressOutput.label} is available for review.`,
+      timestamp: progressOutputTimestamp,
+      relatedEntityType: 'output',
+      relatedEntityLabel: progressOutput.label,
+      ctaLabel: 'Open output',
+      ctaHref: progressOutput.href,
+    })
+  }
+
+  const nextStepTimestamp = newestIso(auditUpdatedAt, savedUpdatedAt, draftUpdatedAt, preauditUpdatedAt)
+  if (nextStepTimestamp && activity.length > 0) {
+    activity.push({
+      id: `activity:${clientSlug}:next-step-updated`,
+      type: 'next_step_updated',
+      title: 'Next step updated',
+      description: `Recommended next step: ${recommendedNextLabel}.`,
+      timestamp: nextStepTimestamp,
+      relatedEntityType: 'workspace',
+      relatedEntityLabel: currentStage,
+      ctaLabel: 'Continue',
+      ctaHref:
+        recommendedNextSection === 'diagnosis'
+          ? workspaceDiagnosisHref(clientSlug)
+          : workspaceHref(clientSlug, recommendedNextSection),
+    })
+  }
+
+  return activity.sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp))
+}
+
 async function loadWorkspaceBundle(clientSlugInput: string) {
   const clientSlug = slugifyClientName(clientSlugInput)
   const draftFilePath = intakeDraftPath(clientSlug)
@@ -1589,6 +1819,23 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     hasSaved: Boolean(saved),
     hasCurrentAudit: auditIsCurrent,
   })
+  const activity = buildWorkspaceActivity({
+    client,
+    currentStage,
+    recommendedNextSection,
+    recommendedNextLabel,
+    preaudit,
+    intake,
+    audit,
+    workstreams,
+    agents,
+    outputs,
+    auditIsCurrent,
+    preauditUpdatedAt: preauditUpdatedAtIso,
+    draftUpdatedAt: draftUpdatedAtIso,
+    savedUpdatedAt: savedUpdatedAtIso,
+    auditUpdatedAt: auditUpdatedAtIso,
+  })
   const keyFacts = [
     { label: 'Website', value: client.website },
     { label: 'Lead email', value: client.email ?? 'Not captured yet' },
@@ -1652,6 +1899,7 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     workflowRuns,
     outputs,
     events,
+    activity,
     preauditStatus: workflowStatus[0].status,
     intakeStatus: workflowStatus[1].status,
     auditStatus: workflowStatus[2].status,
@@ -1715,6 +1963,7 @@ export async function loadWorkspaceOverview(
     workflowRuns: bundle.workflowRuns,
     outputs: bundle.outputs,
     events: bundle.events,
+    activity: bundle.activity,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -1836,6 +2085,7 @@ export async function loadWorkspaceDiagnosis(
     workflowRuns: bundle.workflowRuns,
     outputs: bundle.outputs,
     events: bundle.events,
+    activity: bundle.activity,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -1871,6 +2121,7 @@ export async function loadWorkspaceWorkstreams(
     workflowRuns: bundle.workflowRuns,
     outputs: bundle.outputs,
     events: bundle.events,
+    activity: bundle.activity,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -1904,6 +2155,7 @@ export async function loadWorkspaceAgents(
     workflowRuns: bundle.workflowRuns,
     outputs: bundle.outputs,
     events: bundle.events,
+    activity: bundle.activity,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -1920,5 +2172,38 @@ export async function loadWorkspaceAgents(
     recommendedNextLabel: bundle.recommendedNextLabel,
     recommendedNextDetail: bundle.recommendedNextDetail,
     latestOutputs: bundle.artifacts,
+  }
+}
+
+export async function loadWorkspaceActivity(
+  clientSlugInput: string,
+): Promise<WorkspaceActivityView> {
+  const bundle = await loadWorkspaceBundle(clientSlugInput)
+
+  return {
+    ...bundle.client,
+    currentStage: bundle.currentStage,
+    currentStageDetail: bundle.currentStageDetail,
+    client: bundle.client,
+    clientContext: bundle.clientContext,
+    workflowRuns: bundle.workflowRuns,
+    outputs: bundle.outputs,
+    events: bundle.events,
+    activity: bundle.activity,
+    preauditStatus: bundle.preauditStatus,
+    intakeStatus: bundle.intakeStatus,
+    auditStatus: bundle.auditStatus,
+    quickSummary: bundle.quickSummary,
+    focusAreas: bundle.focusAreas,
+    workflowStatus: bundle.workflowStatus,
+    workstreams: bundle.workstreams,
+    agents: bundle.agents,
+    artifacts: bundle.artifacts,
+    keyFacts: bundle.keyFacts,
+    accountReadiness: bundle.accountReadiness,
+    efficiencySignals: bundle.efficiencySignals,
+    recommendedNextSection: bundle.recommendedNextSection,
+    recommendedNextLabel: bundle.recommendedNextLabel,
+    recommendedNextDetail: bundle.recommendedNextDetail,
   }
 }

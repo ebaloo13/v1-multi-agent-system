@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
 import { workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
 import { getWorkspaceOverview } from '../lib/workflow.functions'
+import type { WorkspaceActivityItem, WorkspaceDashboardView } from '../lib/workflow'
 
 export const Route = createFileRoute('/workspace/$clientSlug/')({
   loader: ({ params }) =>
@@ -17,6 +18,7 @@ function WorkspaceDashboardPage() {
     ['ready for design', 'active', 'complete'].includes(item.status),
   )
   const hasGeneratedOutputs = data.artifacts.some((artifact) => artifact.tone !== 'pending')
+  const latestActivity = data.activity.slice(0, 3)
 
   return (
     <WorkspaceShell
@@ -172,9 +174,93 @@ function WorkspaceDashboardPage() {
             ))}
           </div>
         </article>
+
+        <article className="content-panel">
+          <div className="workspace-panel-head">
+            <div>
+              <p className="eyebrow">Activity</p>
+              <h2 className="workspace-panel-title">Recent Activity</h2>
+            </div>
+            <a href={workspaceHref(data.clientSlug, 'activity')} className="workspace-text-link">
+              Open activity
+            </a>
+          </div>
+
+          <div className="workspace-activity-preview-list mt-4">
+            {latestActivity.length === 0 ? (
+              <WorkspaceActivityEmptyState data={data} />
+            ) : (
+              latestActivity.map((item) => (
+                <WorkspaceActivityPreviewItem key={item.id} item={item} />
+              ))
+            )}
+          </div>
+        </article>
       </section>
     </WorkspaceShell>
   )
+}
+
+function WorkspaceActivityPreviewItem({ item }: { item: WorkspaceActivityItem }) {
+  return (
+    <div className="workspace-activity-preview-row">
+      <div className="workspace-activity-dot" aria-hidden="true" />
+      <div>
+        <div className="workspace-row-head">
+          <strong>{item.title}</strong>
+          <span>{formatActivityTimestamp(item.timestamp)}</span>
+        </div>
+        <p>{item.description}</p>
+      </div>
+    </div>
+  )
+}
+
+function WorkspaceActivityEmptyState({ data }: { data: WorkspaceDashboardView }) {
+  const isWaitingForPreaudit = data.preauditStatus.tone === 'pending'
+  const hasWorkflowProgress = data.workflowStatus.some((item) => item.status.tone !== 'pending')
+
+  if (isWaitingForPreaudit) {
+    return (
+      <WorkspaceDashboardEmptyState
+        title="Waiting for first preaudit"
+        detail="Activity will begin once the initial review is complete."
+        nextStep="Run the preaudit so meaningful workspace updates can appear here."
+      />
+    )
+  }
+
+  if (hasWorkflowProgress) {
+    return (
+      <WorkspaceDashboardEmptyState
+        title="No recent visible updates"
+        detail="Progress exists, but there are no feed-worthy client updates to show yet."
+        nextStep="Updates will appear when there is a meaningful output, recommendation, or next-step change."
+      />
+    )
+  }
+
+  return (
+    <WorkspaceDashboardEmptyState
+      title="No activity yet"
+      detail="Meaningful workspace updates will appear here as setup, diagnosis, and workstreams begin."
+      nextStep="Start with the preaudit to create the first visible client update."
+    />
+  )
+}
+
+function formatActivityTimestamp(timestamp: string) {
+  const date = new Date(timestamp)
+
+  if (Number.isNaN(date.valueOf())) {
+    return 'Recently'
+  }
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date)
 }
 
 function WorkspaceDashboardEmptyState({

@@ -33,10 +33,6 @@ const upcomingWorkspaceItems = [
     detail: 'Future outputs',
   },
   {
-    label: 'Activity',
-    detail: 'Future history',
-  },
-  {
     label: 'Playbooks',
     detail: 'Future workflows',
   },
@@ -47,6 +43,7 @@ const workspaceNavIcons: Record<WorkspaceSectionId, string> = {
   diagnosis: 'Di',
   workstreams: 'W',
   agents: 'A',
+  activity: 'Ac',
 }
 
 export default function WorkspaceShell({
@@ -119,9 +116,6 @@ export default function WorkspaceShell({
                   <small>{item.detail}</small>
                 </div>
               ))}
-            </div>
-            <div className="workspace-activity-preview" aria-disabled="true">
-              <span>Activity will show client-safe progress history here later.</span>
             </div>
           </div>
 
