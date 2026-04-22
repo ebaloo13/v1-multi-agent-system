@@ -16,12 +16,18 @@ The goal is to turn a low-friction, public-facing diagnostic into a deeper, stru
 Website URL
 → Preaudit Live
 → Preaudit Report
-→ Audit Intake Draft
-→ Client / Consultant Completes Missing Info
+→ Business Context Draft
+→ Client / Consultant Completes Business Context
 → Audit Live
 → Orchestrator
 → Specialized Agents
 ```
+
+Product naming rule:
+
+- Client-facing label: **Business Context**
+- Spanish reference: **Contexto del negocio**
+- Internal legacy term: `intake`, used only where existing file names, scripts, or implementation paths still require it
 
 ---
 
@@ -41,7 +47,7 @@ Website URL
 ### Output
 - `run.json`
 - `report.md`
-- `audit-intake.draft.json`
+- Business Context draft, currently stored using the legacy file name pattern `audit-intake.draft.json`
 
 ### Purpose
 The preaudit is the **hook**.
@@ -72,10 +78,10 @@ It is the entry point into the full audit.
 
 ---
 
-## Stage 3 — Audit Intake Draft
+## Stage 3 — Business Context Draft
 
 ### What it is
-An automatically generated draft file created after a successful `preaudit:live` run.
+An automatically generated Business Context draft file created after a successful `preaudit:live` run.
 
 ### Purpose
 It pre-fills everything that can safely be inferred from:
@@ -104,16 +110,16 @@ It pre-fills everything that can safely be inferred from:
 ### Product meaning
 This draft is the bridge between:
 - value demonstration
-- real consulting discovery
+- client-confirmed Business Context
 
 ---
 
-## Stage 4 — Client / Consultant Completion
+## Stage 4 — Business Context Completion
 
 ### Purpose
 This is the handoff point where the lead becomes an active consulting client.
 
-The client (or consultant on a call) confirms and completes the missing business information required for a deeper audit.
+The client (or consultant on a call) confirms and completes the missing Business Context required for a deeper audit.
 
 ### Typical missing information
 - business goals
@@ -134,11 +140,11 @@ This stage adds the minimum real-world context needed to make the audit accurate
 ## Stage 5 — Audit Live
 
 ### Input
-- completed intake JSON
+- completed Business Context JSON, currently represented internally by the legacy `intake` file/schema
 - preaudit run context
 
 ### What happens
-- intake and preaudit are normalized through the audit ingestion layer
+- Business Context and preaudit are normalized through the audit ingestion layer
 - the audit agent analyzes the business with richer context
 - the system identifies:
   - main pains
@@ -200,7 +206,7 @@ They should not replace the preaudit or the audit.
 - value demonstration
 - lead generation
 
-### Intake
+### Business Context
 - client confirms missing business context
 - trust / commitment step
 - conversion moment in the funnel
@@ -240,7 +246,7 @@ This workflow solves both:
 ```txt
 public web facts
 → preaudit
-→ report + intake draft
+→ report + Business Context draft
 → client-confirmed business context
 → audit ingestion
 → audit
@@ -256,8 +262,8 @@ A future UX should make this flow feel natural:
 
 1. Enter website URL
 2. Receive preaudit report
-3. Review / confirm prefilled intake form
-4. Complete missing business information
+3. Review / confirm prefilled Business Context form
+4. Complete missing Business Context
 5. Run full audit
 6. Review recommended next step / agent path
 
@@ -275,7 +281,7 @@ Later versions of the flow may include:
 
 But the current product should stay focused on the core transition:
 
-**preaudit → intake → audit**
+**preaudit → Business Context → audit**
 
 ---
 
@@ -283,6 +289,6 @@ But the current product should stay focused on the core transition:
 
 The preaudit is how interest is created.
 
-The intake is where trust and commitment are created.
+Business Context is where trust and commitment are created.
 
 The audit is where the real consulting work begins.

@@ -1,6 +1,6 @@
 
 
-# Audit Intake Form
+# Business Context Form
 
 ## Purpose
 
@@ -10,6 +10,12 @@ Its job is to collect the minimum business context needed to turn a public-facin
 
 This is the stage where a lead becomes an active consulting client.
 
+Product naming rule:
+
+- Client-facing label: **Business Context**
+- Spanish reference: **Contexto del negocio**
+- Internal legacy term: `intake`, used only where existing file names, scripts, or implementation paths still require it
+
 ---
 
 ## Role in the product flow
@@ -18,13 +24,13 @@ This is the stage where a lead becomes an active consulting client.
 Website URL
 → Preaudit
 → Report
-→ Audit Intake Form
+→ Business Context Form
 → Audit
 → Orchestrator
 → Specialized Agents
 ```
 
-The intake form should:
+The Business Context form should:
 - reuse everything already learned in preaudit
 - ask only for the missing information needed for a better audit
 - reduce friction for the client
@@ -219,9 +225,9 @@ This makes later implementation and orchestration more realistic.
 
 ---
 
-## Minimum viable intake
+## Minimum viable Business Context
 
-The minimum viable intake required to run a useful audit is:
+The minimum viable Business Context required to run a useful audit is:
 
 - Business name
 - Industry
@@ -287,7 +293,7 @@ The form should autofill whenever possible from:
 
 ---
 
-## Output of the intake stage
+## Output of the Business Context step
 
 The completed form should feed the audit ingestion layer and produce a normalized object like:
 
@@ -327,7 +333,7 @@ In the future product UX, this form should appear **after the preaudit report** 
 
 The ideal experience is:
 - show value first through preaudit
-- prefill the intake form automatically
+- prefill the Business Context form automatically
 - ask the client to confirm or complete missing information
 - then unlock the deeper audit
 
@@ -337,11 +343,11 @@ This is the moment where the prospect becomes an active consulting client.
 
 ## Future extensions
 
-Later versions of this intake can support:
+Later versions of Business Context can support:
 - file upload (CSV, PDF)
 - CRM connection
 - ads account connection
 - calendar / booking system connection
 - guided branching logic by industry
 
-But V1 should stay focused on the minimum viable business intake.
+But V1 should stay focused on the minimum viable Business Context needed to run a useful audit.

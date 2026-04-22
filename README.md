@@ -4,12 +4,18 @@ TypeScript multi-agent system for AI-driven SME consulting workflows. The curren
 
 ## Current flow
 
-`preaudit:live` -> `preaudit:report` -> `*-audit-intake.draft.json` -> `audit:live` -> `orchestrator` -> specialized agents
+`preaudit:live` -> `preaudit:report` -> Business Context draft (`*-audit-intake.draft.json`) -> `audit:live` -> `orchestrator` -> specialized agents
+
+Naming convention:
+
+- Client-facing label: **Business Context**
+- Spanish reference: **Contexto del negocio**
+- Internal legacy term: `intake`, still used by existing file names and CLI flags
 
 - **Preaudit** can analyze a real public website URL, apply deterministic scoring, and add a prudence layer for site fit.
 - **Preaudit report** generates a client-facing Markdown summary from validated output.
-- **Audit intake draft** is generated automatically after a successful live preaudit so the next audit stage starts with prefilled context.
-- **Audit live** can run from structured real-world input built from intake + preaudit facts.
+- **Business Context draft** is generated automatically after a successful live preaudit so the next audit stage starts with prefilled context.
+- **Audit live** can run from structured real-world input built from Business Context + preaudit facts.
 - **Orchestrator** still runs after audit and activates the relevant specialist agents.
 
 ## Architecture
@@ -23,9 +29,9 @@ This is intentional: fast diagnostic stages use a provider-agnostic layer, while
 
 - `preaudit:live` fetches one public website URL through a deterministic business tool harness
 - `preaudit:live` writes a live input record under `data/clients/`
-- `preaudit:live` generates an editable audit intake draft for the next stage
+- `preaudit:live` generates an editable Business Context draft for the next stage
 - `preaudit:report` writes `report.md` for the latest preaudit run
-- `audit:live` builds normalized stage-1 audit input from manual intake plus optional preaudit context
+- `audit:live` builds normalized stage-1 audit input from confirmed Business Context plus optional preaudit context
 
 ## Scope note
 
@@ -84,6 +90,8 @@ Internal `run_id` is still preserved inside `run.json`. Historical folders under
 - `npm run audit:demo`
 - `npm run audit:live -- --intake=data/clients/audit-intake.sample.json`
 
+The `--intake` flag is a legacy internal implementation name. Product-facing documentation should call this input **Business Context**.
+
 ## Running locally
 
 1. Install dependencies:
@@ -105,7 +113,7 @@ npm run preaudit:live -- --url=https://www.example.com/
 npm run preaudit:report
 ```
 
-4. Complete the generated intake draft in `data/clients/`, then run audit live:
+4. Complete the generated Business Context draft in `data/clients/`, then run audit live:
 
 ```bash
 npm run audit:live -- --intake=data/clients/example-audit-intake.draft.json
@@ -114,8 +122,8 @@ npm run audit:live -- --intake=data/clients/example-audit-intake.draft.json
 ## Current status
 
 - Live preaudit is implemented for single-page public website analysis
-- Automatic audit intake draft generation is implemented
-- Stage-1 audit ingestion is implemented for intake + preaudit facts
+- Automatic Business Context draft generation is implemented
+- Stage-1 audit ingestion is implemented for Business Context + preaudit facts
 - Preaudit and audit artifacts are client-grouped and human-readable
 - Orchestrator and specialist agents still use mock/demo data flows
 - The system is still optimized for safe, auditable workflows rather than production integrations

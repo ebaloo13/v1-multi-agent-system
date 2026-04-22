@@ -1,6 +1,8 @@
 # dependencies
 node_modules/
 .cursor/
+.venv/
+.python-version
 
 # build
 dist/
@@ -11,6 +13,10 @@ coverage/
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.crt
 
 # artifacts / runs
 artifacts/
@@ -39,3 +45,5 @@ temp/
 *.sqlite
 *.db
 .cache/
+.cursor-cache/
+.wrangler/
