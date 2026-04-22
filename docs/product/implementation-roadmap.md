@@ -25,7 +25,7 @@ EBC currently has:
 - A working product flow: **Website URL → Preaudit → Business Context → Audit → Orchestrator → Specialized Agents**.
 - File-backed workflow artifacts under `artifacts/clients/...`.
 - File-backed client/workflow inputs under `data/clients/...`.
-- Preaudit and audit runs that produce traceable artifacts.
+- Preaudit and audit runs that produce traceable Outputs, stored internally as artifacts.
 - Compatibility with existing legacy `intake` implementation names where needed.
 - Product/operations/data specs for:
   - system states and events
@@ -37,7 +37,7 @@ The product has enough structure to begin formalizing operations, but it should 
 
 ## Guiding Principles
 
-- Preserve the working loop. Do not break preaudit, Business Context, audit, or current artifact generation while formalizing the model.
+- Preserve the working loop. Do not break preaudit, Business Context, audit, or current Output generation while formalizing the model.
 - Do not overbuild too early. Build the smallest durable layer that improves product reliability and clarity.
 - Migrate incrementally. Files can remain the execution/artifact source while DB-backed metadata is introduced.
 - Prioritize visibility. Activity, events, states, and internal ops visibility should come before complex alert routing.
@@ -55,6 +55,7 @@ Goal: make the current product feel coherent, believable, and aligned with the d
 Build/finish:
 
 - Align all workspace labels and empty states with **Business Context** naming.
+- Align generated-work labels around **Outputs**, while keeping `artifacts` as the internal storage/model term.
 - Keep legacy `intake` wording only where route/file/CLI compatibility requires it.
 - Polish Dashboard, Diagnosis, Workstreams, and Agents empty states.
 - Make current stage, next action, and readiness cues consistent across workspace surfaces.
@@ -65,7 +66,7 @@ Build/finish:
 Should remain file-backed:
 
 - Current workflow inputs.
-- Existing preaudit/audit artifacts.
+- Existing preaudit/audit Outputs, stored as artifact files.
 - Current workspace context files.
 
 Success criteria:
@@ -314,4 +315,3 @@ These should be hybrid during transition:
 3. Define the migration strategy from file-backed workflow records to DB-backed metadata for Client, Client Context, Workflow Run, Artifact, Event, Workstream, and Client Agent.
 
 These actions keep momentum on the product while preparing the backend transition without forcing a premature rewrite.
-

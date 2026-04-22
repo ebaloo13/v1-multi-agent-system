@@ -18,11 +18,15 @@ This model should help EBC:
 
 ## Naming Convention
 
-Client-facing/product-facing term: **Business Context**.
+Client-facing/product-facing term for the context step: **Business Context**.
 
 Spanish reference: **Contexto del negocio**.
 
 Internal legacy term: `intake`, used only where current implementation details still require it, such as existing file names, CLI flags, metadata fields, or ingestion modules.
+
+Client-facing/product-facing term for generated reports/files: **Outputs**.
+
+Internal technical term: `artifacts`, used for storage paths, loaders, database table names, and provenance metadata.
 
 ## Core Entities
 
@@ -494,9 +498,9 @@ Do not simplify away:
 
 | Product surface | Entity support |
 | --- | --- |
-| Dashboard | Client, Client Context, Workstreams, Client Agents, latest Events, open Alerts, latest Artifacts. |
-| Diagnosis | Workflow Runs, Artifacts, Client Context, Events for preaudit/Business Context/audit progression. |
-| Workstreams | Workstreams, related Client Agents, Notes, Events, Artifacts. |
+| Dashboard | Client, Client Context, Workstreams, Client Agents, latest Events, open Alerts, latest Outputs. |
+| Diagnosis | Workflow Runs, Artifacts, Client Context, Events for preaudit/Business Context/audit progression, and client-facing Outputs. |
+| Workstreams | Workstreams, related Client Agents, Notes, Events, and linked Outputs. |
 | Agents | Agent Definitions, Client Agents, agent Workflow Runs, setup requirements, agent Events. |
 | Activity | Events filtered by visibility and entity relationships. |
 | Reports | Artifacts first; later Reports table if report lifecycle needs publishing/versioning. |
@@ -527,4 +531,3 @@ Do not simplify away:
 6. Add an append-only Event model before building richer Activity or Internal Ops surfaces.
 7. Plan a migration path from local files to DB-backed records without breaking existing artifacts.
 8. Add Alerts only after internal Events can identify failures, blockers, stale outputs, and missing inputs reliably.
-

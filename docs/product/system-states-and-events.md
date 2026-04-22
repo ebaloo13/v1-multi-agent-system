@@ -54,8 +54,8 @@ Client lifecycle state describes the top-level account stage. It should be store
 | State | Meaning | Usual next step | Client should see | Internal team should see |
 | --- | --- | --- | --- | --- |
 | `lead` | A client/prospect exists, usually from a website submission or manual creation, but no diagnostic run is complete yet. | Start preaudit. | Basic workspace shell, captured website/email, "Diagnostic not started" or "Preparing diagnosis." | Source, contact info, submission details, whether required fields are missing. |
-| `preaudit_running` | The public-site preaudit workflow has started and artifacts are not complete yet. | Complete or fail preaudit. | "Diagnostic running" with an expectation that results are being prepared. | Run ID, started timestamp, runner status, retry eligibility. |
-| `preaudit_completed` | Preaudit artifacts exist and can be reviewed. | Review findings and collect Business Context inputs. | Preaudit summary, scores, alerts, quick wins, next step to Business Context. | Artifact paths, extracted signals, warnings, Business Context draft availability. |
+| `preaudit_running` | The public-site preaudit workflow has started and Outputs are not complete yet. | Complete or fail preaudit. | "Diagnostic running" with an expectation that results are being prepared. | Run ID, started timestamp, runner status, retry eligibility. |
+| `preaudit_completed` | Preaudit Outputs exist and can be reviewed. | Review findings and collect Business Context inputs. | Preaudit summary, scores, alerts, quick wins, next step to Business Context. | Artifact paths, extracted signals, warnings, Business Context draft availability. |
 | `discovery_pending` | Internal stable state meaning the client needs to provide missing Business Context before full audit quality is acceptable. | Start the Business Context step. | Clear request for missing Business Context and why it matters. | Missing fields, owner, due date, client reminders needed. |
 | `discovery_in_progress` | Internal stable state meaning Business Context has been started but is not complete or not confirmed. | Save Business Context and mark audit ready. | Progress, remaining sections, saved draft state. | Field completion, validation gaps, operator notes, stale draft warnings. |
 | `audit_ready` | Enough client context exists to run the full audit. | Start audit. | "Ready for full audit" and the next action. | Input file paths, preaudit dependency, readiness checks. |
@@ -198,7 +198,7 @@ A practical first version of an event should include:
 | Event | Meaning | Typical visibility |
 | --- | --- | --- |
 | `preaudit_started` | Public-site diagnostic run started. | Both |
-| `preaudit_completed` | Preaudit completed and artifacts are available. | Both |
+| `preaudit_completed` | Preaudit completed and Outputs are available. | Both |
 | `preaudit_failed` | Preaudit failed. | Internal by default |
 | `business_context_started` | Business Context was opened or assigned. | Both |
 | `business_context_saved` | Business Context was saved. | Both |
@@ -208,7 +208,7 @@ A practical first version of an event should include:
 | `audit_failed` | Full audit failed. | Internal by default |
 | `run_failed` | Any workflow or agent run failed. | Internal |
 | `run_retried` | A failed or incomplete run was retried. | Internal |
-| `artifact_created` | A report, JSON file, or output artifact was generated. | Both if client-facing output |
+| `artifact_created` | A report, JSON file, or generated Output was created. | Both if client-facing output |
 
 #### Workstream Events
 
@@ -273,7 +273,7 @@ The client workspace should show:
 
 - Current lifecycle stage.
 - Primary next action.
-- Completed outputs, reports, and artifacts.
+- Completed Outputs and reports.
 - Client-safe progress updates.
 - Client-visible workstream status.
 - Recommended agents when they are relevant and explainable.
@@ -344,7 +344,7 @@ Client-facing activity should emphasize:
 - Audit completed.
 - Workstream activated/completed.
 - Agent recommended/activated when relevant.
-- Reports or artifacts published.
+- Reports or Outputs published.
 - Client input requested/received.
 - Next action updates.
 

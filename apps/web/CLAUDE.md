@@ -33,6 +33,8 @@ Naming convention:
 - Client-facing label: **Business Context**
 - Spanish reference: **Contexto del negocio**
 - Internal legacy term: `intake`, still used by existing file names, route paths, and workflow flags
+- Client-facing generated-work label: **Outputs**
+- Internal technical term: `artifacts`, still used by existing storage paths, loaders, and workflow metadata
 
 ## Scope
 
@@ -94,8 +96,9 @@ present it more clearly, not replace it.
   what public-site evidence could plausibly support.
 - Diagnosis is the hub for preaudit, Business Context, and audit. Older workspace routes
   can redirect into it when needed.
-- Workstreams and Agents should stay connected to the real workflow artifacts
-  and audit conclusions, even if execution is still future-facing.
+- Workstreams and Agents should stay connected to the real workflow Outputs
+  and audit conclusions, even if execution is still future-facing. Internally,
+  those Outputs are still stored as artifacts.
 
 ## Current Limitations
 

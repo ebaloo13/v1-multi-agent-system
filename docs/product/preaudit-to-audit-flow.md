@@ -42,7 +42,7 @@ Product naming rule:
 - Detects basic tracking / measurement markers
 - Runs the preaudit agent
 - Applies deterministic scoring
-- Writes artifacts grouped by client
+- Writes generated Outputs grouped by client
 
 ### Output
 - `run.json`

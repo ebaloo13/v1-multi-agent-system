@@ -21,7 +21,7 @@ Activity should not be treated as "logs." Activity is a meaningful business and 
 
 | Concept | Meaning | Primary audience | Example |
 | --- | --- | --- | --- |
-| Activity | A meaningful timeline of business, workflow, workstream, agent, and artifact events. | Clients and internal team | "Audit completed", "Business Context saved", "Workstream activated" |
+| Activity | A meaningful timeline of business, workflow, workstream, agent, and Output events. | Clients and internal team | "Audit completed", "Business Context saved", "Workstream activated" |
 | Internal Ops | Internal visibility for coordination, troubleshooting, ownership, and operational risk. | EBC team | "Audit failed", "Workstream blocked", "Missing required input" |
 | Alerts | A subset of internal operational events that require attention or action. | EBC team, later Slack/internal notifications | "Run failed after retry", "Client inactive for 7 days", "Agent setup missing" |
 | Technical logs | Low-level system records used for debugging, observability, and reliability. | Engineers/operators | Stack traces, HTTP failures, validation details, raw model errors |
@@ -49,10 +49,10 @@ Client-facing activity should show progress, milestones, and clear next steps. I
 | `audit_completed` | Confirms recommendations and priorities are available. | Link to audit review, summary of available outputs. | Raw agent JSON, validation details, internal confidence/debug notes unless translated. |
 | `workstream_created` | Shows a transformation track has been identified. | Workstream name and why it matters. | Speculative internal scoring or unreviewed internal notes. |
 | `workstream_activated` | Shows active execution has started. | Workstream name, current focus, next step. | Internal assignment chatter, private resourcing constraints. |
-| `workstream_completed` | Shows a concrete outcome or milestone was completed. | Outcome, artifact/report link if available, next step. | Internal QA notes unless client-approved. |
+| `workstream_completed` | Shows a concrete outcome or milestone was completed. | Outcome, Output/report link if available, next step. | Internal QA notes unless client-approved. |
 | `agent_recommended` | Shows a suggested capability based on diagnosis/audit. | Agent name, purpose, what it could help with. | Experimental agent details, prompt/configuration, unsupported claims. |
 | `agent_activated` | Shows an approved agent/module is now supporting the work. | What the agent is doing in client-safe language. | Internal tool calls, raw outputs, implementation uncertainty. |
-| `artifact_created` | Shows a new report, output, or deliverable is available. | Artifact title, type, link, and short context. | Local file paths, generation metadata, raw intermediate files. |
+| `artifact_created` | Shows a new report, Output, or deliverable is available. | Output title, type, link, and short context. | Local file paths, generation metadata, raw intermediate files. |
 | `next_action_updated` | Keeps the client oriented around what should happen next. | Clear next action, owner if client-facing, due timing if known. | Internal debate, unassigned tasks, hidden blockers. |
 
 ### Client Activity Principles
@@ -95,7 +95,7 @@ Alerts are not just events. Alerts are events that need attention, escalation, o
 
 | Alert category | Trigger | Default severity | Who should care | Slack later? |
 | --- | --- | --- | --- | --- |
-| Failure alerts | Preaudit, audit, workflow, artifact generation, or agent run fails and is not automatically resolved. | `warning` or `critical` | Operator, engineer, account owner if client-impacting | Yes for unresolved failures, especially audit/agent failures. |
+| Failure alerts | Preaudit, audit, workflow, Output generation, or agent run fails and is not automatically resolved. | `warning` or `critical` | Operator, engineer, account owner if client-impacting | Yes for unresolved failures, especially audit/agent failures. |
 | Blocker alerts | Workstream enters `blocked` or agent cannot proceed because a dependency is missing. | `warning` | Account owner, workstream owner | Yes when the blocker affects active work. |
 | Missing input alerts | Required Business Context, access, file, approval, or decision is missing. | `info` or `warning` | Account owner, client-facing operator | Sometimes. Slack only if overdue or blocking audit/execution. |
 | Stale output alerts | Audit/report/artifact is older than upstream Business Context, preaudit, or source context. | `warning` | Operator, account owner | Yes if the stale output is client-visible or being used for decisions. |
@@ -180,9 +180,9 @@ Activity and Internal Ops should appear in different surfaces depending on audie
 | --- | --- | --- | --- |
 | Client workspace Activity section | Client and client-facing team | Client-safe timeline of progress and outputs. | Stage changes, Business Context saved/completed, audit completed, workstream milestones, reports, next actions. |
 | Internal team ops dashboard | EBC team | Multi-client operational control center. | Failed runs, blockers, missing inputs, stale artifacts, SLA risks, open alerts, recently completed milestones. |
-| Workstream-level history | Client-facing team, possibly client | History of one transformation track. | Created, scoped, activated, blocked, unblocked, completed, related artifacts and notes. |
+| Workstream-level history | Client-facing team, possibly client | History of one transformation track. | Created, scoped, activated, blocked, unblocked, completed, related Outputs and notes. |
 | Agent-level history | Internal team, sometimes client | Understand agent recommendation, setup, activation, and run outcomes. | Recommended, setup needed, ready, activated, paused, completed runs, failures. |
-| Report/artifact history | Client and internal team | Track generated outputs and whether they are current. | Artifact created, published, superseded, stale, regenerated. |
+| Output/report history | Client and internal team | Track generated Outputs and whether they are current. | Output created, published, superseded, stale, regenerated. |
 | Alert inbox/internal ops panel | Internal team | Manage items requiring action. | Open alerts, severity, owner, next action, acknowledged/resolved state. |
 | Client overview/dashboard | Client and team | Show only the most important recent activity and next action. | Last 3-5 high-signal events and current next action. |
 
@@ -257,7 +257,7 @@ Build:
 - Alert status: open, acknowledged, resolved, ignored.
 - Workstream-level history.
 - Agent-level history.
-- Artifact/report history.
+- Output/report history.
 - Grouping for repeated failures or repeated missing input events.
 
 ### Phase 3: Slack Routing And Multi-Client Ops
@@ -277,7 +277,7 @@ The first practical slice should be small and opinionated:
 
 1. Add a minimal Activity section in the client workspace.
 2. Back it with an append-only event stream, even if stored locally at first.
-3. Include only high-signal client-safe events: preaudit, Business Context, audit, workstream milestones, artifacts, and next action updates.
+3. Include only high-signal client-safe events: preaudit, Business Context, audit, workstream milestones, Outputs, and next action updates.
 4. Add a separate internal event list for failures, retries, blockers, stale artifacts, missing inputs, and manual notes.
 5. Define a compact alert-worthy subset, but do not route to Slack yet.
 6. Avoid exposing raw logs directly in Activity.
@@ -290,4 +290,3 @@ The key product decision is to separate four layers from the start:
 - Technical logs for engineering reliability.
 
 That separation will let EBC scale without turning the workspace into a noisy debug console or hiding important operational problems from the team.
-

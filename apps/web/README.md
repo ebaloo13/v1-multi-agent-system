@@ -8,13 +8,15 @@ This frontend is now split into two product layers:
 - client workspace shell under `/workspace/$clientSlug`
 
 The repo-root agent engine is unchanged. This app still invokes the existing
-local scripts and reads or writes the same file-backed workflow artifacts.
+local scripts and reads or writes the same file-backed workflow outputs.
 
 Naming convention:
 
 - Client-facing label: **Business Context**
 - Spanish reference: **Contexto del negocio**
 - Internal legacy term: `intake`, still used by existing route paths, file names, and workflow flags
+- Client-facing generated-work label: **Outputs**
+- Internal technical term: `artifacts`, still used by existing storage paths, loaders, and workflow metadata
 
 ## Local Dev Runtime
 
@@ -60,7 +62,7 @@ Concretely:
 3. The app stores lightweight client context locally in
    `data/clients/<client-slug>-workspace.json`.
 4. The app redirects into the client workspace and continues using the same
-   artifact and legacy `intake` files that already exist in the repo workflow.
+   generated output files and legacy `intake` files that already exist in the repo workflow.
 5. Diagnosis acts as the operational hub for preaudit, Business Context editing, and
    audit review.
 6. Workstreams and Agents turn those findings into a more scalable product
@@ -103,7 +105,7 @@ workspace until a real backend is added.
 - The repo-root engine was not moved or rewritten.
 - Existing `preaudit:live` and `audit:live` scripts are still the workflow
   bridge.
-- Existing artifacts and legacy `intake` JSON remain the source of truth.
+- Existing Outputs are backed by internal `artifacts` files and legacy `intake` JSON, which remain the source of truth.
 - Public navigation and workspace navigation are separated so dead or
   misleading links are not exposed.
 - Workspace v2 uses a new navigation model:
