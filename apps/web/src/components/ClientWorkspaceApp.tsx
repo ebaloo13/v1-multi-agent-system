@@ -1,3 +1,6 @@
+import { type FormEvent, useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { useServerFn } from '@tanstack/react-start'
 import {
   Bell,
   CalendarDays,
@@ -16,13 +19,17 @@ import {
   SlidersHorizontal,
   UserCircle,
 } from 'lucide-react'
+import { createClientWorkItem } from '../lib/client-work-items.functions'
 import { formatClientName } from '../lib/product-shell'
+import { messageFromError } from '../lib/workflow'
+import type { WorkItem } from '../../../../src/core/work-items/store'
 
 type ClientWorkspaceView = 'home' | 'newRequest' | 'reviews' | 'files' | 'chat' | 'settings'
 
 type ClientWorkspaceAppProps = {
   clientSlug: string
   view: ClientWorkspaceView
+  workItems?: WorkItem[]
 }
 
 type ClientRequestStatus = 'new' | 'inProgress' | 'needsReview' | 'ready' | 'humanSupport'
@@ -110,9 +117,14 @@ const clientFiles: ClientFile[] = [
   { name: 'Operations handoff notes', type: 'Sheet', updatedAt: 'Apr 24' },
 ]
 
-export default function ClientWorkspaceApp({ clientSlug, view }: ClientWorkspaceAppProps) {
+export default function ClientWorkspaceApp({
+  clientSlug,
+  view,
+  workItems = [],
+}: ClientWorkspaceAppProps) {
   const clientName = formatClientName(clientSlug || 'generic-client')
-  const reviewRequests = clientRequests.filter((request) => request.status === 'needsReview')
+  const requests = workItems.length > 0 ? workItems.map(workItemToClientRequest) : clientRequests
+  const reviewRequests = requests.filter((request) => request.status === 'needsReview')
 
   return (
     <main className="client-workspace-app">
@@ -120,9 +132,9 @@ export default function ClientWorkspaceApp({ clientSlug, view }: ClientWorkspace
       <section className="client-workspace-main">
         <ClientTopbar clientName={clientName} />
         {view === 'home' ? (
-          <ClientKanbanView clientName={clientName} clientSlug={clientSlug} requests={clientRequests} />
+          <ClientKanbanView clientName={clientName} clientSlug={clientSlug} requests={requests} />
         ) : null}
-        {view === 'newRequest' ? <NewRequestView clientName={clientName} /> : null}
+        {view === 'newRequest' ? <NewRequestView clientName={clientName} clientSlug={clientSlug} /> : null}
         {view === 'reviews' ? <ReviewsView requests={reviewRequests} /> : null}
         {view === 'files' ? <FilesView files={clientFiles} /> : null}
         {view === 'chat' ? <ChatView clientSlug={clientSlug} /> : null}
@@ -307,7 +319,43 @@ function ClientRequestCard({ request }: { request: ClientRequest }) {
   )
 }
 
-function NewRequestView({ clientName }: { clientName: string }) {
+function NewRequestView({ clientName, clientSlug }: { clientName: string; clientSlug: string }) {
+  const navigate = useNavigate()
+  const createRequest = useServerFn(createClientWorkItem)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setErrorMessage(null)
+    setIsSubmitting(true)
+
+    const form = event.currentTarget
+    const formData = new FormData(form)
+
+    try {
+      await createRequest({
+        data: {
+          clientSlug,
+          title: String(formData.get('title') ?? ''),
+          requestType: String(formData.get('requestType') ?? 'Request'),
+          description: String(formData.get('description') ?? ''),
+        },
+      })
+
+      navigate({
+        to: '/workspace/$clientSlug',
+        params: {
+          clientSlug,
+        },
+      })
+    } catch (error) {
+      setErrorMessage(messageFromError(error))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <section className="client-simple-page">
       <div className="client-simple-header">
@@ -315,14 +363,14 @@ function NewRequestView({ clientName }: { clientName: string }) {
         <h1>New Request</h1>
         <p>Tell us what you need. We will track it here.</p>
       </div>
-      <div className="client-request-form-card">
+      <form className="client-request-form-card" onSubmit={handleSubmit}>
         <label>
           Request title
-          <input placeholder="What do you need help with?" />
+          <input name="title" placeholder="What do you need help with?" required />
         </label>
         <label>
           Request type
-          <select defaultValue="Request">
+          <select name="requestType" defaultValue="Request">
             <option>Request</option>
             <option>Review</option>
             <option>File</option>
@@ -331,12 +379,13 @@ function NewRequestView({ clientName }: { clientName: string }) {
         </label>
         <label>
           Details
-          <textarea placeholder="Add the key details, links, or notes." rows={5} />
+          <textarea name="description" placeholder="Add the key details, links, or notes." rows={5} />
         </label>
-        <button type="button" className="client-primary-button">
-          Submit Request
+        {errorMessage ? <p className="client-form-error">{errorMessage}</p> : null}
+        <button type="submit" className="client-primary-button" disabled={isSubmitting}>
+          {isSubmitting ? 'Submitting...' : 'Submit Request'}
         </button>
-      </div>
+      </form>
     </section>
   )
 }
@@ -448,4 +497,65 @@ function statusLabel(status: ClientRequestStatus) {
     case 'humanSupport':
       return 'Human Support'
   }
+}
+
+function workItemToClientRequest(workItem: WorkItem): ClientRequest {
+  return {
+    title: workItem.title,
+    type: workItemTypeLabel(workItem),
+    status: workItemStatusToClientStatus(workItem.status),
+    updatedAt: formatUpdatedAt(workItem.updatedAt),
+  }
+}
+
+function workItemStatusToClientStatus(status: WorkItem['status']): ClientRequestStatus {
+  switch (status) {
+    case 'in_progress':
+      return 'inProgress'
+    case 'waiting':
+      return 'humanSupport'
+    case 'needs_review':
+      return 'needsReview'
+    case 'ready':
+    case 'done':
+      return 'ready'
+    case 'new':
+      return 'new'
+  }
+}
+
+function workItemTypeLabel(workItem: WorkItem): ClientRequest['type'] {
+  const requestType = workItem.metadata.requestType
+
+  if (requestType === 'Review' || requestType === 'File' || requestType === 'Support') {
+    return requestType
+  }
+
+  return 'Request'
+}
+
+function formatUpdatedAt(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.valueOf())) {
+    return 'Recently'
+  }
+
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).valueOf()
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).valueOf()
+  const dayDifference = Math.round((startOfToday - startOfDate) / 86_400_000)
+
+  if (dayDifference === 0) {
+    return 'Today'
+  }
+
+  if (dayDifference === 1) {
+    return 'Yesterday'
+  }
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+  }).format(date)
 }
