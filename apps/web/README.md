@@ -68,6 +68,23 @@ Concretely:
 6. Workstreams and Agents turn those findings into a more scalable product
    model for future execution.
 
+## Platform Model Direction
+
+The workspace is evolving toward a horizontal AI operations platform for small
+businesses, not a vertical-specific app or CRM-only dashboard. The core model is
+organized around reusable business modules: Inbox / Conversations, Tasks / Work
+Items, Payments / Collections, Schedule / Confirmations, Files / Documents, and
+Settings / Integrations.
+
+`WorkItem` is the shared operational object for requests, messages, leads,
+tasks, payments, bookings, events, staff confirmations, file reviews, and
+support items. Vertical-specific workflows, such as staffing or ETT-style packs,
+should layer on through `VerticalPack` definitions instead of being hardcoded
+into the core workspace.
+
+The initial TypeScript/Zod foundation for this direction lives at the repository
+root in `src/schemas/operations.ts`.
+
 ## Local Persistence
 
 There is still:
