@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
 import { workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
 import { getWorkspaceWorkstreams } from '../lib/workflow.functions'
+import type { WorkspaceReadinessItem, WorkspaceReadinessStatus } from '../lib/workflow'
 
 export const Route = createFileRoute('/workspace/$clientSlug/workstreams')({
   loader: ({ params }) =>
@@ -81,12 +82,26 @@ function WorkspaceWorkstreamsPage() {
                 <p className="workspace-panel-copy mt-4">{item.whyItMatters}</p>
                 <div className="workspace-list-grid mt-4">
                   <div className="workspace-module-row">
+                    <div className="workspace-row-head">
+                      <strong>Activation readiness</strong>
+                      <span className={`workspace-status-pill tone-${readinessTone(item.readiness.status)}`}>
+                        {readinessLabel(item.readiness.status)}
+                      </span>
+                    </div>
+                    <p>{item.readiness.summary}</p>
+                  </div>
+                  <div className="workspace-module-row">
                     <strong>Next step</strong>
                     <p>{item.suggestedNextStep}</p>
                   </div>
                   <div className="workspace-module-row">
                     <strong>Agent</strong>
                     <p>{item.suggestedAgent ?? 'Not assigned yet'}</p>
+                  </div>
+                  <div className="workspace-readiness-chip-list">
+                    {item.readiness.items.slice(0, 4).map((readinessItem) => (
+                      <ReadinessChip key={readinessItem.id} item={readinessItem} />
+                    ))}
                   </div>
                 </div>
               </article>
@@ -96,6 +111,40 @@ function WorkspaceWorkstreamsPage() {
       </section>
     </WorkspaceShell>
   )
+}
+
+function ReadinessChip({ item }: { item: WorkspaceReadinessItem }) {
+  return (
+    <span className={`workspace-readiness-chip tone-${readinessTone(item.status)}`}>
+      {item.label}: {readinessLabel(item.status)}
+    </span>
+  )
+}
+
+function readinessTone(status: WorkspaceReadinessStatus) {
+  switch (status) {
+    case 'confirmed':
+      return 'success'
+    case 'missing':
+      return 'progress'
+    case 'blocked':
+      return 'pending'
+    case 'not_applicable':
+      return 'neutral'
+  }
+}
+
+function readinessLabel(status: WorkspaceReadinessStatus) {
+  switch (status) {
+    case 'confirmed':
+      return 'Confirmed'
+    case 'missing':
+      return 'Missing'
+    case 'blocked':
+      return 'Blocked'
+    case 'not_applicable':
+      return 'Not relevant'
+  }
 }
 
 function WorkspaceWorkstreamsEmptyState({

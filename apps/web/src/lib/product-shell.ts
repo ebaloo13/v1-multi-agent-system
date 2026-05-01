@@ -199,6 +199,36 @@ export const workspaceSectionMeta = {
     summary:
       'Client-safe history of meaningful workspace progress, outputs, and next steps.',
   },
+  agentBoard: {
+    title: 'Agent Board',
+    summary:
+      'Operational view of business automation agents, ownership, capacity, and blockers.',
+  },
+  taskLifecycle: {
+    title: 'Task Lifecycle',
+    summary:
+      'Board view of business tasks from recommendation through agent execution and human review.',
+  },
+  runTimeline: {
+    title: 'Run Timeline',
+    summary:
+      'Step-by-step run history for automation work, decisions, artifacts, and intervention points.',
+  },
+  artifacts: {
+    title: 'Artifacts',
+    summary:
+      'Viewer for audit outputs, automation drafts, SOPs, briefs, and client-ready evidence.',
+  },
+  reviewQueue: {
+    title: 'Human Review',
+    summary:
+      'Queue for approvals, clarifications, blockers, and client-safe decisions before work proceeds.',
+  },
+  agentProfiles: {
+    title: 'Agent Profiles',
+    summary:
+      'Capability cards for each business automation agent assigned or recommended for the client.',
+  },
 } as const
 
 export type IntakeDraft = {
@@ -264,6 +294,36 @@ export const workspaceTabs = [
     id: 'activity',
     label: 'Activity',
     href: '/activity',
+  },
+  {
+    id: 'agentBoard',
+    label: 'Agent Board',
+    href: '/agent-board',
+  },
+  {
+    id: 'taskLifecycle',
+    label: 'Task Lifecycle',
+    href: '/task-lifecycle',
+  },
+  {
+    id: 'runTimeline',
+    label: 'Run Timeline',
+    href: '/run-timeline',
+  },
+  {
+    id: 'artifacts',
+    label: 'Artifacts',
+    href: '/artifacts',
+  },
+  {
+    id: 'reviewQueue',
+    label: 'Human Review',
+    href: '/review',
+  },
+  {
+    id: 'agentProfiles',
+    label: 'Agent Profiles',
+    href: '/agent-profiles',
   },
 ] as const
 

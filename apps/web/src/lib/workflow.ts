@@ -26,6 +26,12 @@ export type WorkspaceSectionId =
   | 'agents'
   | 'impact'
   | 'activity'
+  | 'agentBoard'
+  | 'taskLifecycle'
+  | 'runTimeline'
+  | 'artifacts'
+  | 'reviewQueue'
+  | 'agentProfiles'
 export type DiagnosisPanelId = 'overview' | 'preaudit' | 'intake' | 'audit'
 
 export type ClientLifecycleState =
@@ -116,6 +122,7 @@ export type WorkspaceWorkstreamSummary = {
   linkedSource: string
   suggestedNextStep: string
   suggestedAgent?: string
+  readiness: WorkspaceReadinessGroup
 }
 
 export type WorkspaceWorkstream = WorkspaceWorkstreamSummary
@@ -145,6 +152,7 @@ export type WorkspaceClientAgentSummary = {
   currentRelevance: string
   requiredInputs: string[]
   potentialOutput: string
+  readiness: WorkspaceReadinessGroup
 }
 
 export type WorkspaceAgent = WorkspaceClientAgentSummary
@@ -165,6 +173,40 @@ export type WorkspaceEventSummary = {
   label: string
   detail: string
   createdAt?: string
+}
+
+export type WorkspaceReadinessStatus = 'confirmed' | 'missing' | 'blocked' | 'not_applicable'
+
+export type WorkspaceReadinessArea =
+  | 'audit'
+  | 'business_context'
+  | 'workstream_activation'
+  | 'agent_activation'
+
+export type WorkspaceReadinessItem = {
+  id: string
+  label: string
+  status: WorkspaceReadinessStatus
+  reason: string
+  ctaLabel?: string
+  ctaHref?: string
+}
+
+export type WorkspaceReadinessGroup = {
+  id: string
+  area: WorkspaceReadinessArea
+  label: string
+  status: WorkspaceReadinessStatus
+  summary: string
+  items: WorkspaceReadinessItem[]
+  ctaLabel?: string
+  ctaHref?: string
+}
+
+export type WorkspaceReadinessSummary = {
+  audit: WorkspaceReadinessGroup
+  workstreams: WorkspaceReadinessGroup
+  agents: WorkspaceReadinessGroup
 }
 
 export type WorkspaceActivityType =
@@ -243,6 +285,7 @@ export type WorkspaceDashboardView = WorkspaceClient & {
   events: WorkspaceEventSummary[]
   activity: WorkspaceActivityItem[]
   impact: WorkspaceImpactItem[]
+  readiness: WorkspaceReadinessSummary
   preauditStatus: WorkflowStageStatus
   intakeStatus: WorkflowStageStatus
   auditStatus: WorkflowStageStatus
@@ -307,7 +350,7 @@ export type PreauditView = WorkspaceClient & {
   priorityAlerts: string[]
 }
 
-export type AuditIntakeView = WorkspaceClient & {
+export type AuditIntakeView = Omit<WorkspaceClient, 'source'> & {
   source: 'draft' | 'saved'
   draftPath: string
   intakePath: string

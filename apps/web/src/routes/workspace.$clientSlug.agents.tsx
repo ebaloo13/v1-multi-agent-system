@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
 import { workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
 import { getWorkspaceAgents } from '../lib/workflow.functions'
+import type { WorkspaceAgent } from '../lib/workflow'
 
 export const Route = createFileRoute('/workspace/$clientSlug/agents')({
   loader: ({ params }) =>
@@ -13,9 +14,9 @@ export const Route = createFileRoute('/workspace/$clientSlug/agents')({
 
 function WorkspaceAgentsPage() {
   const data = Route.useLoaderData()
-  const recommendedAgents = data.agents.filter((item) =>
-    ['recommended', 'ready', 'active'].includes(item.status),
-  )
+  const activeAgents = data.agents.filter((item) => item.status === 'active')
+  const recommendedAgents = data.agents.filter((item) => ['recommended', 'ready'].includes(item.status))
+  const creatableAgents = data.agents.filter((item) => item.status !== 'active' && item.status !== 'not relevant')
 
   return (
     <WorkspaceShell
@@ -29,90 +30,188 @@ function WorkspaceAgentsPage() {
       primaryActionLabel={data.recommendedNextLabel}
       primaryActionDetail={data.recommendedNextDetail}
       statusChips={[
-        { label: 'Agents', value: String(data.agents.length), tone: 'neutral' },
+        { label: 'Active', value: String(activeAgents.length), tone: activeAgents.length > 0 ? 'success' : 'neutral' },
         {
           label: 'Recommended',
-          value: String(data.agents.filter((item) => ['recommended', 'ready', 'active'].includes(item.status)).length),
-          tone: 'progress',
+          value: String(recommendedAgents.length),
+          tone: recommendedAgents.length > 0 ? 'progress' : 'neutral',
+        },
+        {
+          label: 'Available',
+          value: String(creatableAgents.length),
+          tone: creatableAgents.length > 0 ? 'neutral' : 'pending',
         },
       ]}
       action={
         <>
-          <a href={workspaceHref(data.clientSlug, 'workstreams')} className="primary-button no-underline">
-            Open workstreams
+          <a href="#agent-creation" className="primary-button no-underline">
+            Create agent
           </a>
-          <a
-            href={workspaceDiagnosisHref(data.clientSlug, 'audit')}
-            className="secondary-button no-underline"
-          >
-            Review diagnosis
+          <a href={workspaceHref(data.clientSlug, 'workstreams')} className="secondary-button no-underline">
+            Open workstreams
           </a>
         </>
       }
     >
-      <section className="workspace-board-canvas">
-        <article className="content-panel workspace-board-panel">
-          <p className="eyebrow">Agents</p>
-          <h2 className="workspace-panel-title">What systems are relevant here?</h2>
-          {data.agents.length === 0 ? (
-            <WorkspaceAgentsEmptyState
-              title="No agents are available yet"
-              detail="Agent recommendations appear after the diagnosis has enough context to identify useful execution modules."
-              nextStep="Complete Business Context and run the audit first."
-            />
-          ) : recommendedAgents.length === 0 ? (
-            <WorkspaceAgentsEmptyState
-              title="No agents recommended yet"
-              detail="The agent catalog is prepared, but recommendations should wait until the deeper audit clarifies the implementation path."
-              nextStep="Use Diagnosis to complete Business Context and unlock audit-based recommendations."
-            />
-          ) : null}
-          <div className="workspace-agent-gallery mt-4">
-            {data.agents.map((agent) => (
-              <article key={agent.slug} className="workspace-agent-gallery-card">
-                <div className={`workspace-card-status-bar tone-${agent.tone}`} />
-                <div className="workspace-panel-head">
+      <section className="workspace-section-grid">
+        <section className="workspace-agent-management-grid">
+          <div className="workspace-agent-summary-tile">
+            <span>Active</span>
+            <strong>{activeAgents.length}</strong>
+          </div>
+          <div className="workspace-agent-summary-tile">
+            <span>Recommended</span>
+            <strong>{recommendedAgents.length}</strong>
+          </div>
+          <div className="workspace-agent-summary-tile">
+            <span>Available</span>
+            <strong>{creatableAgents.length}</strong>
+          </div>
+        </section>
+
+        <article className="content-panel">
+          <div className="workspace-panel-head">
+            <div>
+              <p className="eyebrow">Recommended agents</p>
+              <h2 className="workspace-panel-title">Set up next</h2>
+            </div>
+          </div>
+
+          {recommendedAgents.length === 0 ? (
+            <div className="workspace-module-row mt-4">
+              <strong>No agents recommended yet</strong>
+              <p>Complete diagnosis to unlock agent recommendations.</p>
+            </div>
+          ) : (
+            <div className="workspace-agent-management-grid mt-4">
+              {recommendedAgents.map((agent) => (
+                <AgentManagementCard
+                  key={agent.slug}
+                  agent={agent}
+                  clientSlug={data.clientSlug}
+                  mode="recommended"
+                />
+              ))}
+            </div>
+          )}
+        </article>
+
+        <article id="agent-creation" className="content-panel">
+          <div className="workspace-panel-head">
+            <div>
+              <p className="eyebrow">Create agent</p>
+              <h2 className="workspace-panel-title">Choose next</h2>
+            </div>
+          </div>
+
+          {creatableAgents.length === 0 ? (
+            <div className="workspace-module-row mt-4">
+              <strong>No agent types ready</strong>
+              <p>Relevant agent types appear after diagnosis has enough context.</p>
+            </div>
+          ) : (
+            <div className="workspace-agent-choice-list mt-4">
+              {creatableAgents.map((agent) => (
+                <a
+                  key={agent.slug}
+                  href={agentPrimaryHref(agent, data.clientSlug)}
+                  className="workspace-agent-choice-button no-underline"
+                >
                   <div>
-                    <span className="workspace-card-kicker">{agent.linkedWorkstream}</span>
-                    <h3 className="workspace-board-title">{agent.label}</h3>
+                    <strong>{agent.label}</strong>
+                    <p>{compactAgentSummary(agent)}</p>
                   </div>
                   <span className={`workspace-status-pill tone-${agent.tone}`}>{agent.status}</span>
-                </div>
-                <p className="workspace-panel-copy mt-4">{agent.role}</p>
-                <div className="workspace-list-grid mt-4">
-                  <div className="workspace-module-row">
-                    <strong>Relevance</strong>
-                    <p>{agent.currentRelevance}</p>
-                  </div>
-                  <div className="workspace-module-row">
-                    <strong>Required inputs</strong>
-                    <p>{agent.requiredInputs.join(', ')}</p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                </a>
+              ))}
+            </div>
+          )}
+
         </article>
       </section>
     </WorkspaceShell>
   )
 }
 
-function WorkspaceAgentsEmptyState({
-  title,
-  detail,
-  nextStep,
+function AgentManagementCard({
+  agent,
+  clientSlug,
+  mode,
 }: {
-  title: string
-  detail: string
-  nextStep: string
+  agent: WorkspaceAgent
+  clientSlug: string
+  mode: 'active' | 'recommended'
 }) {
   return (
-    <div className="workspace-empty-state mt-4">
-      <span className="workspace-empty-state-kicker">Recommendation pending</span>
-      <strong>{title}</strong>
-      <p>{detail}</p>
-      <p className="workspace-empty-next">{nextStep}</p>
-    </div>
+    <article className="workspace-agent-management-card">
+      <div className="workspace-panel-head">
+        <div>
+          <span className="workspace-card-kicker">{agent.linkedWorkstream}</span>
+          <h3 className="workspace-board-title">{agent.label}</h3>
+        </div>
+        <span className={`workspace-status-pill tone-${agent.tone}`}>{agent.status}</span>
+      </div>
+
+      <p className="workspace-panel-copy mt-4">{agent.role}</p>
+
+      <div className="workspace-list-grid mt-4">
+        <div className="workspace-module-row">
+          <strong>{mode === 'active' ? 'Current focus' : 'Next step'}</strong>
+          <p>{mode === 'active' ? compactAgentSummary(agent) : agent.readiness.summary}</p>
+        </div>
+      </div>
+
+      <div className="workspace-command-actions mt-4">
+        <a href={agentPrimaryHref(agent, clientSlug)} className="workspace-text-link">
+          {mode === 'active' ? 'View details' : agentPrimaryLabel(agent)}
+        </a>
+      </div>
+    </article>
   )
+}
+
+function compactAgentSummary(agent: WorkspaceAgent) {
+  switch (agent.status) {
+    case 'active':
+      return agent.potentialOutput
+    case 'ready':
+      return 'This agent is ready to move into setup for the current client need.'
+    case 'recommended':
+      return 'This is one of the strongest next agents to set up from the current diagnosis.'
+    case 'candidate':
+      return 'This agent is available, but should follow a clearer implementation need.'
+    case 'setup needed':
+      return 'This agent should wait until more diagnosis context is available.'
+    default:
+      return agent.currentRelevance
+  }
+}
+
+function agentPrimaryLabel(agent: WorkspaceAgent) {
+  switch (agent.status) {
+    case 'active':
+      return 'View details'
+    case 'ready':
+      return `Create ${agent.label}`
+    case 'recommended':
+      return `Create ${agent.label}`
+    case 'candidate':
+      return `Create ${agent.label}`
+    case 'setup needed':
+      return 'Prepare setup'
+    default:
+      return 'Review'
+  }
+}
+
+function agentPrimaryHref(agent: WorkspaceAgent, clientSlug?: string) {
+  if (agent.readiness.ctaHref) {
+    return agent.readiness.ctaHref
+  }
+
+  if (clientSlug && ['setup needed', 'candidate'].includes(agent.status)) {
+    return workspaceDiagnosisHref(clientSlug)
+  }
+
+  return workspaceHref(clientSlug ?? 'generic-client', 'workstreams')
 }

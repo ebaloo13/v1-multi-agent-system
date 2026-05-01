@@ -9,6 +9,11 @@ export default function Header() {
   const clientSlug = workspaceMatch?.[1]
   const isWorkspace = Boolean(clientSlug)
   const isPublicLanding = pathname === '/'
+  const isWorkspaceRoute = /^\/workspace\/[^/]+(?:\/.*)?$/.test(pathname)
+
+  if (isWorkspaceRoute) {
+    return null
+  }
 
   return (
     <header className={isPublicLanding && !isWorkspace ? 'app-header app-header-public px-4' : 'app-header px-4'}>

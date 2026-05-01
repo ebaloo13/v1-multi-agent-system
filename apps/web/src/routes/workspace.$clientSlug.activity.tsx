@@ -29,12 +29,12 @@ function WorkspaceActivityPage() {
       primaryActionDetail={data.recommendedNextDetail}
       statusChips={[
         {
-          label: 'Visible updates',
+          label: 'Recent updates',
           value: String(data.activity.length),
           tone: data.activity.length > 0 ? 'progress' : 'pending',
         },
         {
-          label: 'Latest',
+          label: 'Latest update',
           value: latestActivity ? formatActivityTimestamp(latestActivity.timestamp) : 'Not available',
           tone: latestActivity ? 'neutral' : 'pending',
         },
@@ -55,7 +55,7 @@ function WorkspaceActivityPage() {
           <div className="workspace-panel-head">
             <div>
               <p className="eyebrow">Activity</p>
-              <h2 className="workspace-panel-title">Workspace progress history</h2>
+              <h2 className="workspace-panel-title">Latest updates</h2>
             </div>
           </div>
 
@@ -122,7 +122,7 @@ function WorkspaceActivityEmptyState({ data }: { data: WorkspaceActivityView }) 
     return (
       <div className="workspace-empty-state mt-4">
         <span className="workspace-empty-state-kicker">Quiet</span>
-        <strong>Progress exists, but no feed-worthy updates yet</strong>
+        <strong>Progress exists, but no client-visible updates yet</strong>
         <p>EBC is still working in the background.</p>
         <p className="workspace-empty-next">
           Updates will appear when there is a meaningful output, recommendation, or next-step change.

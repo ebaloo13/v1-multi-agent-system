@@ -19,6 +19,10 @@ import type {
   WorkspaceImpactItem,
   WorkspaceImpactView,
   WorkspaceOutputSummary,
+  WorkspaceReadinessGroup,
+  WorkspaceReadinessItem,
+  WorkspaceReadinessStatus,
+  WorkspaceReadinessSummary,
   WorkspaceRunSummary,
   WorkspaceSectionId,
   WorkspaceWorkstream,
@@ -715,6 +719,687 @@ function agentStateFromStatus(status: WorkspaceAgent['status']): ClientAgentEnti
   }
 }
 
+function hasReadinessValue(value: string | undefined) {
+  return Boolean(value?.trim())
+}
+
+function buildReadinessItem(options: WorkspaceReadinessItem): WorkspaceReadinessItem {
+  return options
+}
+
+function readinessGroupStatus(items: WorkspaceReadinessItem[]): WorkspaceReadinessStatus {
+  if (items.length > 0 && items.every((item) => item.status === 'not_applicable')) {
+    return 'not_applicable'
+  }
+
+  if (items.some((item) => item.status === 'blocked')) {
+    return 'blocked'
+  }
+
+  if (items.some((item) => item.status === 'missing')) {
+    return 'missing'
+  }
+
+  return 'confirmed'
+}
+
+function readinessSummary(label: string, status: WorkspaceReadinessStatus) {
+  switch (status) {
+    case 'confirmed':
+      return `${label} has the required inputs for the next step.`
+    case 'missing':
+      return `${label} has partial context. The missing items should be confirmed before activation.`
+    case 'blocked':
+      return `${label} is blocked by an earlier workflow dependency.`
+    case 'not_applicable':
+      return `${label} is not relevant for the current diagnosis.`
+  }
+}
+
+function buildReadinessGroup(options: {
+  id: string
+  area: WorkspaceReadinessGroup['area']
+  label: string
+  items: WorkspaceReadinessItem[]
+  summary?: string
+  ctaLabel?: string
+  ctaHref?: string
+}): WorkspaceReadinessGroup {
+  const status = readinessGroupStatus(options.items)
+
+  return {
+    id: options.id,
+    area: options.area,
+    label: options.label,
+    status,
+    summary: options.summary ?? readinessSummary(options.label, status),
+    items: options.items,
+    ctaLabel: options.ctaLabel,
+    ctaHref: options.ctaHref,
+  }
+}
+
+function intakeFieldItem(options: {
+  clientSlug: string
+  intake?: AuditIntakeView
+  id: string
+  label: string
+  value?: string
+  reasonWhenConfirmed: string
+  reasonWhenMissing: string
+  reasonWhenBlocked?: string
+}): WorkspaceReadinessItem {
+  const { clientSlug, intake, id, label, value, reasonWhenConfirmed, reasonWhenMissing, reasonWhenBlocked } =
+    options
+
+  if (!intake) {
+    return buildReadinessItem({
+      id,
+      label,
+      status: 'blocked',
+      reason: reasonWhenBlocked ?? 'Business Context is needed before this input can be confirmed.',
+      ctaLabel: 'Open Business Context',
+      ctaHref: workspaceDiagnosisHref(clientSlug, 'intake'),
+    })
+  }
+
+  if (hasReadinessValue(value)) {
+    return buildReadinessItem({
+      id,
+      label,
+      status: 'confirmed',
+      reason: reasonWhenConfirmed,
+    })
+  }
+
+  return buildReadinessItem({
+    id,
+    label,
+    status: 'missing',
+    reason: reasonWhenMissing,
+    ctaLabel: 'Complete Business Context',
+    ctaHref: workspaceDiagnosisHref(clientSlug, 'intake'),
+  })
+}
+
+function buildAuditReadiness(options: {
+  clientSlug: string
+  preaudit?: PreauditView
+  intake?: AuditIntakeView
+  auditIsCurrent: boolean
+}): WorkspaceReadinessGroup {
+  const { clientSlug, preaudit, intake, auditIsCurrent } = options
+  const items: WorkspaceReadinessItem[] = [
+    buildReadinessItem({
+      id: 'preaudit-output',
+      label: 'Preaudit output',
+      status: preaudit ? 'confirmed' : 'blocked',
+      reason: preaudit
+        ? 'The public-site diagnostic is available.'
+        : 'Run the preaudit before the deeper audit can be prepared.',
+      ctaLabel: preaudit ? undefined : 'Open Diagnosis',
+      ctaHref: preaudit ? undefined : workspaceDiagnosisHref(clientSlug, 'preaudit'),
+    }),
+    buildReadinessItem({
+      id: 'business-context-record',
+      label: 'Business Context record',
+      status: intake ? 'confirmed' : preaudit ? 'missing' : 'blocked',
+      reason: intake
+        ? intake.source === 'saved'
+          ? 'Business Context has been saved locally.'
+          : 'A Business Context draft exists and can be reviewed.'
+        : preaudit
+          ? 'Business Context is still missing.'
+          : 'Business Context should follow the preaudit.',
+      ctaLabel: intake ? undefined : 'Open Business Context',
+      ctaHref: intake ? undefined : workspaceDiagnosisHref(clientSlug, 'intake'),
+    }),
+    intakeFieldItem({
+      clientSlug,
+      intake,
+      id: 'business-goals',
+      label: 'Business goals',
+      value: intake?.form.primaryGoal,
+      reasonWhenConfirmed: 'The first business outcome is stated.',
+      reasonWhenMissing: 'The audit needs a primary outcome to optimize for.',
+    }),
+    intakeFieldItem({
+      clientSlug,
+      intake,
+      id: 'known-pains',
+      label: 'Known pains',
+      value: [intake?.form.currentPains, intake?.form.mostUrgentPain].filter(Boolean).join('\n'),
+      reasonWhenConfirmed: 'Current pains are available for prioritization.',
+      reasonWhenMissing: 'The audit needs client-confirmed pains before recommendations are useful.',
+    }),
+    intakeFieldItem({
+      clientSlug,
+      intake,
+      id: 'systems-in-use',
+      label: 'Systems in use',
+      value: intake?.form.systems,
+      reasonWhenConfirmed: 'Current tools and systems are documented.',
+      reasonWhenMissing: 'The audit needs to know which systems recommendations must fit around.',
+    }),
+    intakeFieldItem({
+      clientSlug,
+      intake,
+      id: 'lead-process',
+      label: 'Lead process',
+      value: [intake?.form.leadSources, intake?.form.leadHandling].filter(Boolean).join('\n'),
+      reasonWhenConfirmed: 'Lead sources and handling are visible.',
+      reasonWhenMissing: 'Lead sources and handoff details are needed before sales or growth recommendations.',
+    }),
+    intakeFieldItem({
+      clientSlug,
+      intake,
+      id: 'constraints',
+      label: 'Constraints',
+      value: intake?.form.constraints,
+      reasonWhenConfirmed: 'Constraints are captured for realistic recommendations.',
+      reasonWhenMissing: 'Constraints are needed so the audit does not overstate what can change next.',
+    }),
+  ]
+  const missingCount = items.filter((item) => item.status === 'missing' || item.status === 'blocked').length
+
+  return buildReadinessGroup({
+    id: `readiness:${clientSlug}:audit`,
+    area: 'audit',
+    label: 'Audit readiness',
+    items,
+    summary: auditIsCurrent
+      ? 'The audit output is current; these inputs now support workstream planning.'
+      : missingCount === 0
+        ? 'The required audit inputs are present. The next step can be the full audit.'
+        : `${missingCount} audit input${missingCount === 1 ? '' : 's'} still need attention.`,
+    ctaLabel: missingCount === 0 ? 'Open Audit' : 'Complete inputs',
+    ctaHref: workspaceDiagnosisHref(clientSlug, missingCount === 0 ? 'audit' : 'intake'),
+  })
+}
+
+function workstreamInputItems(options: {
+  clientSlug: string
+  title: string
+  preaudit?: PreauditView
+  intake?: AuditIntakeView
+  audit?: AuditView
+}): WorkspaceReadinessItem[] {
+  const { clientSlug, title, preaudit, intake, audit } = options
+  const preauditItem = buildReadinessItem({
+    id: 'preaudit-signal',
+    label: 'Preaudit signal',
+    status: preaudit ? 'confirmed' : 'blocked',
+    reason: preaudit
+      ? 'Initial public-site signal is available.'
+      : 'The workstream needs the first diagnostic signal.',
+    ctaLabel: preaudit ? undefined : 'Open preaudit',
+    ctaHref: preaudit ? undefined : workspaceDiagnosisHref(clientSlug, 'preaudit'),
+  })
+  const auditItem = buildReadinessItem({
+    id: 'audit-priorities',
+    label: 'Audit priorities',
+    status: audit ? 'confirmed' : 'missing',
+    reason: audit
+      ? 'Audit output is available to shape activation.'
+      : 'The full audit will make activation priorities more reliable.',
+    ctaLabel: audit ? undefined : 'Open audit',
+    ctaHref: audit ? undefined : workspaceDiagnosisHref(clientSlug, 'audit'),
+  })
+
+  switch (title) {
+    case 'Website improvement':
+      return [
+        preauditItem,
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'primary-goal',
+          label: 'Primary goal',
+          value: intake?.form.primaryGoal,
+          reasonWhenConfirmed: 'Website work can align to a business outcome.',
+          reasonWhenMissing: 'Confirm the first conversion or visibility outcome.',
+        }),
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'tracking-context',
+          label: 'Tracking context',
+          value: intake?.trackingMarkers.join(', ') || intake?.form.systems,
+          reasonWhenConfirmed: 'Measurement context is available.',
+          reasonWhenMissing: 'Confirm tracking markers or systems before activation.',
+        }),
+        auditItem,
+      ]
+    case 'Sales follow-up':
+      return [
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'lead-sources',
+          label: 'Lead sources',
+          value: intake?.form.leadSources,
+          reasonWhenConfirmed: 'Lead sources are documented.',
+          reasonWhenMissing: 'Confirm where inquiries come from.',
+        }),
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'lead-handling',
+          label: 'Lead handling',
+          value: intake?.form.leadHandling,
+          reasonWhenConfirmed: 'Current handoff is documented.',
+          reasonWhenMissing: 'Confirm who responds and how follow-up works.',
+        }),
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'response-time',
+          label: 'Response time',
+          value: intake?.form.responseTime,
+          reasonWhenConfirmed: 'Response expectations are visible.',
+          reasonWhenMissing: 'Add approximate response time if known.',
+        }),
+        auditItem,
+      ]
+    case 'Market study':
+      return [
+        preauditItem,
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'primary-market',
+          label: 'Primary market',
+          value: intake?.form.primaryMarket,
+          reasonWhenConfirmed: 'Market scope is available.',
+          reasonWhenMissing: 'Confirm the market or geography before research activation.',
+        }),
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'business-goal',
+          label: 'Business goal',
+          value: intake?.form.primaryGoal,
+          reasonWhenConfirmed: 'Research can anchor to the desired outcome.',
+          reasonWhenMissing: 'Confirm the outcome research should support.',
+        }),
+      ]
+    case 'CRM / back-office review':
+      return [
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'systems',
+          label: 'Systems',
+          value: intake?.form.systems,
+          reasonWhenConfirmed: 'Current tools are documented.',
+          reasonWhenMissing: 'Confirm the systems currently in use.',
+        }),
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'source-of-truth',
+          label: 'Source of truth',
+          value: intake?.form.sourceOfTruth || intake?.form.systems,
+          reasonWhenConfirmed: 'The main operating record is visible.',
+          reasonWhenMissing: 'Confirm where the team tracks truth today.',
+        }),
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'constraints',
+          label: 'Constraints',
+          value: intake?.form.constraints,
+          reasonWhenConfirmed: 'Operational constraints are captured.',
+          reasonWhenMissing: 'Confirm constraints before process recommendations.',
+        }),
+        auditItem,
+      ]
+    default:
+      return [
+        preauditItem,
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'primary-goal',
+          label: 'Primary goal',
+          value: intake?.form.primaryGoal,
+          reasonWhenConfirmed: 'The workstream has a clear outcome.',
+          reasonWhenMissing: 'Confirm the outcome this track should support.',
+        }),
+        intakeFieldItem({
+          clientSlug,
+          intake,
+          id: 'known-pains',
+          label: 'Known pains',
+          value: intake?.form.currentPains,
+          reasonWhenConfirmed: 'Current pains are documented.',
+          reasonWhenMissing: 'Confirm the client pain this workstream should address.',
+        }),
+      ]
+  }
+}
+
+function buildWorkstreamReadiness(options: {
+  clientSlug: string
+  title: string
+  status: WorkspaceWorkstream['status']
+  preaudit?: PreauditView
+  intake?: AuditIntakeView
+  audit?: AuditView
+}): WorkspaceReadinessGroup {
+  const { clientSlug, title, status, preaudit, intake, audit } = options
+  const items = workstreamInputItems({ clientSlug, title, preaudit, intake, audit })
+  const group = buildReadinessGroup({
+    id: `readiness:${clientSlug}:workstream:${slugifyClientName(title)}`,
+    area: 'workstream_activation',
+    label: `${title} readiness`,
+    items,
+    ctaLabel: 'Review Diagnosis',
+    ctaHref: workspaceDiagnosisHref(clientSlug),
+  })
+
+  if (status === 'blocked') {
+    return {
+      ...group,
+      status: 'blocked',
+      summary: 'This workstream is blocked until earlier diagnosis steps are available.',
+    }
+  }
+
+  if (status === 'active' || status === 'complete') {
+    return {
+      ...group,
+      status: 'confirmed',
+      summary: 'This workstream is already active or complete.',
+    }
+  }
+
+  return group
+}
+
+function buildWorkstreamsReadiness(clientSlug: string, workstreams: WorkspaceWorkstream[]) {
+  const readyCount = workstreams.filter((workstream) => workstream.readiness.status === 'confirmed').length
+  const blockedCount = workstreams.filter((workstream) => workstream.readiness.status === 'blocked').length
+  const missingCount = workstreams.filter((workstream) => workstream.readiness.status === 'missing').length
+  const items = [
+    buildReadinessItem({
+      id: 'ready-workstreams',
+      label: 'Ready workstreams',
+      status: readyCount > 0 ? 'confirmed' : missingCount > 0 ? 'missing' : 'blocked',
+      reason:
+        readyCount > 0
+          ? `${readyCount} workstream${readyCount === 1 ? '' : 's'} have enough context to progress.`
+          : 'No workstreams have all required activation context yet.',
+      ctaLabel: 'Open workstreams',
+      ctaHref: workspaceHref(clientSlug, 'workstreams'),
+    }),
+    buildReadinessItem({
+      id: 'missing-workstream-context',
+      label: 'Missing activation context',
+      status: missingCount === 0 ? 'confirmed' : 'missing',
+      reason:
+        missingCount === 0
+          ? 'No workstreams have missing readiness inputs.'
+          : `${missingCount} workstream${missingCount === 1 ? '' : 's'} still need more context.`,
+      ctaLabel: missingCount === 0 ? undefined : 'Review inputs',
+      ctaHref: missingCount === 0 ? undefined : workspaceHref(clientSlug, 'workstreams'),
+    }),
+    buildReadinessItem({
+      id: 'blocked-workstreams',
+      label: 'Blocked tracks',
+      status: blockedCount === 0 ? 'confirmed' : 'blocked',
+      reason:
+        blockedCount === 0
+          ? 'No workstreams are blocked by earlier workflow steps.'
+          : `${blockedCount} workstream${blockedCount === 1 ? '' : 's'} are blocked by earlier workflow steps.`,
+      ctaLabel: blockedCount === 0 ? undefined : 'Open Diagnosis',
+      ctaHref: blockedCount === 0 ? undefined : workspaceDiagnosisHref(clientSlug),
+    }),
+  ]
+
+  return buildReadinessGroup({
+    id: `readiness:${clientSlug}:workstreams`,
+    area: 'workstream_activation',
+    label: 'Workstream readiness',
+    items,
+    summary:
+      readyCount > 0
+        ? `${readyCount} of ${workstreams.length} workstreams have enough context to progress.`
+        : 'Workstreams are visible, but activation depends on more confirmed diagnosis context.',
+    ctaLabel: 'Open workstreams',
+    ctaHref: workspaceHref(clientSlug, 'workstreams'),
+  })
+}
+
+function agentInputItem(options: {
+  clientSlug: string
+  intake?: AuditIntakeView
+  id: string
+  label: string
+  value?: string
+  reasonWhenConfirmed: string
+  reasonWhenMissing: string
+}): WorkspaceReadinessItem {
+  return intakeFieldItem(options)
+}
+
+function agentReadinessItems(options: {
+  clientSlug: string
+  agent: Omit<WorkspaceAgent, 'id' | 'clientId' | 'agentKey' | 'state' | 'linkedWorkstreamId' | 'tone' | 'readiness'>
+  linkedWorkstream?: WorkspaceWorkstream
+  intake?: AuditIntakeView
+  audit?: AuditView
+}): WorkspaceReadinessItem[] {
+  const { clientSlug, agent, linkedWorkstream, intake, audit } = options
+
+  if (agent.status === 'not relevant') {
+    return [
+      buildReadinessItem({
+        id: 'agent-relevance',
+        label: 'Current relevance',
+        status: 'not_applicable',
+        reason: 'The current diagnosis does not point to this agent yet.',
+      }),
+    ]
+  }
+
+  const linkedWorkstreamItem = buildReadinessItem({
+    id: 'linked-workstream',
+    label: 'Linked workstream',
+    status: linkedWorkstream
+      ? linkedWorkstream.readiness.status === 'blocked'
+        ? 'blocked'
+        : linkedWorkstream.readiness.status === 'confirmed'
+          ? 'confirmed'
+          : 'missing'
+      : 'missing',
+    reason: linkedWorkstream
+      ? linkedWorkstream.readiness.status === 'confirmed'
+        ? `${linkedWorkstream.title} has enough context for activation.`
+        : `${linkedWorkstream.title} still needs readiness inputs.`
+      : 'No linked workstream is ready for this agent.',
+    ctaLabel: 'Open workstreams',
+    ctaHref: workspaceHref(clientSlug, 'workstreams'),
+  })
+  const auditItem = buildReadinessItem({
+    id: 'audit-recommendation',
+    label: 'Audit recommendation',
+    status: audit
+      ? ['recommended', 'ready', 'active'].includes(agent.status)
+        ? 'confirmed'
+        : 'missing'
+      : 'blocked',
+    reason: audit
+      ? ['recommended', 'ready', 'active'].includes(agent.status)
+        ? 'Audit output supports this agent.'
+        : 'Audit output exists, but this agent is not a primary recommendation yet.'
+      : 'Agent activation should wait for audit output.',
+    ctaLabel: audit ? undefined : 'Open audit',
+    ctaHref: audit ? undefined : workspaceDiagnosisHref(clientSlug, 'audit'),
+  })
+
+  switch (agent.slug) {
+    case 'sales':
+      return [
+        linkedWorkstreamItem,
+        auditItem,
+        agentInputItem({
+          clientSlug,
+          intake,
+          id: 'lead-sources',
+          label: 'Lead sources',
+          value: intake?.form.leadSources,
+          reasonWhenConfirmed: 'Lead sources are known.',
+          reasonWhenMissing: 'Confirm where leads originate.',
+        }),
+        agentInputItem({
+          clientSlug,
+          intake,
+          id: 'lead-handling',
+          label: 'Lead handling',
+          value: intake?.form.leadHandling,
+          reasonWhenConfirmed: 'Current handling process is known.',
+          reasonWhenMissing: 'Confirm who responds and how follow-up works.',
+        }),
+        agentInputItem({
+          clientSlug,
+          intake,
+          id: 'response-time',
+          label: 'Response time',
+          value: intake?.form.responseTime,
+          reasonWhenConfirmed: 'Response speed is documented.',
+          reasonWhenMissing: 'Approximate response time is still missing.',
+        }),
+      ]
+    case 'operations':
+      return [
+        linkedWorkstreamItem,
+        auditItem,
+        agentInputItem({
+          clientSlug,
+          intake,
+          id: 'systems',
+          label: 'Systems',
+          value: intake?.form.systems,
+          reasonWhenConfirmed: 'Current systems are known.',
+          reasonWhenMissing: 'Confirm the tools or systems in use.',
+        }),
+        agentInputItem({
+          clientSlug,
+          intake,
+          id: 'constraints',
+          label: 'Constraints',
+          value: intake?.form.constraints,
+          reasonWhenConfirmed: 'Operating constraints are known.',
+          reasonWhenMissing: 'Confirm constraints before process design.',
+        }),
+      ]
+    case 'web-growth':
+      return [
+        linkedWorkstreamItem,
+        auditItem,
+        agentInputItem({
+          clientSlug,
+          intake,
+          id: 'primary-goal',
+          label: 'Primary goal',
+          value: intake?.form.primaryGoal,
+          reasonWhenConfirmed: 'Growth work has a target outcome.',
+          reasonWhenMissing: 'Confirm the primary website or growth outcome.',
+        }),
+        agentInputItem({
+          clientSlug,
+          intake,
+          id: 'tracking-context',
+          label: 'Tracking context',
+          value: intake?.trackingMarkers.join(', ') || intake?.form.systems,
+          reasonWhenConfirmed: 'Measurement context is available.',
+          reasonWhenMissing: 'Confirm tracking markers or measurement systems.',
+        }),
+      ]
+    case 'research':
+      return [
+        linkedWorkstreamItem,
+        auditItem,
+        agentInputItem({
+          clientSlug,
+          intake,
+          id: 'primary-market',
+          label: 'Primary market',
+          value: intake?.form.primaryMarket,
+          reasonWhenConfirmed: 'Market scope is documented.',
+          reasonWhenMissing: 'Confirm the target market or geography.',
+        }),
+        agentInputItem({
+          clientSlug,
+          intake,
+          id: 'lead-sources',
+          label: 'Lead sources',
+          value: intake?.form.leadSources,
+          reasonWhenConfirmed: 'Demand channels are visible.',
+          reasonWhenMissing: 'Confirm current lead sources.',
+        }),
+      ]
+    default:
+      return [linkedWorkstreamItem, auditItem]
+  }
+}
+
+function buildAgentsReadiness(clientSlug: string, agents: WorkspaceAgent[]) {
+  const relevantAgents = agents.filter((agent) => agent.readiness.status !== 'not_applicable')
+  const readyCount = relevantAgents.filter((agent) => agent.readiness.status === 'confirmed').length
+  const missingCount = relevantAgents.filter((agent) => agent.readiness.status === 'missing').length
+  const blockedCount = relevantAgents.filter((agent) => agent.readiness.status === 'blocked').length
+  const items = [
+    buildReadinessItem({
+      id: 'ready-agents',
+      label: 'Ready agents',
+      status: readyCount > 0 ? 'confirmed' : missingCount > 0 ? 'missing' : 'blocked',
+      reason:
+        readyCount > 0
+          ? `${readyCount} agent${readyCount === 1 ? '' : 's'} have the inputs needed for activation.`
+          : 'No agent has all activation inputs yet.',
+      ctaLabel: 'Open agents',
+      ctaHref: workspaceHref(clientSlug, 'agents'),
+    }),
+    buildReadinessItem({
+      id: 'missing-agent-inputs',
+      label: 'Missing agent inputs',
+      status: missingCount === 0 ? 'confirmed' : 'missing',
+      reason:
+        missingCount === 0
+          ? 'Relevant agents have no missing input groups.'
+          : `${missingCount} relevant agent${missingCount === 1 ? '' : 's'} still need input context.`,
+      ctaLabel: missingCount === 0 ? undefined : 'Review agents',
+      ctaHref: missingCount === 0 ? undefined : workspaceHref(clientSlug, 'agents'),
+    }),
+    buildReadinessItem({
+      id: 'blocked-agents',
+      label: 'Blocked agents',
+      status: blockedCount === 0 ? 'confirmed' : 'blocked',
+      reason:
+        blockedCount === 0
+          ? 'No relevant agents are blocked by missing diagnosis steps.'
+          : `${blockedCount} relevant agent${blockedCount === 1 ? '' : 's'} are blocked by missing diagnosis steps.`,
+      ctaLabel: blockedCount === 0 ? undefined : 'Open Diagnosis',
+      ctaHref: blockedCount === 0 ? undefined : workspaceDiagnosisHref(clientSlug),
+    }),
+  ]
+
+  return buildReadinessGroup({
+    id: `readiness:${clientSlug}:agents`,
+    area: 'agent_activation',
+    label: 'Agent readiness',
+    items,
+    summary:
+      readyCount > 0
+        ? `${readyCount} of ${relevantAgents.length} relevant agents have enough activation context.`
+        : 'Agents are visible, but activation still depends on audit recommendation and confirmed inputs.',
+    ctaLabel: 'Open agents',
+    ctaHref: workspaceHref(clientSlug, 'agents'),
+  })
+}
+
 function deriveWorkspaceFocusAreas(clientSlug: string) {
   if (clientSlug === 'morales-propiedades') {
     return [
@@ -778,7 +1463,7 @@ function deriveWorkspaceWorkstreams(options: {
   return focusAreas.map((title) => {
     let workstream: Omit<
       WorkspaceWorkstream,
-      'id' | 'clientId' | 'type' | 'state' | 'priority'
+      'id' | 'clientId' | 'type' | 'state' | 'priority' | 'readiness'
     >
 
     switch (title) {
@@ -872,6 +1557,14 @@ function deriveWorkspaceWorkstreams(options: {
       type: workstreamTypeFromTitle(title),
       state: workstreamStateFromStatus(workstream.status),
       priority: workstreamPriorityFromTitle(title),
+      readiness: buildWorkstreamReadiness({
+        clientSlug,
+        title,
+        status: workstream.status,
+        preaudit,
+        intake,
+        audit,
+      }),
       ...workstream,
     }
   })
@@ -890,7 +1583,7 @@ function deriveWorkspaceAgents(options: {
   const hasIntake = Boolean(intake)
 
   const cards: Array<
-    Omit<WorkspaceAgent, 'id' | 'clientId' | 'agentKey' | 'state' | 'linkedWorkstreamId' | 'tone'>
+    Omit<WorkspaceAgent, 'id' | 'clientId' | 'agentKey' | 'state' | 'linkedWorkstreamId' | 'tone' | 'readiness'>
   > = [
     {
       slug: 'sales',
@@ -979,6 +1672,20 @@ function deriveWorkspaceAgents(options: {
       agentKey: card.slug,
       state: agentStateFromStatus(card.status),
       linkedWorkstreamId: linkedWorkstream?.id,
+      readiness: buildReadinessGroup({
+        id: `readiness:${clientSlug}:agent:${card.slug}`,
+        area: 'agent_activation',
+        label: `${card.label} readiness`,
+        items: agentReadinessItems({
+          clientSlug,
+          agent: card,
+          linkedWorkstream,
+          intake,
+          audit,
+        }),
+        ctaLabel: 'Review inputs',
+        ctaHref: workspaceDiagnosisHref(clientSlug),
+      }),
       ...card,
       tone: toneFromAgentStatus(card.status),
     }
@@ -2001,6 +2708,16 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     intake,
     audit,
   })
+  const readiness: WorkspaceReadinessSummary = {
+    audit: buildAuditReadiness({
+      clientSlug,
+      preaudit,
+      intake,
+      auditIsCurrent,
+    }),
+    workstreams: buildWorkstreamsReadiness(clientSlug, workstreams),
+    agents: buildAgentsReadiness(clientSlug, agents),
+  }
   const clientContext = intake
     ? buildClientContextSummary({
         client,
@@ -2138,6 +2855,7 @@ async function loadWorkspaceBundle(clientSlugInput: string) {
     events,
     activity,
     impact,
+    readiness,
     preauditStatus: workflowStatus[0].status,
     intakeStatus: workflowStatus[1].status,
     auditStatus: workflowStatus[2].status,
@@ -2203,6 +2921,7 @@ export async function loadWorkspaceOverview(
     events: bundle.events,
     activity: bundle.activity,
     impact: bundle.impact,
+    readiness: bundle.readiness,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -2326,6 +3045,7 @@ export async function loadWorkspaceDiagnosis(
     events: bundle.events,
     activity: bundle.activity,
     impact: bundle.impact,
+    readiness: bundle.readiness,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -2363,6 +3083,7 @@ export async function loadWorkspaceWorkstreams(
     events: bundle.events,
     activity: bundle.activity,
     impact: bundle.impact,
+    readiness: bundle.readiness,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -2398,6 +3119,7 @@ export async function loadWorkspaceAgents(
     events: bundle.events,
     activity: bundle.activity,
     impact: bundle.impact,
+    readiness: bundle.readiness,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -2433,6 +3155,7 @@ export async function loadWorkspaceActivity(
     events: bundle.events,
     activity: bundle.activity,
     impact: bundle.impact,
+    readiness: bundle.readiness,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,
@@ -2467,6 +3190,7 @@ export async function loadWorkspaceImpact(
     events: bundle.events,
     activity: bundle.activity,
     impact: bundle.impact,
+    readiness: bundle.readiness,
     preauditStatus: bundle.preauditStatus,
     intakeStatus: bundle.intakeStatus,
     auditStatus: bundle.auditStatus,

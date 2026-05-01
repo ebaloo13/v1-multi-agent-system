@@ -5,6 +5,7 @@ import WorkspaceShell from '../components/WorkspaceShell'
 import { intakeSections, workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
 import { saveAndRunAudit, getWorkspaceDiagnosis } from '../lib/workflow.functions'
 import { messageFromError } from '../lib/workflow'
+import type { WorkspaceReadinessGroup, WorkspaceReadinessItem, WorkspaceReadinessStatus } from '../lib/workflow'
 
 function validateDiagnosisSearch(search: Record<string, unknown>) {
   const panel = typeof search.panel === 'string' ? search.panel : 'overview'
@@ -78,6 +79,77 @@ function WorkspaceDiagnosisPage() {
     }
   }
 
+  if (panel === 'overview') {
+    const missingAuditItems = data.readiness.audit.items.filter((item) => item.status !== 'confirmed')
+
+    return (
+      <WorkspaceShell
+        section="diagnosis"
+        clientSlug={data.clientSlug}
+        clientName={data.clientName}
+        website={data.website}
+        email={data.email}
+        stageLabel={data.currentStage}
+        stageDetail={data.currentStageDetail}
+        primaryActionLabel={data.recommendedNextLabel}
+        primaryActionDetail={data.recommendedNextDetail}
+        statusChips={[
+          { label: 'Preaudit', value: data.preauditStatus.label, tone: data.preauditStatus.tone },
+          { label: 'Business Context', value: data.intakeStatus.label, tone: data.intakeStatus.tone },
+          { label: 'Audit', value: data.auditStatus.label, tone: data.auditStatus.tone },
+        ]}
+        action={
+          <>
+            <a href={workspaceDiagnosisHref(data.clientSlug, 'intake')} className="primary-button no-underline">
+              Business Context
+            </a>
+            <a href={workspaceHref(data.clientSlug, 'workstreams')} className="secondary-button no-underline">
+              Workstreams
+            </a>
+          </>
+        }
+      >
+        <section className="content-panel">
+          <div className="workspace-status-strip">
+            {data.workflowStatus.map((item) => (
+              <div key={item.label} className="workspace-mini-record">
+                <span>{item.label}</span>
+                <span className={`workspace-status-pill tone-${item.status.tone}`}>
+                  {item.status.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="workspace-diagnosis-split-grid">
+          <article className="content-panel">
+            <ReadinessGroupCard group={data.readiness.audit} />
+          </article>
+
+          <article className="content-panel">
+            <div className="workspace-panel-head">
+              <div>
+                <p className="eyebrow">Missing inputs</p>
+                <h2 className="workspace-panel-title">Readiness checklist</h2>
+              </div>
+            </div>
+            <div className="workspace-list-grid mt-4">
+              {missingAuditItems.length > 0 ? (
+                missingAuditItems.map((item) => <ReadinessRow key={item.id} item={item} />)
+              ) : (
+                <div className="workspace-module-row">
+                  <strong>Audit inputs</strong>
+                  <p>Required audit inputs are present.</p>
+                </div>
+              )}
+            </div>
+          </article>
+        </section>
+      </WorkspaceShell>
+    )
+  }
+
   return (
     <WorkspaceShell
       section="diagnosis"
@@ -141,86 +213,114 @@ function WorkspaceDiagnosisPage() {
       </section>
 
       {panel === 'overview' ? (
-        <section className="workspace-diagnosis-overview-grid">
-          <article className="content-panel">
-            <p className="eyebrow">Preaudit signal</p>
-            <h2 className="workspace-panel-title">Public-site findings</h2>
-            {data.preaudit ? (
-              <div className="workspace-list-grid mt-4">
-                <div className="workspace-module-row">
-                  <strong>Summary</strong>
-                  <p>{data.preaudit.summary}</p>
-                </div>
-                {data.preaudit.priorityAlerts.slice(0, 2).map((item) => (
-                  <div key={item} className="workspace-alert-row">
-                    {item}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <WorkspaceEmptyState
-                title="Preaudit has not run yet"
-                detail="Start with the public-site diagnostic so EBC can identify visible conversion, visibility, and measurement signals."
-                nextStep="Run the preaudit from the landing flow or existing live workflow, then return here to review the first findings."
-              />
-            )}
-          </article>
+        <>
+          <section className="workspace-diagnosis-split-grid">
+            <article className="content-panel">
+              <ReadinessGroupCard group={data.readiness.audit} />
+            </article>
 
-          <article className="content-panel">
-            <p className="eyebrow">Business Context</p>
-            <h2 className="workspace-panel-title">Client-confirmed context</h2>
-            {data.intake ? (
+            <article className="content-panel">
+              <p className="eyebrow">Missing inputs</p>
+              <h2 className="workspace-panel-title">Before full audit</h2>
+              <p className="workspace-panel-copy">
+                These signals are derived from the current preaudit and Business Context files.
+              </p>
               <div className="workspace-list-grid mt-4">
-                <div className="workspace-module-row">
-                  <strong>Completion status</strong>
-                  <p>
-                    {completionRate}% complete across business profile, goals, pains, systems, lead
-                    process, and constraints.
-                  </p>
-                </div>
-                {(data.intake.todo.length > 0
-                  ? data.intake.todo.slice(0, 2)
-                  : ['Business Context is present and ready to support the deeper audit flow.']).map(
-                  (item) => (
+                {data.readiness.audit.items.filter((item) => item.status !== 'confirmed').length > 0 ? (
+                  data.readiness.audit.items
+                    .filter((item) => item.status !== 'confirmed')
+                    .map((item) => <ReadinessRow key={item.id} item={item} />)
+                ) : (
+                  <div className="workspace-module-row">
+                    <strong>Audit inputs</strong>
+                    <p>Required audit inputs are present. The audit can run or be reviewed if already complete.</p>
+                  </div>
+                )}
+              </div>
+            </article>
+          </section>
+
+          <section className="workspace-diagnosis-overview-grid">
+            <article className="content-panel">
+              <p className="eyebrow">Preaudit signal</p>
+              <h2 className="workspace-panel-title">Public-site findings</h2>
+              {data.preaudit ? (
+                <div className="workspace-list-grid mt-4">
+                  <div className="workspace-module-row">
+                    <strong>Summary</strong>
+                    <p>{data.preaudit.summary}</p>
+                  </div>
+                  {data.preaudit.priorityAlerts.slice(0, 2).map((item) => (
                     <div key={item} className="workspace-alert-row">
                       {item}
                     </div>
-                  ),
-                )}
-              </div>
-            ) : (
-              <WorkspaceEmptyState
-                title="Business Context is not ready yet"
-                detail="The deeper audit needs confirmed goals, pains, systems, lead process, and constraints before recommendations are useful."
-                nextStep="Review the preaudit first. Once a draft exists, complete Business Context here."
-              />
-            )}
-          </article>
-
-          <article className="content-panel">
-            <p className="eyebrow">Audit conclusion</p>
-            <h2 className="workspace-panel-title">Audit implications</h2>
-            {data.audit ? (
-              <div className="workspace-list-grid mt-4">
-                <div className="workspace-module-row">
-                  <strong>Company summary</strong>
-                  <p>{data.audit.companySummary}</p>
+                  ))}
                 </div>
-                {data.audit.mainPains.slice(0, 2).map((item) => (
-                  <div key={item} className="workspace-alert-row">
-                    {item}
+              ) : (
+                <WorkspaceEmptyState
+                  title="Preaudit has not run yet"
+                  detail="Start with the public-site diagnostic so EBC can identify visible conversion, visibility, and measurement signals."
+                  nextStep="Run the preaudit from the landing flow or existing live workflow, then return here to review the first findings."
+                />
+              )}
+            </article>
+
+            <article className="content-panel">
+              <p className="eyebrow">Business Context</p>
+              <h2 className="workspace-panel-title">Client-confirmed context</h2>
+              {data.intake ? (
+                <div className="workspace-list-grid mt-4">
+                  <div className="workspace-module-row">
+                    <strong>Completion status</strong>
+                    <p>
+                      {completionRate}% complete across business profile, goals, pains, systems, lead
+                      process, and constraints.
+                    </p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <WorkspaceEmptyState
-                title="Audit is not available yet"
-                detail="The full audit unlocks implementation priorities, recommended agents, and decision-ready workstreams."
-                nextStep="Complete Business Context, then run the full audit from this Diagnosis area."
-              />
-            )}
-          </article>
-        </section>
+                  {(data.intake.todo.length > 0
+                    ? data.intake.todo.slice(0, 2)
+                    : ['Business Context is present and ready to support the deeper audit flow.']).map(
+                    (item) => (
+                      <div key={item} className="workspace-alert-row">
+                        {item}
+                      </div>
+                    ),
+                  )}
+                </div>
+              ) : (
+                <WorkspaceEmptyState
+                  title="Business Context is not ready yet"
+                  detail="The deeper audit needs confirmed goals, pains, systems, lead process, and constraints before recommendations are useful."
+                  nextStep="Review the preaudit first. Once a draft exists, complete Business Context here."
+                />
+              )}
+            </article>
+
+            <article className="content-panel">
+              <p className="eyebrow">Audit conclusion</p>
+              <h2 className="workspace-panel-title">Audit implications</h2>
+              {data.audit ? (
+                <div className="workspace-list-grid mt-4">
+                  <div className="workspace-module-row">
+                    <strong>Company summary</strong>
+                    <p>{data.audit.companySummary}</p>
+                  </div>
+                  {data.audit.mainPains.slice(0, 2).map((item) => (
+                    <div key={item} className="workspace-alert-row">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <WorkspaceEmptyState
+                  title="Audit is not available yet"
+                  detail="The full audit unlocks implementation priorities, recommended agents, and decision-ready workstreams."
+                  nextStep="Complete Business Context, then run the full audit from this Diagnosis area."
+                />
+              )}
+            </article>
+          </section>
+        </>
       ) : null}
 
       {panel === 'preaudit' ? (
@@ -349,6 +449,15 @@ function WorkspaceDiagnosisPage() {
                 </div>
               </div>
             </div>
+
+            <div className="workspace-intake-rail-card">
+              <p className="eyebrow">Audit readiness</p>
+              <div className="workspace-list-grid mt-4">
+                {data.readiness.audit.items.slice(0, 4).map((item) => (
+                  <ReadinessRow key={item.id} item={item} compact />
+                ))}
+              </div>
+            </div>
           </aside>
 
           <div className="workspace-form-stack">
@@ -469,6 +578,10 @@ function WorkspaceDiagnosisPage() {
             </article>
 
             <article className="content-panel">
+              <ReadinessGroupCard group={data.readiness.audit} />
+            </article>
+
+            <article className="content-panel">
               <p className="eyebrow">Recommended agents</p>
               <h2 className="workspace-panel-title">Execution modules</h2>
               <div className="workspace-list-grid mt-4">
@@ -512,6 +625,74 @@ function WorkspaceDiagnosisPage() {
       ) : null}
     </WorkspaceShell>
   )
+}
+
+function ReadinessGroupCard({ group }: { group: WorkspaceReadinessGroup }) {
+  return (
+    <>
+      <div className="workspace-panel-head">
+        <div>
+          <p className="eyebrow">{group.area.replace(/_/g, ' ')}</p>
+          <h2 className="workspace-panel-title">{group.label}</h2>
+        </div>
+        <span className={`workspace-status-pill tone-${readinessTone(group.status)}`}>
+          {readinessLabel(group.status)}
+        </span>
+      </div>
+      <p className="workspace-panel-copy">{group.summary}</p>
+      <div className="workspace-list-grid mt-4">
+        {group.items.map((item) => (
+          <ReadinessRow key={item.id} item={item} />
+        ))}
+      </div>
+    </>
+  )
+}
+
+function ReadinessRow({
+  item,
+  compact = false,
+}: {
+  item: WorkspaceReadinessItem
+  compact?: boolean
+}) {
+  return (
+    <div className={compact ? 'workspace-readiness-row is-compact' : 'workspace-readiness-row'}>
+      <div>
+        <strong>{item.label}</strong>
+        <p>{item.reason}</p>
+      </div>
+      <span className={`workspace-status-pill tone-${readinessTone(item.status)}`}>
+        {readinessLabel(item.status)}
+      </span>
+    </div>
+  )
+}
+
+function readinessTone(status: WorkspaceReadinessStatus) {
+  switch (status) {
+    case 'confirmed':
+      return 'success'
+    case 'missing':
+      return 'progress'
+    case 'blocked':
+      return 'pending'
+    case 'not_applicable':
+      return 'neutral'
+  }
+}
+
+function readinessLabel(status: WorkspaceReadinessStatus) {
+  switch (status) {
+    case 'confirmed':
+      return 'Confirmed'
+    case 'missing':
+      return 'Missing'
+    case 'blocked':
+      return 'Blocked'
+    case 'not_applicable':
+      return 'Not relevant'
+  }
 }
 
 function WorkspaceEmptyState({

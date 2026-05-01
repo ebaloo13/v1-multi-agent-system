@@ -16,12 +16,22 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspaceClientSlugRouteImport } from './routes/workspace.$clientSlug'
 import { Route as WorkspaceClientSlugIndexRouteImport } from './routes/workspace.$clientSlug.index'
 import { Route as WorkspaceClientSlugWorkstreamsRouteImport } from './routes/workspace.$clientSlug.workstreams'
+import { Route as WorkspaceClientSlugTaskLifecycleRouteImport } from './routes/workspace.$clientSlug.task-lifecycle'
+import { Route as WorkspaceClientSlugSettingsRouteImport } from './routes/workspace.$clientSlug.settings'
+import { Route as WorkspaceClientSlugRunTimelineRouteImport } from './routes/workspace.$clientSlug.run-timeline'
+import { Route as WorkspaceClientSlugReviewsRouteImport } from './routes/workspace.$clientSlug.reviews'
+import { Route as WorkspaceClientSlugReviewRouteImport } from './routes/workspace.$clientSlug.review'
 import { Route as WorkspaceClientSlugPreauditRouteImport } from './routes/workspace.$clientSlug.preaudit'
+import { Route as WorkspaceClientSlugNewRequestRouteImport } from './routes/workspace.$clientSlug.new-request'
 import { Route as WorkspaceClientSlugIntakeRouteImport } from './routes/workspace.$clientSlug.intake'
 import { Route as WorkspaceClientSlugImpactRouteImport } from './routes/workspace.$clientSlug.impact'
+import { Route as WorkspaceClientSlugFilesRouteImport } from './routes/workspace.$clientSlug.files'
 import { Route as WorkspaceClientSlugDiagnosisRouteImport } from './routes/workspace.$clientSlug.diagnosis'
 import { Route as WorkspaceClientSlugAuditRouteImport } from './routes/workspace.$clientSlug.audit'
+import { Route as WorkspaceClientSlugArtifactsRouteImport } from './routes/workspace.$clientSlug.artifacts'
 import { Route as WorkspaceClientSlugAgentsRouteImport } from './routes/workspace.$clientSlug.agents'
+import { Route as WorkspaceClientSlugAgentProfilesRouteImport } from './routes/workspace.$clientSlug.agent-profiles'
+import { Route as WorkspaceClientSlugAgentBoardRouteImport } from './routes/workspace.$clientSlug.agent-board'
 import { Route as WorkspaceClientSlugActivityRouteImport } from './routes/workspace.$clientSlug.activity'
 
 const PreauditResultRoute = PreauditResultRouteImport.update({
@@ -61,10 +71,46 @@ const WorkspaceClientSlugWorkstreamsRoute =
     path: '/workstreams',
     getParentRoute: () => WorkspaceClientSlugRoute,
   } as any)
+const WorkspaceClientSlugTaskLifecycleRoute =
+  WorkspaceClientSlugTaskLifecycleRouteImport.update({
+    id: '/task-lifecycle',
+    path: '/task-lifecycle',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugSettingsRoute =
+  WorkspaceClientSlugSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugRunTimelineRoute =
+  WorkspaceClientSlugRunTimelineRouteImport.update({
+    id: '/run-timeline',
+    path: '/run-timeline',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugReviewsRoute =
+  WorkspaceClientSlugReviewsRouteImport.update({
+    id: '/reviews',
+    path: '/reviews',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugReviewRoute =
+  WorkspaceClientSlugReviewRouteImport.update({
+    id: '/review',
+    path: '/review',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
 const WorkspaceClientSlugPreauditRoute =
   WorkspaceClientSlugPreauditRouteImport.update({
     id: '/preaudit',
     path: '/preaudit',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugNewRequestRoute =
+  WorkspaceClientSlugNewRequestRouteImport.update({
+    id: '/new-request',
+    path: '/new-request',
     getParentRoute: () => WorkspaceClientSlugRoute,
   } as any)
 const WorkspaceClientSlugIntakeRoute =
@@ -79,6 +125,12 @@ const WorkspaceClientSlugImpactRoute =
     path: '/impact',
     getParentRoute: () => WorkspaceClientSlugRoute,
   } as any)
+const WorkspaceClientSlugFilesRoute =
+  WorkspaceClientSlugFilesRouteImport.update({
+    id: '/files',
+    path: '/files',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
 const WorkspaceClientSlugDiagnosisRoute =
   WorkspaceClientSlugDiagnosisRouteImport.update({
     id: '/diagnosis',
@@ -91,10 +143,28 @@ const WorkspaceClientSlugAuditRoute =
     path: '/audit',
     getParentRoute: () => WorkspaceClientSlugRoute,
   } as any)
+const WorkspaceClientSlugArtifactsRoute =
+  WorkspaceClientSlugArtifactsRouteImport.update({
+    id: '/artifacts',
+    path: '/artifacts',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
 const WorkspaceClientSlugAgentsRoute =
   WorkspaceClientSlugAgentsRouteImport.update({
     id: '/agents',
     path: '/agents',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugAgentProfilesRoute =
+  WorkspaceClientSlugAgentProfilesRouteImport.update({
+    id: '/agent-profiles',
+    path: '/agent-profiles',
+    getParentRoute: () => WorkspaceClientSlugRoute,
+  } as any)
+const WorkspaceClientSlugAgentBoardRoute =
+  WorkspaceClientSlugAgentBoardRouteImport.update({
+    id: '/agent-board',
+    path: '/agent-board',
     getParentRoute: () => WorkspaceClientSlugRoute,
   } as any)
 const WorkspaceClientSlugActivityRoute =
@@ -111,12 +181,22 @@ export interface FileRoutesByFullPath {
   '/preaudit-result': typeof PreauditResultRoute
   '/workspace/$clientSlug': typeof WorkspaceClientSlugRouteWithChildren
   '/workspace/$clientSlug/activity': typeof WorkspaceClientSlugActivityRoute
+  '/workspace/$clientSlug/agent-board': typeof WorkspaceClientSlugAgentBoardRoute
+  '/workspace/$clientSlug/agent-profiles': typeof WorkspaceClientSlugAgentProfilesRoute
   '/workspace/$clientSlug/agents': typeof WorkspaceClientSlugAgentsRoute
+  '/workspace/$clientSlug/artifacts': typeof WorkspaceClientSlugArtifactsRoute
   '/workspace/$clientSlug/audit': typeof WorkspaceClientSlugAuditRoute
   '/workspace/$clientSlug/diagnosis': typeof WorkspaceClientSlugDiagnosisRoute
+  '/workspace/$clientSlug/files': typeof WorkspaceClientSlugFilesRoute
   '/workspace/$clientSlug/impact': typeof WorkspaceClientSlugImpactRoute
   '/workspace/$clientSlug/intake': typeof WorkspaceClientSlugIntakeRoute
+  '/workspace/$clientSlug/new-request': typeof WorkspaceClientSlugNewRequestRoute
   '/workspace/$clientSlug/preaudit': typeof WorkspaceClientSlugPreauditRoute
+  '/workspace/$clientSlug/review': typeof WorkspaceClientSlugReviewRoute
+  '/workspace/$clientSlug/reviews': typeof WorkspaceClientSlugReviewsRoute
+  '/workspace/$clientSlug/run-timeline': typeof WorkspaceClientSlugRunTimelineRoute
+  '/workspace/$clientSlug/settings': typeof WorkspaceClientSlugSettingsRoute
+  '/workspace/$clientSlug/task-lifecycle': typeof WorkspaceClientSlugTaskLifecycleRoute
   '/workspace/$clientSlug/workstreams': typeof WorkspaceClientSlugWorkstreamsRoute
   '/workspace/$clientSlug/': typeof WorkspaceClientSlugIndexRoute
 }
@@ -126,12 +206,22 @@ export interface FileRoutesByTo {
   '/audit-result': typeof AuditResultRoute
   '/preaudit-result': typeof PreauditResultRoute
   '/workspace/$clientSlug/activity': typeof WorkspaceClientSlugActivityRoute
+  '/workspace/$clientSlug/agent-board': typeof WorkspaceClientSlugAgentBoardRoute
+  '/workspace/$clientSlug/agent-profiles': typeof WorkspaceClientSlugAgentProfilesRoute
   '/workspace/$clientSlug/agents': typeof WorkspaceClientSlugAgentsRoute
+  '/workspace/$clientSlug/artifacts': typeof WorkspaceClientSlugArtifactsRoute
   '/workspace/$clientSlug/audit': typeof WorkspaceClientSlugAuditRoute
   '/workspace/$clientSlug/diagnosis': typeof WorkspaceClientSlugDiagnosisRoute
+  '/workspace/$clientSlug/files': typeof WorkspaceClientSlugFilesRoute
   '/workspace/$clientSlug/impact': typeof WorkspaceClientSlugImpactRoute
   '/workspace/$clientSlug/intake': typeof WorkspaceClientSlugIntakeRoute
+  '/workspace/$clientSlug/new-request': typeof WorkspaceClientSlugNewRequestRoute
   '/workspace/$clientSlug/preaudit': typeof WorkspaceClientSlugPreauditRoute
+  '/workspace/$clientSlug/review': typeof WorkspaceClientSlugReviewRoute
+  '/workspace/$clientSlug/reviews': typeof WorkspaceClientSlugReviewsRoute
+  '/workspace/$clientSlug/run-timeline': typeof WorkspaceClientSlugRunTimelineRoute
+  '/workspace/$clientSlug/settings': typeof WorkspaceClientSlugSettingsRoute
+  '/workspace/$clientSlug/task-lifecycle': typeof WorkspaceClientSlugTaskLifecycleRoute
   '/workspace/$clientSlug/workstreams': typeof WorkspaceClientSlugWorkstreamsRoute
   '/workspace/$clientSlug': typeof WorkspaceClientSlugIndexRoute
 }
@@ -143,12 +233,22 @@ export interface FileRoutesById {
   '/preaudit-result': typeof PreauditResultRoute
   '/workspace/$clientSlug': typeof WorkspaceClientSlugRouteWithChildren
   '/workspace/$clientSlug/activity': typeof WorkspaceClientSlugActivityRoute
+  '/workspace/$clientSlug/agent-board': typeof WorkspaceClientSlugAgentBoardRoute
+  '/workspace/$clientSlug/agent-profiles': typeof WorkspaceClientSlugAgentProfilesRoute
   '/workspace/$clientSlug/agents': typeof WorkspaceClientSlugAgentsRoute
+  '/workspace/$clientSlug/artifacts': typeof WorkspaceClientSlugArtifactsRoute
   '/workspace/$clientSlug/audit': typeof WorkspaceClientSlugAuditRoute
   '/workspace/$clientSlug/diagnosis': typeof WorkspaceClientSlugDiagnosisRoute
+  '/workspace/$clientSlug/files': typeof WorkspaceClientSlugFilesRoute
   '/workspace/$clientSlug/impact': typeof WorkspaceClientSlugImpactRoute
   '/workspace/$clientSlug/intake': typeof WorkspaceClientSlugIntakeRoute
+  '/workspace/$clientSlug/new-request': typeof WorkspaceClientSlugNewRequestRoute
   '/workspace/$clientSlug/preaudit': typeof WorkspaceClientSlugPreauditRoute
+  '/workspace/$clientSlug/review': typeof WorkspaceClientSlugReviewRoute
+  '/workspace/$clientSlug/reviews': typeof WorkspaceClientSlugReviewsRoute
+  '/workspace/$clientSlug/run-timeline': typeof WorkspaceClientSlugRunTimelineRoute
+  '/workspace/$clientSlug/settings': typeof WorkspaceClientSlugSettingsRoute
+  '/workspace/$clientSlug/task-lifecycle': typeof WorkspaceClientSlugTaskLifecycleRoute
   '/workspace/$clientSlug/workstreams': typeof WorkspaceClientSlugWorkstreamsRoute
   '/workspace/$clientSlug/': typeof WorkspaceClientSlugIndexRoute
 }
@@ -161,12 +261,22 @@ export interface FileRouteTypes {
     | '/preaudit-result'
     | '/workspace/$clientSlug'
     | '/workspace/$clientSlug/activity'
+    | '/workspace/$clientSlug/agent-board'
+    | '/workspace/$clientSlug/agent-profiles'
     | '/workspace/$clientSlug/agents'
+    | '/workspace/$clientSlug/artifacts'
     | '/workspace/$clientSlug/audit'
     | '/workspace/$clientSlug/diagnosis'
+    | '/workspace/$clientSlug/files'
     | '/workspace/$clientSlug/impact'
     | '/workspace/$clientSlug/intake'
+    | '/workspace/$clientSlug/new-request'
     | '/workspace/$clientSlug/preaudit'
+    | '/workspace/$clientSlug/review'
+    | '/workspace/$clientSlug/reviews'
+    | '/workspace/$clientSlug/run-timeline'
+    | '/workspace/$clientSlug/settings'
+    | '/workspace/$clientSlug/task-lifecycle'
     | '/workspace/$clientSlug/workstreams'
     | '/workspace/$clientSlug/'
   fileRoutesByTo: FileRoutesByTo
@@ -176,12 +286,22 @@ export interface FileRouteTypes {
     | '/audit-result'
     | '/preaudit-result'
     | '/workspace/$clientSlug/activity'
+    | '/workspace/$clientSlug/agent-board'
+    | '/workspace/$clientSlug/agent-profiles'
     | '/workspace/$clientSlug/agents'
+    | '/workspace/$clientSlug/artifacts'
     | '/workspace/$clientSlug/audit'
     | '/workspace/$clientSlug/diagnosis'
+    | '/workspace/$clientSlug/files'
     | '/workspace/$clientSlug/impact'
     | '/workspace/$clientSlug/intake'
+    | '/workspace/$clientSlug/new-request'
     | '/workspace/$clientSlug/preaudit'
+    | '/workspace/$clientSlug/review'
+    | '/workspace/$clientSlug/reviews'
+    | '/workspace/$clientSlug/run-timeline'
+    | '/workspace/$clientSlug/settings'
+    | '/workspace/$clientSlug/task-lifecycle'
     | '/workspace/$clientSlug/workstreams'
     | '/workspace/$clientSlug'
   id:
@@ -192,12 +312,22 @@ export interface FileRouteTypes {
     | '/preaudit-result'
     | '/workspace/$clientSlug'
     | '/workspace/$clientSlug/activity'
+    | '/workspace/$clientSlug/agent-board'
+    | '/workspace/$clientSlug/agent-profiles'
     | '/workspace/$clientSlug/agents'
+    | '/workspace/$clientSlug/artifacts'
     | '/workspace/$clientSlug/audit'
     | '/workspace/$clientSlug/diagnosis'
+    | '/workspace/$clientSlug/files'
     | '/workspace/$clientSlug/impact'
     | '/workspace/$clientSlug/intake'
+    | '/workspace/$clientSlug/new-request'
     | '/workspace/$clientSlug/preaudit'
+    | '/workspace/$clientSlug/review'
+    | '/workspace/$clientSlug/reviews'
+    | '/workspace/$clientSlug/run-timeline'
+    | '/workspace/$clientSlug/settings'
+    | '/workspace/$clientSlug/task-lifecycle'
     | '/workspace/$clientSlug/workstreams'
     | '/workspace/$clientSlug/'
   fileRoutesById: FileRoutesById
@@ -261,11 +391,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceClientSlugWorkstreamsRouteImport
       parentRoute: typeof WorkspaceClientSlugRoute
     }
+    '/workspace/$clientSlug/task-lifecycle': {
+      id: '/workspace/$clientSlug/task-lifecycle'
+      path: '/task-lifecycle'
+      fullPath: '/workspace/$clientSlug/task-lifecycle'
+      preLoaderRoute: typeof WorkspaceClientSlugTaskLifecycleRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/settings': {
+      id: '/workspace/$clientSlug/settings'
+      path: '/settings'
+      fullPath: '/workspace/$clientSlug/settings'
+      preLoaderRoute: typeof WorkspaceClientSlugSettingsRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/run-timeline': {
+      id: '/workspace/$clientSlug/run-timeline'
+      path: '/run-timeline'
+      fullPath: '/workspace/$clientSlug/run-timeline'
+      preLoaderRoute: typeof WorkspaceClientSlugRunTimelineRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/reviews': {
+      id: '/workspace/$clientSlug/reviews'
+      path: '/reviews'
+      fullPath: '/workspace/$clientSlug/reviews'
+      preLoaderRoute: typeof WorkspaceClientSlugReviewsRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/review': {
+      id: '/workspace/$clientSlug/review'
+      path: '/review'
+      fullPath: '/workspace/$clientSlug/review'
+      preLoaderRoute: typeof WorkspaceClientSlugReviewRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
     '/workspace/$clientSlug/preaudit': {
       id: '/workspace/$clientSlug/preaudit'
       path: '/preaudit'
       fullPath: '/workspace/$clientSlug/preaudit'
       preLoaderRoute: typeof WorkspaceClientSlugPreauditRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/new-request': {
+      id: '/workspace/$clientSlug/new-request'
+      path: '/new-request'
+      fullPath: '/workspace/$clientSlug/new-request'
+      preLoaderRoute: typeof WorkspaceClientSlugNewRequestRouteImport
       parentRoute: typeof WorkspaceClientSlugRoute
     }
     '/workspace/$clientSlug/intake': {
@@ -282,6 +454,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceClientSlugImpactRouteImport
       parentRoute: typeof WorkspaceClientSlugRoute
     }
+    '/workspace/$clientSlug/files': {
+      id: '/workspace/$clientSlug/files'
+      path: '/files'
+      fullPath: '/workspace/$clientSlug/files'
+      preLoaderRoute: typeof WorkspaceClientSlugFilesRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
     '/workspace/$clientSlug/diagnosis': {
       id: '/workspace/$clientSlug/diagnosis'
       path: '/diagnosis'
@@ -296,11 +475,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceClientSlugAuditRouteImport
       parentRoute: typeof WorkspaceClientSlugRoute
     }
+    '/workspace/$clientSlug/artifacts': {
+      id: '/workspace/$clientSlug/artifacts'
+      path: '/artifacts'
+      fullPath: '/workspace/$clientSlug/artifacts'
+      preLoaderRoute: typeof WorkspaceClientSlugArtifactsRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
     '/workspace/$clientSlug/agents': {
       id: '/workspace/$clientSlug/agents'
       path: '/agents'
       fullPath: '/workspace/$clientSlug/agents'
       preLoaderRoute: typeof WorkspaceClientSlugAgentsRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/agent-profiles': {
+      id: '/workspace/$clientSlug/agent-profiles'
+      path: '/agent-profiles'
+      fullPath: '/workspace/$clientSlug/agent-profiles'
+      preLoaderRoute: typeof WorkspaceClientSlugAgentProfilesRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
+    '/workspace/$clientSlug/agent-board': {
+      id: '/workspace/$clientSlug/agent-board'
+      path: '/agent-board'
+      fullPath: '/workspace/$clientSlug/agent-board'
+      preLoaderRoute: typeof WorkspaceClientSlugAgentBoardRouteImport
       parentRoute: typeof WorkspaceClientSlugRoute
     }
     '/workspace/$clientSlug/activity': {
@@ -315,24 +515,44 @@ declare module '@tanstack/react-router' {
 
 interface WorkspaceClientSlugRouteChildren {
   WorkspaceClientSlugActivityRoute: typeof WorkspaceClientSlugActivityRoute
+  WorkspaceClientSlugAgentBoardRoute: typeof WorkspaceClientSlugAgentBoardRoute
+  WorkspaceClientSlugAgentProfilesRoute: typeof WorkspaceClientSlugAgentProfilesRoute
   WorkspaceClientSlugAgentsRoute: typeof WorkspaceClientSlugAgentsRoute
+  WorkspaceClientSlugArtifactsRoute: typeof WorkspaceClientSlugArtifactsRoute
   WorkspaceClientSlugAuditRoute: typeof WorkspaceClientSlugAuditRoute
   WorkspaceClientSlugDiagnosisRoute: typeof WorkspaceClientSlugDiagnosisRoute
+  WorkspaceClientSlugFilesRoute: typeof WorkspaceClientSlugFilesRoute
   WorkspaceClientSlugImpactRoute: typeof WorkspaceClientSlugImpactRoute
   WorkspaceClientSlugIntakeRoute: typeof WorkspaceClientSlugIntakeRoute
+  WorkspaceClientSlugNewRequestRoute: typeof WorkspaceClientSlugNewRequestRoute
   WorkspaceClientSlugPreauditRoute: typeof WorkspaceClientSlugPreauditRoute
+  WorkspaceClientSlugReviewRoute: typeof WorkspaceClientSlugReviewRoute
+  WorkspaceClientSlugReviewsRoute: typeof WorkspaceClientSlugReviewsRoute
+  WorkspaceClientSlugRunTimelineRoute: typeof WorkspaceClientSlugRunTimelineRoute
+  WorkspaceClientSlugSettingsRoute: typeof WorkspaceClientSlugSettingsRoute
+  WorkspaceClientSlugTaskLifecycleRoute: typeof WorkspaceClientSlugTaskLifecycleRoute
   WorkspaceClientSlugWorkstreamsRoute: typeof WorkspaceClientSlugWorkstreamsRoute
   WorkspaceClientSlugIndexRoute: typeof WorkspaceClientSlugIndexRoute
 }
 
 const WorkspaceClientSlugRouteChildren: WorkspaceClientSlugRouteChildren = {
   WorkspaceClientSlugActivityRoute: WorkspaceClientSlugActivityRoute,
+  WorkspaceClientSlugAgentBoardRoute: WorkspaceClientSlugAgentBoardRoute,
+  WorkspaceClientSlugAgentProfilesRoute: WorkspaceClientSlugAgentProfilesRoute,
   WorkspaceClientSlugAgentsRoute: WorkspaceClientSlugAgentsRoute,
+  WorkspaceClientSlugArtifactsRoute: WorkspaceClientSlugArtifactsRoute,
   WorkspaceClientSlugAuditRoute: WorkspaceClientSlugAuditRoute,
   WorkspaceClientSlugDiagnosisRoute: WorkspaceClientSlugDiagnosisRoute,
+  WorkspaceClientSlugFilesRoute: WorkspaceClientSlugFilesRoute,
   WorkspaceClientSlugImpactRoute: WorkspaceClientSlugImpactRoute,
   WorkspaceClientSlugIntakeRoute: WorkspaceClientSlugIntakeRoute,
+  WorkspaceClientSlugNewRequestRoute: WorkspaceClientSlugNewRequestRoute,
   WorkspaceClientSlugPreauditRoute: WorkspaceClientSlugPreauditRoute,
+  WorkspaceClientSlugReviewRoute: WorkspaceClientSlugReviewRoute,
+  WorkspaceClientSlugReviewsRoute: WorkspaceClientSlugReviewsRoute,
+  WorkspaceClientSlugRunTimelineRoute: WorkspaceClientSlugRunTimelineRoute,
+  WorkspaceClientSlugSettingsRoute: WorkspaceClientSlugSettingsRoute,
+  WorkspaceClientSlugTaskLifecycleRoute: WorkspaceClientSlugTaskLifecycleRoute,
   WorkspaceClientSlugWorkstreamsRoute: WorkspaceClientSlugWorkstreamsRoute,
   WorkspaceClientSlugIndexRoute: WorkspaceClientSlugIndexRoute,
 }
