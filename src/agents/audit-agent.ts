@@ -12,10 +12,10 @@ import {
   deriveClientSlugFromRecord,
   nextDisplayRunId,
 } from "../shared/runNaming.js";
-import { buildAuditPrompt } from "../audit/contract.js";
-import { AuditRunError } from "../audit/errors.js";
+import { buildAuditPrompt } from "../workflows/client-audit/contract.js";
+import { AuditRunError } from "../workflows/client-audit/errors.js";
 import { getLastAuditLLMSdk, runAuditLLM } from "../audit/piClient.js";
-import { createAuditRunId } from "../audit/runId.js";
+import { createAuditRunId } from "../workflows/client-audit/runId.js";
 import {
   appendAuditRunEvent,
   getGitCommit,
@@ -27,7 +27,7 @@ import {
   writeAuditRunJson,
   type AuditRunArtifactV1,
 } from "../audit/runArtifact.js";
-import { parseAndValidateAuditOutput } from "../audit/validateOutput.js";
+import { parseAndValidateAuditOutput } from "../workflows/client-audit/validateOutput.js";
 import type { AuditOutput } from "../schemas/audit.js";
 
 export type AuditAgentSuccess = {
