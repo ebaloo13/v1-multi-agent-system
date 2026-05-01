@@ -11,6 +11,7 @@ import {
   type AutomationWorkspace,
 } from '../lib/automation-workspace'
 import type { WorkspaceSectionId } from '../lib/product-shell'
+import type { WorkspaceRouteScope } from '../lib/product-shell'
 
 export type AutomationViewId =
   | 'dashboard'
@@ -24,6 +25,7 @@ export type AutomationViewId =
 type AutomationWorkspacePageProps = {
   clientSlug: string
   view: AutomationViewId
+  routeScope?: WorkspaceRouteScope
 }
 
 type AutomationBoardStatus = 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done'
@@ -93,12 +95,16 @@ const boardColumns: Array<{
   { status: 'done', label: 'Done', tone: 'done' },
 ]
 
-export function AutomationWorkspacePage({ clientSlug, view }: AutomationWorkspacePageProps) {
+export function AutomationWorkspacePage({
+  clientSlug,
+  view,
+  routeScope = 'workspace',
+}: AutomationWorkspacePageProps) {
   const workspace = buildAutomationWorkspace(clientSlug)
   const meta = viewMeta[view]
 
   if (view === 'agentBoard' || view === 'taskLifecycle') {
-    return <AutomationBoardWorkspace workspace={workspace} view={view} />
+    return <AutomationBoardWorkspace workspace={workspace} view={view} routeScope={routeScope} />
   }
 
   return (
@@ -120,7 +126,8 @@ export function AutomationWorkspacePage({ clientSlug, view }: AutomationWorkspac
           tone: 'pending',
         },
       ]}
-      action={<WorkspaceActions workspace={workspace} view={view} />}
+      action={<WorkspaceActions workspace={workspace} view={view} routeScope={routeScope} />}
+      routeScope={routeScope}
     >
       {view === 'dashboard' ? <AutomationDashboard workspace={workspace} /> : null}
       {view === 'runTimeline' ? <AutomationRunTimeline runs={workspace.runs} /> : null}
@@ -140,9 +147,11 @@ export function AutomationDashboardPanel({ clientSlug }: { clientSlug: string })
 function AutomationBoardWorkspace({
   workspace,
   view,
+  routeScope,
 }: {
   workspace: AutomationWorkspace
   view: 'agentBoard' | 'taskLifecycle'
+  routeScope: WorkspaceRouteScope
 }) {
   const meta = viewMeta[view]
 
@@ -154,6 +163,7 @@ function AutomationBoardWorkspace({
           clientSlug={workspace.clientSlug}
           clientName={workspace.clientName}
           website={workspace.website}
+          routeScope={routeScope}
         />
         <section className="automation-app-main">
           <AutomationBoardHeader workspace={workspace} title={meta.title} sectionLabel={meta.eyebrow} />
@@ -454,38 +464,44 @@ function AutomationAgentProfiles({ agents }: { agents: AutomationAgent[] }) {
 function WorkspaceActions({
   workspace,
   view,
+  routeScope,
 }: {
   workspace: AutomationWorkspace
   view: AutomationViewId
+  routeScope: WorkspaceRouteScope
 }) {
   return (
     <>
-      <a href={primaryHref(workspace, view)} className="primary-button no-underline">
+      <a href={primaryHref(workspace, view, routeScope)} className="primary-button no-underline">
         Continue
       </a>
-      <a href={automationHref(workspace.clientSlug, 'dashboard')} className="secondary-button no-underline">
+      <a href={automationHref(workspace.clientSlug, 'dashboard', routeScope)} className="secondary-button no-underline">
         Dashboard
       </a>
     </>
   )
 }
 
-function primaryHref(workspace: AutomationWorkspace, view: AutomationViewId) {
+function primaryHref(
+  workspace: AutomationWorkspace,
+  view: AutomationViewId,
+  routeScope: WorkspaceRouteScope,
+) {
   switch (view) {
     case 'dashboard':
-      return automationHref(workspace.clientSlug, 'reviewQueue')
+      return automationHref(workspace.clientSlug, 'reviewQueue', routeScope)
     case 'agentBoard':
-      return automationHref(workspace.clientSlug, 'taskLifecycle')
+      return automationHref(workspace.clientSlug, 'taskLifecycle', routeScope)
     case 'taskLifecycle':
-      return automationHref(workspace.clientSlug, 'runTimeline')
+      return automationHref(workspace.clientSlug, 'runTimeline', routeScope)
     case 'runTimeline':
-      return automationHref(workspace.clientSlug, 'artifacts')
+      return automationHref(workspace.clientSlug, 'artifacts', routeScope)
     case 'artifacts':
-      return automationHref(workspace.clientSlug, 'reviewQueue')
+      return automationHref(workspace.clientSlug, 'reviewQueue', routeScope)
     case 'reviewQueue':
-      return automationHref(workspace.clientSlug, 'agentProfiles')
+      return automationHref(workspace.clientSlug, 'agentProfiles', routeScope)
     case 'agentProfiles':
-      return automationHref(workspace.clientSlug, 'agentBoard')
+      return automationHref(workspace.clientSlug, 'agentBoard', routeScope)
   }
 }
 

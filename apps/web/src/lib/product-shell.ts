@@ -329,11 +329,16 @@ export const workspaceTabs = [
 
 export type WorkspaceSectionId = (typeof workspaceTabs)[number]['id']
 export type WorkspaceTabId = WorkspaceSectionId
+export type WorkspaceRouteScope = 'workspace' | 'internal'
 export const diagnosisPanels = ['overview', 'preaudit', 'intake', 'audit'] as const
 export type DiagnosisPanelId = (typeof diagnosisPanels)[number]
 
-export function workspaceHref(clientSlug: string, section: WorkspaceSectionId = 'dashboard') {
-  const basePath = `/workspace/${encodeURIComponent(clientSlug)}`
+export function workspaceHref(
+  clientSlug: string,
+  section: WorkspaceSectionId = 'dashboard',
+  routeScope: WorkspaceRouteScope = 'workspace',
+) {
+  const basePath = `/${routeScope}/${encodeURIComponent(clientSlug)}`
   const tab = workspaceTabs.find((item) => item.id === section)
 
   return `${basePath}${tab?.href ?? ''}`
@@ -342,8 +347,9 @@ export function workspaceHref(clientSlug: string, section: WorkspaceSectionId = 
 export function workspaceDiagnosisHref(
   clientSlug: string,
   panel: DiagnosisPanelId = 'overview',
+  routeScope: WorkspaceRouteScope = 'workspace',
 ) {
-  const basePath = workspaceHref(clientSlug, 'diagnosis')
+  const basePath = workspaceHref(clientSlug, 'diagnosis', routeScope)
 
   return panel === 'overview' ? basePath : `${basePath}?panel=${panel}`
 }

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import {
   getWorkspaceSectionMeta,
   workspaceHref,
+  type WorkspaceRouteScope,
   type WorkspaceSectionId,
   workspaceTabs,
 } from '../lib/product-shell'
@@ -18,6 +19,7 @@ type WorkspaceShellProps = {
   primaryActionDetail: string
   statusChips?: WorkspaceShellStatusChip[]
   action?: ReactNode
+  routeScope?: WorkspaceRouteScope
   children: ReactNode
 }
 
@@ -59,6 +61,7 @@ export default function WorkspaceShell({
   email,
   statusChips = [],
   action,
+  routeScope = 'workspace',
   children,
 }: WorkspaceShellProps) {
   const sectionMeta = getWorkspaceSectionMeta(section)
@@ -72,6 +75,7 @@ export default function WorkspaceShell({
           clientName={clientName}
           website={website}
           email={email}
+          routeScope={routeScope}
         />
 
         <section className="workspace-main-panel">
@@ -126,12 +130,14 @@ export function WorkspaceAppSidebar({
   clientName,
   website,
   email,
+  routeScope = 'workspace',
 }: {
   section: WorkspaceSectionId
   clientSlug: string
   clientName: string
   website: string
   email?: string
+  routeScope?: WorkspaceRouteScope
 }) {
   return (
     <aside className="workspace-sidebar">
@@ -161,7 +167,7 @@ export function WorkspaceAppSidebar({
             return (
               <a
                 key={tab.id}
-                href={workspaceHref(clientSlug, tab.id)}
+                href={workspaceHref(clientSlug, tab.id, routeScope)}
                 className={isActive ? 'workspace-sidebar-link is-active' : 'workspace-sidebar-link'}
               >
                 <span className="workspace-sidebar-link-icon">{workspaceNavIcons[tab.id]}</span>

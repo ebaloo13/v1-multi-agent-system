@@ -2,6 +2,7 @@ import {
   DEFAULT_WEBSITE,
   formatClientName,
   workspaceHref,
+  type WorkspaceRouteScope,
   type WorkspaceSectionId,
 } from './product-shell'
 
@@ -567,6 +568,10 @@ export function buildAutomationWorkspace(clientSlug: string): AutomationWorkspac
   }
 }
 
-export function automationHref(clientSlug: string, section: WorkspaceSectionId) {
-  return workspaceHref(clientSlug, section)
+export function automationHref(
+  clientSlug: string,
+  section: WorkspaceSectionId,
+  routeScope: WorkspaceRouteScope = 'workspace',
+) {
+  return workspaceHref(clientSlug, section, routeScope)
 }

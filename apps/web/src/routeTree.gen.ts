@@ -14,6 +14,7 @@ import { Route as AuditResultRouteImport } from './routes/audit-result'
 import { Route as AuditIntakeRouteImport } from './routes/audit-intake'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspaceClientSlugRouteImport } from './routes/workspace.$clientSlug'
+import { Route as InternalClientSlugRouteImport } from './routes/internal.$clientSlug'
 import { Route as WorkspaceClientSlugIndexRouteImport } from './routes/workspace.$clientSlug.index'
 import { Route as WorkspaceClientSlugWorkstreamsRouteImport } from './routes/workspace.$clientSlug.workstreams'
 import { Route as WorkspaceClientSlugTaskLifecycleRouteImport } from './routes/workspace.$clientSlug.task-lifecycle'
@@ -34,6 +35,17 @@ import { Route as WorkspaceClientSlugAgentsRouteImport } from './routes/workspac
 import { Route as WorkspaceClientSlugAgentProfilesRouteImport } from './routes/workspace.$clientSlug.agent-profiles'
 import { Route as WorkspaceClientSlugAgentBoardRouteImport } from './routes/workspace.$clientSlug.agent-board'
 import { Route as WorkspaceClientSlugActivityRouteImport } from './routes/workspace.$clientSlug.activity'
+import { Route as InternalClientSlugWorkstreamsRouteImport } from './routes/internal.$clientSlug.workstreams'
+import { Route as InternalClientSlugTaskLifecycleRouteImport } from './routes/internal.$clientSlug.task-lifecycle'
+import { Route as InternalClientSlugRunTimelineRouteImport } from './routes/internal.$clientSlug.run-timeline'
+import { Route as InternalClientSlugReviewRouteImport } from './routes/internal.$clientSlug.review'
+import { Route as InternalClientSlugImpactRouteImport } from './routes/internal.$clientSlug.impact'
+import { Route as InternalClientSlugDiagnosisRouteImport } from './routes/internal.$clientSlug.diagnosis'
+import { Route as InternalClientSlugArtifactsRouteImport } from './routes/internal.$clientSlug.artifacts'
+import { Route as InternalClientSlugAgentsRouteImport } from './routes/internal.$clientSlug.agents'
+import { Route as InternalClientSlugAgentProfilesRouteImport } from './routes/internal.$clientSlug.agent-profiles'
+import { Route as InternalClientSlugAgentBoardRouteImport } from './routes/internal.$clientSlug.agent-board'
+import { Route as InternalClientSlugActivityRouteImport } from './routes/internal.$clientSlug.activity'
 
 const PreauditResultRoute = PreauditResultRouteImport.update({
   id: '/preaudit-result',
@@ -58,6 +70,11 @@ const IndexRoute = IndexRouteImport.update({
 const WorkspaceClientSlugRoute = WorkspaceClientSlugRouteImport.update({
   id: '/workspace/$clientSlug',
   path: '/workspace/$clientSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InternalClientSlugRoute = InternalClientSlugRouteImport.update({
+  id: '/internal/$clientSlug',
+  path: '/internal/$clientSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkspaceClientSlugIndexRoute =
@@ -179,13 +196,91 @@ const WorkspaceClientSlugActivityRoute =
     path: '/activity',
     getParentRoute: () => WorkspaceClientSlugRoute,
   } as any)
+const InternalClientSlugWorkstreamsRoute =
+  InternalClientSlugWorkstreamsRouteImport.update({
+    id: '/workstreams',
+    path: '/workstreams',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugTaskLifecycleRoute =
+  InternalClientSlugTaskLifecycleRouteImport.update({
+    id: '/task-lifecycle',
+    path: '/task-lifecycle',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugRunTimelineRoute =
+  InternalClientSlugRunTimelineRouteImport.update({
+    id: '/run-timeline',
+    path: '/run-timeline',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugReviewRoute =
+  InternalClientSlugReviewRouteImport.update({
+    id: '/review',
+    path: '/review',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugImpactRoute =
+  InternalClientSlugImpactRouteImport.update({
+    id: '/impact',
+    path: '/impact',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugDiagnosisRoute =
+  InternalClientSlugDiagnosisRouteImport.update({
+    id: '/diagnosis',
+    path: '/diagnosis',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugArtifactsRoute =
+  InternalClientSlugArtifactsRouteImport.update({
+    id: '/artifacts',
+    path: '/artifacts',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugAgentsRoute =
+  InternalClientSlugAgentsRouteImport.update({
+    id: '/agents',
+    path: '/agents',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugAgentProfilesRoute =
+  InternalClientSlugAgentProfilesRouteImport.update({
+    id: '/agent-profiles',
+    path: '/agent-profiles',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugAgentBoardRoute =
+  InternalClientSlugAgentBoardRouteImport.update({
+    id: '/agent-board',
+    path: '/agent-board',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
+const InternalClientSlugActivityRoute =
+  InternalClientSlugActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => InternalClientSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit-intake': typeof AuditIntakeRoute
   '/audit-result': typeof AuditResultRoute
   '/preaudit-result': typeof PreauditResultRoute
+  '/internal/$clientSlug': typeof InternalClientSlugRouteWithChildren
   '/workspace/$clientSlug': typeof WorkspaceClientSlugRouteWithChildren
+  '/internal/$clientSlug/activity': typeof InternalClientSlugActivityRoute
+  '/internal/$clientSlug/agent-board': typeof InternalClientSlugAgentBoardRoute
+  '/internal/$clientSlug/agent-profiles': typeof InternalClientSlugAgentProfilesRoute
+  '/internal/$clientSlug/agents': typeof InternalClientSlugAgentsRoute
+  '/internal/$clientSlug/artifacts': typeof InternalClientSlugArtifactsRoute
+  '/internal/$clientSlug/diagnosis': typeof InternalClientSlugDiagnosisRoute
+  '/internal/$clientSlug/impact': typeof InternalClientSlugImpactRoute
+  '/internal/$clientSlug/review': typeof InternalClientSlugReviewRoute
+  '/internal/$clientSlug/run-timeline': typeof InternalClientSlugRunTimelineRoute
+  '/internal/$clientSlug/task-lifecycle': typeof InternalClientSlugTaskLifecycleRoute
+  '/internal/$clientSlug/workstreams': typeof InternalClientSlugWorkstreamsRoute
   '/workspace/$clientSlug/activity': typeof WorkspaceClientSlugActivityRoute
   '/workspace/$clientSlug/agent-board': typeof WorkspaceClientSlugAgentBoardRoute
   '/workspace/$clientSlug/agent-profiles': typeof WorkspaceClientSlugAgentProfilesRoute
@@ -212,6 +307,18 @@ export interface FileRoutesByTo {
   '/audit-intake': typeof AuditIntakeRoute
   '/audit-result': typeof AuditResultRoute
   '/preaudit-result': typeof PreauditResultRoute
+  '/internal/$clientSlug': typeof InternalClientSlugRouteWithChildren
+  '/internal/$clientSlug/activity': typeof InternalClientSlugActivityRoute
+  '/internal/$clientSlug/agent-board': typeof InternalClientSlugAgentBoardRoute
+  '/internal/$clientSlug/agent-profiles': typeof InternalClientSlugAgentProfilesRoute
+  '/internal/$clientSlug/agents': typeof InternalClientSlugAgentsRoute
+  '/internal/$clientSlug/artifacts': typeof InternalClientSlugArtifactsRoute
+  '/internal/$clientSlug/diagnosis': typeof InternalClientSlugDiagnosisRoute
+  '/internal/$clientSlug/impact': typeof InternalClientSlugImpactRoute
+  '/internal/$clientSlug/review': typeof InternalClientSlugReviewRoute
+  '/internal/$clientSlug/run-timeline': typeof InternalClientSlugRunTimelineRoute
+  '/internal/$clientSlug/task-lifecycle': typeof InternalClientSlugTaskLifecycleRoute
+  '/internal/$clientSlug/workstreams': typeof InternalClientSlugWorkstreamsRoute
   '/workspace/$clientSlug/activity': typeof WorkspaceClientSlugActivityRoute
   '/workspace/$clientSlug/agent-board': typeof WorkspaceClientSlugAgentBoardRoute
   '/workspace/$clientSlug/agent-profiles': typeof WorkspaceClientSlugAgentProfilesRoute
@@ -239,7 +346,19 @@ export interface FileRoutesById {
   '/audit-intake': typeof AuditIntakeRoute
   '/audit-result': typeof AuditResultRoute
   '/preaudit-result': typeof PreauditResultRoute
+  '/internal/$clientSlug': typeof InternalClientSlugRouteWithChildren
   '/workspace/$clientSlug': typeof WorkspaceClientSlugRouteWithChildren
+  '/internal/$clientSlug/activity': typeof InternalClientSlugActivityRoute
+  '/internal/$clientSlug/agent-board': typeof InternalClientSlugAgentBoardRoute
+  '/internal/$clientSlug/agent-profiles': typeof InternalClientSlugAgentProfilesRoute
+  '/internal/$clientSlug/agents': typeof InternalClientSlugAgentsRoute
+  '/internal/$clientSlug/artifacts': typeof InternalClientSlugArtifactsRoute
+  '/internal/$clientSlug/diagnosis': typeof InternalClientSlugDiagnosisRoute
+  '/internal/$clientSlug/impact': typeof InternalClientSlugImpactRoute
+  '/internal/$clientSlug/review': typeof InternalClientSlugReviewRoute
+  '/internal/$clientSlug/run-timeline': typeof InternalClientSlugRunTimelineRoute
+  '/internal/$clientSlug/task-lifecycle': typeof InternalClientSlugTaskLifecycleRoute
+  '/internal/$clientSlug/workstreams': typeof InternalClientSlugWorkstreamsRoute
   '/workspace/$clientSlug/activity': typeof WorkspaceClientSlugActivityRoute
   '/workspace/$clientSlug/agent-board': typeof WorkspaceClientSlugAgentBoardRoute
   '/workspace/$clientSlug/agent-profiles': typeof WorkspaceClientSlugAgentProfilesRoute
@@ -268,7 +387,19 @@ export interface FileRouteTypes {
     | '/audit-intake'
     | '/audit-result'
     | '/preaudit-result'
+    | '/internal/$clientSlug'
     | '/workspace/$clientSlug'
+    | '/internal/$clientSlug/activity'
+    | '/internal/$clientSlug/agent-board'
+    | '/internal/$clientSlug/agent-profiles'
+    | '/internal/$clientSlug/agents'
+    | '/internal/$clientSlug/artifacts'
+    | '/internal/$clientSlug/diagnosis'
+    | '/internal/$clientSlug/impact'
+    | '/internal/$clientSlug/review'
+    | '/internal/$clientSlug/run-timeline'
+    | '/internal/$clientSlug/task-lifecycle'
+    | '/internal/$clientSlug/workstreams'
     | '/workspace/$clientSlug/activity'
     | '/workspace/$clientSlug/agent-board'
     | '/workspace/$clientSlug/agent-profiles'
@@ -295,6 +426,18 @@ export interface FileRouteTypes {
     | '/audit-intake'
     | '/audit-result'
     | '/preaudit-result'
+    | '/internal/$clientSlug'
+    | '/internal/$clientSlug/activity'
+    | '/internal/$clientSlug/agent-board'
+    | '/internal/$clientSlug/agent-profiles'
+    | '/internal/$clientSlug/agents'
+    | '/internal/$clientSlug/artifacts'
+    | '/internal/$clientSlug/diagnosis'
+    | '/internal/$clientSlug/impact'
+    | '/internal/$clientSlug/review'
+    | '/internal/$clientSlug/run-timeline'
+    | '/internal/$clientSlug/task-lifecycle'
+    | '/internal/$clientSlug/workstreams'
     | '/workspace/$clientSlug/activity'
     | '/workspace/$clientSlug/agent-board'
     | '/workspace/$clientSlug/agent-profiles'
@@ -321,7 +464,19 @@ export interface FileRouteTypes {
     | '/audit-intake'
     | '/audit-result'
     | '/preaudit-result'
+    | '/internal/$clientSlug'
     | '/workspace/$clientSlug'
+    | '/internal/$clientSlug/activity'
+    | '/internal/$clientSlug/agent-board'
+    | '/internal/$clientSlug/agent-profiles'
+    | '/internal/$clientSlug/agents'
+    | '/internal/$clientSlug/artifacts'
+    | '/internal/$clientSlug/diagnosis'
+    | '/internal/$clientSlug/impact'
+    | '/internal/$clientSlug/review'
+    | '/internal/$clientSlug/run-timeline'
+    | '/internal/$clientSlug/task-lifecycle'
+    | '/internal/$clientSlug/workstreams'
     | '/workspace/$clientSlug/activity'
     | '/workspace/$clientSlug/agent-board'
     | '/workspace/$clientSlug/agent-profiles'
@@ -349,6 +504,7 @@ export interface RootRouteChildren {
   AuditIntakeRoute: typeof AuditIntakeRoute
   AuditResultRoute: typeof AuditResultRoute
   PreauditResultRoute: typeof PreauditResultRoute
+  InternalClientSlugRoute: typeof InternalClientSlugRouteWithChildren
   WorkspaceClientSlugRoute: typeof WorkspaceClientSlugRouteWithChildren
 }
 
@@ -387,6 +543,13 @@ declare module '@tanstack/react-router' {
       path: '/workspace/$clientSlug'
       fullPath: '/workspace/$clientSlug'
       preLoaderRoute: typeof WorkspaceClientSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/internal/$clientSlug': {
+      id: '/internal/$clientSlug'
+      path: '/internal/$clientSlug'
+      fullPath: '/internal/$clientSlug'
+      preLoaderRoute: typeof InternalClientSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workspace/$clientSlug/': {
@@ -529,8 +692,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceClientSlugActivityRouteImport
       parentRoute: typeof WorkspaceClientSlugRoute
     }
+    '/internal/$clientSlug/workstreams': {
+      id: '/internal/$clientSlug/workstreams'
+      path: '/workstreams'
+      fullPath: '/internal/$clientSlug/workstreams'
+      preLoaderRoute: typeof InternalClientSlugWorkstreamsRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/task-lifecycle': {
+      id: '/internal/$clientSlug/task-lifecycle'
+      path: '/task-lifecycle'
+      fullPath: '/internal/$clientSlug/task-lifecycle'
+      preLoaderRoute: typeof InternalClientSlugTaskLifecycleRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/run-timeline': {
+      id: '/internal/$clientSlug/run-timeline'
+      path: '/run-timeline'
+      fullPath: '/internal/$clientSlug/run-timeline'
+      preLoaderRoute: typeof InternalClientSlugRunTimelineRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/review': {
+      id: '/internal/$clientSlug/review'
+      path: '/review'
+      fullPath: '/internal/$clientSlug/review'
+      preLoaderRoute: typeof InternalClientSlugReviewRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/impact': {
+      id: '/internal/$clientSlug/impact'
+      path: '/impact'
+      fullPath: '/internal/$clientSlug/impact'
+      preLoaderRoute: typeof InternalClientSlugImpactRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/diagnosis': {
+      id: '/internal/$clientSlug/diagnosis'
+      path: '/diagnosis'
+      fullPath: '/internal/$clientSlug/diagnosis'
+      preLoaderRoute: typeof InternalClientSlugDiagnosisRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/artifacts': {
+      id: '/internal/$clientSlug/artifacts'
+      path: '/artifacts'
+      fullPath: '/internal/$clientSlug/artifacts'
+      preLoaderRoute: typeof InternalClientSlugArtifactsRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/agents': {
+      id: '/internal/$clientSlug/agents'
+      path: '/agents'
+      fullPath: '/internal/$clientSlug/agents'
+      preLoaderRoute: typeof InternalClientSlugAgentsRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/agent-profiles': {
+      id: '/internal/$clientSlug/agent-profiles'
+      path: '/agent-profiles'
+      fullPath: '/internal/$clientSlug/agent-profiles'
+      preLoaderRoute: typeof InternalClientSlugAgentProfilesRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/agent-board': {
+      id: '/internal/$clientSlug/agent-board'
+      path: '/agent-board'
+      fullPath: '/internal/$clientSlug/agent-board'
+      preLoaderRoute: typeof InternalClientSlugAgentBoardRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
+    '/internal/$clientSlug/activity': {
+      id: '/internal/$clientSlug/activity'
+      path: '/activity'
+      fullPath: '/internal/$clientSlug/activity'
+      preLoaderRoute: typeof InternalClientSlugActivityRouteImport
+      parentRoute: typeof InternalClientSlugRoute
+    }
   }
 }
+
+interface InternalClientSlugRouteChildren {
+  InternalClientSlugActivityRoute: typeof InternalClientSlugActivityRoute
+  InternalClientSlugAgentBoardRoute: typeof InternalClientSlugAgentBoardRoute
+  InternalClientSlugAgentProfilesRoute: typeof InternalClientSlugAgentProfilesRoute
+  InternalClientSlugAgentsRoute: typeof InternalClientSlugAgentsRoute
+  InternalClientSlugArtifactsRoute: typeof InternalClientSlugArtifactsRoute
+  InternalClientSlugDiagnosisRoute: typeof InternalClientSlugDiagnosisRoute
+  InternalClientSlugImpactRoute: typeof InternalClientSlugImpactRoute
+  InternalClientSlugReviewRoute: typeof InternalClientSlugReviewRoute
+  InternalClientSlugRunTimelineRoute: typeof InternalClientSlugRunTimelineRoute
+  InternalClientSlugTaskLifecycleRoute: typeof InternalClientSlugTaskLifecycleRoute
+  InternalClientSlugWorkstreamsRoute: typeof InternalClientSlugWorkstreamsRoute
+}
+
+const InternalClientSlugRouteChildren: InternalClientSlugRouteChildren = {
+  InternalClientSlugActivityRoute: InternalClientSlugActivityRoute,
+  InternalClientSlugAgentBoardRoute: InternalClientSlugAgentBoardRoute,
+  InternalClientSlugAgentProfilesRoute: InternalClientSlugAgentProfilesRoute,
+  InternalClientSlugAgentsRoute: InternalClientSlugAgentsRoute,
+  InternalClientSlugArtifactsRoute: InternalClientSlugArtifactsRoute,
+  InternalClientSlugDiagnosisRoute: InternalClientSlugDiagnosisRoute,
+  InternalClientSlugImpactRoute: InternalClientSlugImpactRoute,
+  InternalClientSlugReviewRoute: InternalClientSlugReviewRoute,
+  InternalClientSlugRunTimelineRoute: InternalClientSlugRunTimelineRoute,
+  InternalClientSlugTaskLifecycleRoute: InternalClientSlugTaskLifecycleRoute,
+  InternalClientSlugWorkstreamsRoute: InternalClientSlugWorkstreamsRoute,
+}
+
+const InternalClientSlugRouteWithChildren =
+  InternalClientSlugRoute._addFileChildren(InternalClientSlugRouteChildren)
 
 interface WorkspaceClientSlugRouteChildren {
   WorkspaceClientSlugActivityRoute: typeof WorkspaceClientSlugActivityRoute
@@ -586,6 +857,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuditIntakeRoute: AuditIntakeRoute,
   AuditResultRoute: AuditResultRoute,
   PreauditResultRoute: PreauditResultRoute,
+  InternalClientSlugRoute: InternalClientSlugRouteWithChildren,
   WorkspaceClientSlugRoute: WorkspaceClientSlugRouteWithChildren,
 }
 export const routeTree = rootRouteImport

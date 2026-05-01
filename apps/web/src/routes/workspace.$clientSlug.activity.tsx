@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
-import { workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
+import { workspaceDiagnosisHref, workspaceHref, type WorkspaceRouteScope } from '../lib/product-shell'
 import { getWorkspaceActivity } from '../lib/workflow.functions'
 import type { WorkspaceActivityItem, WorkspaceActivityView } from '../lib/workflow'
 
@@ -14,6 +14,19 @@ export const Route = createFileRoute('/workspace/$clientSlug/activity')({
 
 function WorkspaceActivityPage() {
   const data = Route.useLoaderData()
+
+  return <WorkspaceActivityView data={data} />
+}
+
+export type WorkspaceActivityData = ReturnType<typeof Route.useLoaderData>
+
+export function WorkspaceActivityView({
+  data,
+  routeScope = 'workspace',
+}: {
+  data: WorkspaceActivityData
+  routeScope?: WorkspaceRouteScope
+}) {
   const latestActivity = data.activity[0]
 
   return (
@@ -41,14 +54,15 @@ function WorkspaceActivityPage() {
       ]}
       action={
         <>
-          <a href={workspaceHref(data.clientSlug, 'dashboard')} className="primary-button no-underline">
+          <a href={workspaceHref(data.clientSlug, 'dashboard', routeScope)} className="primary-button no-underline">
             Back to dashboard
           </a>
-          <a href={workspaceDiagnosisHref(data.clientSlug)} className="secondary-button no-underline">
+          <a href={workspaceDiagnosisHref(data.clientSlug, 'overview', routeScope)} className="secondary-button no-underline">
             Open diagnosis
           </a>
         </>
       }
+      routeScope={routeScope}
     >
       <section className="workspace-board-canvas">
         <article className="content-panel workspace-board-panel">

@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
-import { workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
+import { workspaceDiagnosisHref, workspaceHref, type WorkspaceRouteScope } from '../lib/product-shell'
 import { getWorkspaceAgents } from '../lib/workflow.functions'
 import type { WorkspaceAgent } from '../lib/workflow'
 
@@ -14,6 +14,19 @@ export const Route = createFileRoute('/workspace/$clientSlug/agents')({
 
 function WorkspaceAgentsPage() {
   const data = Route.useLoaderData()
+
+  return <WorkspaceAgentsView data={data} />
+}
+
+export type WorkspaceAgentsData = ReturnType<typeof Route.useLoaderData>
+
+export function WorkspaceAgentsView({
+  data,
+  routeScope = 'workspace',
+}: {
+  data: WorkspaceAgentsData
+  routeScope?: WorkspaceRouteScope
+}) {
   const activeAgents = data.agents.filter((item) => item.status === 'active')
   const recommendedAgents = data.agents.filter((item) => ['recommended', 'ready'].includes(item.status))
   const creatableAgents = data.agents.filter((item) => item.status !== 'active' && item.status !== 'not relevant')
@@ -47,11 +60,12 @@ function WorkspaceAgentsPage() {
           <a href="#agent-creation" className="primary-button no-underline">
             Create agent
           </a>
-          <a href={workspaceHref(data.clientSlug, 'workstreams')} className="secondary-button no-underline">
+          <a href={workspaceHref(data.clientSlug, 'workstreams', routeScope)} className="secondary-button no-underline">
             Open workstreams
           </a>
         </>
       }
+      routeScope={routeScope}
     >
       <section className="workspace-section-grid">
         <section className="workspace-agent-management-grid">
@@ -90,6 +104,7 @@ function WorkspaceAgentsPage() {
                   agent={agent}
                   clientSlug={data.clientSlug}
                   mode="recommended"
+                  routeScope={routeScope}
                 />
               ))}
             </div>
@@ -114,7 +129,7 @@ function WorkspaceAgentsPage() {
               {creatableAgents.map((agent) => (
                 <a
                   key={agent.slug}
-                  href={agentPrimaryHref(agent, data.clientSlug)}
+                  href={agentPrimaryHref(agent, data.clientSlug, routeScope)}
                   className="workspace-agent-choice-button no-underline"
                 >
                   <div>
@@ -137,10 +152,12 @@ function AgentManagementCard({
   agent,
   clientSlug,
   mode,
+  routeScope = 'workspace',
 }: {
   agent: WorkspaceAgent
   clientSlug: string
   mode: 'active' | 'recommended'
+  routeScope?: WorkspaceRouteScope
 }) {
   return (
     <article className="workspace-agent-management-card">
@@ -162,7 +179,7 @@ function AgentManagementCard({
       </div>
 
       <div className="workspace-command-actions mt-4">
-        <a href={agentPrimaryHref(agent, clientSlug)} className="workspace-text-link">
+        <a href={agentPrimaryHref(agent, clientSlug, routeScope)} className="workspace-text-link">
           {mode === 'active' ? 'View details' : agentPrimaryLabel(agent)}
         </a>
       </div>
@@ -204,14 +221,18 @@ function agentPrimaryLabel(agent: WorkspaceAgent) {
   }
 }
 
-function agentPrimaryHref(agent: WorkspaceAgent, clientSlug?: string) {
+function agentPrimaryHref(
+  agent: WorkspaceAgent,
+  clientSlug?: string,
+  routeScope: WorkspaceRouteScope = 'workspace',
+) {
   if (agent.readiness.ctaHref) {
     return agent.readiness.ctaHref
   }
 
   if (clientSlug && ['setup needed', 'candidate'].includes(agent.status)) {
-    return workspaceDiagnosisHref(clientSlug)
+    return workspaceDiagnosisHref(clientSlug, 'overview', routeScope)
   }
 
-  return workspaceHref(clientSlug ?? 'generic-client', 'workstreams')
+  return workspaceHref(clientSlug ?? 'generic-client', 'workstreams', routeScope)
 }

@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
-import { workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
+import { workspaceDiagnosisHref, workspaceHref, type WorkspaceRouteScope } from '../lib/product-shell'
 import { getWorkspaceWorkstreams } from '../lib/workflow.functions'
 import type { WorkspaceReadinessItem, WorkspaceReadinessStatus } from '../lib/workflow'
 
@@ -14,6 +14,19 @@ export const Route = createFileRoute('/workspace/$clientSlug/workstreams')({
 
 function WorkspaceWorkstreamsPage() {
   const data = Route.useLoaderData()
+
+  return <WorkspaceWorkstreamsView data={data} />
+}
+
+export type WorkspaceWorkstreamsData = ReturnType<typeof Route.useLoaderData>
+
+export function WorkspaceWorkstreamsView({
+  data,
+  routeScope = 'workspace',
+}: {
+  data: WorkspaceWorkstreamsData
+  routeScope?: WorkspaceRouteScope
+}) {
   const scopedWorkstreams = data.workstreams.filter((item) =>
     ['ready for design', 'active', 'complete'].includes(item.status),
   )
@@ -39,17 +52,18 @@ function WorkspaceWorkstreamsPage() {
       ]}
       action={
         <>
-          <a href={workspaceHref(data.clientSlug, 'agents')} className="primary-button no-underline">
+          <a href={workspaceHref(data.clientSlug, 'agents', routeScope)} className="primary-button no-underline">
             Open agents
           </a>
           <a
-            href={workspaceDiagnosisHref(data.clientSlug, 'audit')}
+            href={workspaceDiagnosisHref(data.clientSlug, 'audit', routeScope)}
             className="secondary-button no-underline"
           >
             Review diagnosis
           </a>
         </>
       }
+      routeScope={routeScope}
     >
       <section className="workspace-board-canvas">
         <article className="content-panel workspace-board-panel">

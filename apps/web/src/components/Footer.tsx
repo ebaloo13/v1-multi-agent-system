@@ -6,9 +6,9 @@ export default function Footer() {
   })
   const isWorkspace = pathname.startsWith('/workspace/')
   const isPublicLanding = pathname === '/'
-  const isWorkspaceRoute = /^\/workspace\/[^/]+(?:\/.*)?$/.test(pathname)
+  const isAppRoute = /^\/(?:workspace|internal)\/[^/]+(?:\/.*)?$/.test(pathname)
 
-  if (isWorkspaceRoute) {
+  if (isAppRoute) {
     return null
   }
 

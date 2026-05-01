@@ -2,12 +2,17 @@ import { type FormEvent, type ReactNode, useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import WorkspaceShell from '../components/WorkspaceShell'
-import { intakeSections, workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
+import {
+  intakeSections,
+  workspaceDiagnosisHref,
+  workspaceHref,
+  type WorkspaceRouteScope,
+} from '../lib/product-shell'
 import { saveAndRunAudit, getWorkspaceDiagnosis } from '../lib/workflow.functions'
 import { messageFromError } from '../lib/workflow'
 import type { WorkspaceReadinessGroup, WorkspaceReadinessItem, WorkspaceReadinessStatus } from '../lib/workflow'
 
-function validateDiagnosisSearch(search: Record<string, unknown>) {
+export function validateDiagnosisSearch(search: Record<string, unknown>) {
   const panel = typeof search.panel === 'string' ? search.panel : 'overview'
 
   return {
@@ -28,10 +33,26 @@ export const Route = createFileRoute('/workspace/$clientSlug/diagnosis')({
 })
 
 function WorkspaceDiagnosisPage() {
-  const navigate = useNavigate()
-  const runAudit = useServerFn(saveAndRunAudit)
   const data = Route.useLoaderData()
   const { panel } = Route.useSearch()
+
+  return <WorkspaceDiagnosisView data={data} panel={panel} />
+}
+
+export type WorkspaceDiagnosisData = ReturnType<typeof Route.useLoaderData>
+export type WorkspaceDiagnosisPanel = ReturnType<typeof Route.useSearch>['panel']
+
+export function WorkspaceDiagnosisView({
+  data,
+  panel,
+  routeScope = 'workspace',
+}: {
+  data: WorkspaceDiagnosisData
+  panel: WorkspaceDiagnosisPanel
+  routeScope?: WorkspaceRouteScope
+}) {
+  const navigate = useNavigate()
+  const runAudit = useServerFn(saveAndRunAudit)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const sectionProgress = data.intake
@@ -64,7 +85,9 @@ function WorkspaceDiagnosisPage() {
       const result = await runAudit({ data: formData })
 
       navigate({
-        to: '/workspace/$clientSlug/diagnosis',
+        to: routeScope === 'internal'
+          ? '/internal/$clientSlug/diagnosis'
+          : '/workspace/$clientSlug/diagnosis',
         params: {
           clientSlug: result.clientSlug,
         },
@@ -100,14 +123,15 @@ function WorkspaceDiagnosisPage() {
         ]}
         action={
           <>
-            <a href={workspaceDiagnosisHref(data.clientSlug, 'intake')} className="primary-button no-underline">
+            <a href={workspaceDiagnosisHref(data.clientSlug, 'intake', routeScope)} className="primary-button no-underline">
               Business Context
             </a>
-            <a href={workspaceHref(data.clientSlug, 'workstreams')} className="secondary-button no-underline">
+            <a href={workspaceHref(data.clientSlug, 'workstreams', routeScope)} className="secondary-button no-underline">
               Workstreams
             </a>
           </>
         }
+        routeScope={routeScope}
       >
         <section className="content-panel">
           <div className="workspace-status-strip">
@@ -168,14 +192,15 @@ function WorkspaceDiagnosisPage() {
       ]}
       action={
         <>
-          <a href={workspaceHref(data.clientSlug, 'workstreams')} className="primary-button no-underline">
+          <a href={workspaceHref(data.clientSlug, 'workstreams', routeScope)} className="primary-button no-underline">
             Open workstreams
           </a>
-          <a href={workspaceHref(data.clientSlug, 'dashboard')} className="secondary-button no-underline">
+          <a href={workspaceHref(data.clientSlug, 'dashboard', routeScope)} className="secondary-button no-underline">
             Back to dashboard
           </a>
         </>
       }
+      routeScope={routeScope}
     >
       <section className="content-panel">
         <div className="workspace-panel-head">
@@ -194,7 +219,7 @@ function WorkspaceDiagnosisPage() {
           ].map((item) => (
             <a
               key={item.id}
-              href={workspaceDiagnosisHref(data.clientSlug, item.id as 'overview' | 'preaudit' | 'intake' | 'audit')}
+              href={workspaceDiagnosisHref(data.clientSlug, item.id as 'overview' | 'preaudit' | 'intake' | 'audit', routeScope)}
               className={panel === item.id ? 'workspace-segmented-link is-active' : 'workspace-segmented-link'}
             >
               {item.label}
@@ -542,7 +567,7 @@ function WorkspaceDiagnosisPage() {
                       {isSubmitting ? 'Running audit...' : 'Save Business Context and run audit'}
                     </button>
                     <a
-                      href={workspaceDiagnosisHref(data.clientSlug, 'preaudit')}
+                      href={workspaceDiagnosisHref(data.clientSlug, 'preaudit', routeScope)}
                       className="secondary-button no-underline"
                     >
                       Review preaudit

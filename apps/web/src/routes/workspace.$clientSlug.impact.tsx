@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
-import { workspaceDiagnosisHref, workspaceHref } from '../lib/product-shell'
+import { workspaceDiagnosisHref, workspaceHref, type WorkspaceRouteScope } from '../lib/product-shell'
 import { getWorkspaceImpact } from '../lib/workflow.functions'
 import type { WorkspaceImpactItem, WorkspaceImpactState, WorkspaceImpactView } from '../lib/workflow'
 
@@ -14,6 +14,19 @@ export const Route = createFileRoute('/workspace/$clientSlug/impact')({
 
 function WorkspaceImpactPage() {
   const data = Route.useLoaderData()
+
+  return <WorkspaceImpactView data={data} />
+}
+
+export type WorkspaceImpactData = ReturnType<typeof Route.useLoaderData>
+
+export function WorkspaceImpactView({
+  data,
+  routeScope = 'workspace',
+}: {
+  data: WorkspaceImpactData
+  routeScope?: WorkspaceRouteScope
+}) {
   const identified = impactByState(data.impact, 'identified')
   const unlocking = impactByState(data.impact, 'unlocking')
   const observed = impactByState(data.impact, 'observed')
@@ -40,14 +53,15 @@ function WorkspaceImpactPage() {
       ]}
       action={
         <>
-          <a href={workspaceHref(data.clientSlug, 'dashboard')} className="primary-button no-underline">
+          <a href={workspaceHref(data.clientSlug, 'dashboard', routeScope)} className="primary-button no-underline">
             Back to dashboard
           </a>
-          <a href={workspaceDiagnosisHref(data.clientSlug)} className="secondary-button no-underline">
+          <a href={workspaceDiagnosisHref(data.clientSlug, 'overview', routeScope)} className="secondary-button no-underline">
             Open diagnosis
           </a>
         </>
       }
+      routeScope={routeScope}
     >
       <section className="content-panel">
         <div className="workspace-panel-head">
