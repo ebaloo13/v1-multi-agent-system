@@ -12,6 +12,7 @@ import {
   type WorkItemType,
 } from "../../schemas/operations.js";
 import { slugifyClientName } from "../../shared/runNaming.js";
+import { notifySlackWorkItemCreated } from "../../integrations/slack/index.js";
 import { appendClientEvent } from "../events/index.js";
 
 type WorkItemOptionalDefaults = Pick<
@@ -116,6 +117,15 @@ export async function createWorkItem(
       type: workItem.type,
       moduleKey: workItem.moduleKey,
     },
+  });
+  await notifySlackWorkItemCreated({
+    clientSlug: safeSlug,
+    title: workItem.title,
+    type: workItem.type,
+    moduleKey: workItem.moduleKey,
+    priority: workItem.priority,
+    status: workItem.status,
+    createdAt: workItem.createdAt,
   });
   return workItem;
 }
