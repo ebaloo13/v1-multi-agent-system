@@ -1,6 +1,6 @@
 import { fetchWebPage, type WebHeadingMap } from "../preaudit/webContext.js";
-import { defineTool } from "./types.js";
-import { requireHttpUrl, requireObject } from "./validation.js";
+import { defineTool } from "../runtime/tools/types.js";
+import { requireHttpUrl, requireObject } from "../runtime/tools/validation.js";
 
 export type FetchWebPageArgs = {
   url: string;

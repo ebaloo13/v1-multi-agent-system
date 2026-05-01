@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { artifactClientsDir } from "../../src/common/clientArtifacts.js";
+import { artifactClientsDir } from "../../src/shared/clientArtifacts.js";
 import { generatePreauditReport } from "../../src/preaudit/report.js";
 import type { PreauditOutput } from "../../src/schemas/preaudit.js";
 

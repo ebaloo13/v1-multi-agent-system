@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AuditOutput } from "../schemas/audit.js";
 import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
-import { artifactRunPath } from "../common/clientArtifacts.js";
+import { artifactRunPath } from "../shared/clientArtifacts.js";
 
 export type AuditRunArtifactStatus =
   | "success"

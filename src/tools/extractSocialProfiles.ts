@@ -1,5 +1,5 @@
-import { defineTool } from "./types.js";
-import { requireObject, requireStringArray } from "./validation.js";
+import { defineTool } from "../runtime/tools/types.js";
+import { requireObject, requireStringArray } from "../runtime/tools/validation.js";
 
 export type ExtractSocialProfilesArgs = {
   links: string[];

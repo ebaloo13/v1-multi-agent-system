@@ -1,5 +1,5 @@
-import { defineTool } from "./types.js";
-import { requireObject, requireString } from "./validation.js";
+import { defineTool } from "../runtime/tools/types.js";
+import { requireObject, requireString } from "../runtime/tools/validation.js";
 
 export type DetectTrackingMarkersArgs = {
   content: string;

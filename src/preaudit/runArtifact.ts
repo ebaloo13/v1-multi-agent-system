@@ -10,7 +10,7 @@ import type {
   PreauditSiteType,
 } from "./scope.js";
 import type { PreauditOutput } from "../schemas/preaudit.js";
-import { artifactRunPath } from "../common/clientArtifacts.js";
+import { artifactRunPath } from "../shared/clientArtifacts.js";
 
 export type PreauditRunArtifactStatus =
   | "success"

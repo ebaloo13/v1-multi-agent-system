@@ -8,7 +8,7 @@ import type {
   AuditToolFacts,
   DetectedSocialProfiles,
 } from "../../src/audit/ingestion/types.js";
-import { slugifyHostnameLabel } from "../../src/common/runNaming.js";
+import { slugifyHostnameLabel } from "../../src/shared/runNaming.js";
 import { PreauditRunError } from "../../src/preaudit/errors.js";
 import { runPreauditFactsCollection } from "../../src/tools/harness.js";
 

@@ -12,7 +12,7 @@ import type {
 } from "../../src/audit/ingestion/types.js";
 import { AuditRunError } from "../../src/audit/errors.js";
 import type { PreauditOutput } from "../../src/schemas/preaudit.js";
-import { slugifyClientName } from "../../src/common/runNaming.js";
+import { slugifyClientName } from "../../src/shared/runNaming.js";
 
 type PreauditRunJson = {
   run_id?: unknown;

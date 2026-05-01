@@ -7,11 +7,11 @@ import {
   artifactRelativePath,
   relocateRunDir,
   writeLatestClientRunPointer,
-} from "../common/clientArtifacts.js";
+} from "../shared/clientArtifacts.js";
 import {
   deriveClientSlugFromRecord,
   nextDisplayRunId,
-} from "../common/runNaming.js";
+} from "../shared/runNaming.js";
 import { buildPreauditPrompt } from "../preaudit/contract.js";
 import { PreauditRunError } from "../preaudit/errors.js";
 import { getLastPreauditLLMSdk, runPreauditLLM } from "../preaudit/piClient.js";
