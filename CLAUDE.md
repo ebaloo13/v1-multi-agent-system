@@ -2,6 +2,13 @@
 
 This repository contains B2B business agents built in TypeScript using a hybrid LLM runtime: `pi-ai` for diagnostic agents and the Claude Agent SDK for orchestration and specialist agents.
 
+## Repository Boundary
+- The repository root is the only allowed workspace.
+- Do not inspect, modify, or request access to directories outside the repository root.
+- Do not browse parent directories, sibling directories, home-directory paths, or unrelated filesystem locations.
+- If a needed file is missing from the repo, report that limitation clearly instead of searching outside the project.
+- Treat anything outside the repo as out of scope unless the user explicitly requests work in another repository or location.
+
 ## Goal
 Build realistic, production-oriented mock agents for SME consulting use cases that can later be deployed in real client environments.
 
