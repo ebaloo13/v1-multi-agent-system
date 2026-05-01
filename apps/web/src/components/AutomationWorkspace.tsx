@@ -34,7 +34,7 @@ type AutomationWorkspacePageProps = {
   statusUpdateClientSlug?: string
 }
 
-type AutomationBoardStatus = 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done'
+type AutomationBoardStatus = 'new' | 'in_progress' | 'waiting' | 'needs_review' | 'ready' | 'done'
 
 const viewMeta: Record<
   AutomationViewId,
@@ -92,12 +92,13 @@ const viewMeta: Record<
 const boardColumns: Array<{
   status: AutomationBoardStatus
   label: string
-  tone: 'backlog' | 'todo' | 'progress' | 'review' | 'done'
+  tone: 'backlog' | 'progress' | 'waiting' | 'review' | 'ready' | 'done'
 }> = [
-  { status: 'backlog', label: 'Backlog', tone: 'backlog' },
-  { status: 'todo', label: 'Todo', tone: 'todo' },
+  { status: 'new', label: 'New', tone: 'backlog' },
   { status: 'in_progress', label: 'In Progress', tone: 'progress' },
-  { status: 'in_review', label: 'In Review', tone: 'review' },
+  { status: 'waiting', label: 'Waiting', tone: 'waiting' },
+  { status: 'needs_review', label: 'Needs Review', tone: 'review' },
+  { status: 'ready', label: 'Ready', tone: 'ready' },
   { status: 'done', label: 'Done', tone: 'done' },
 ]
 
@@ -379,19 +380,20 @@ function boardStatusFromTask(status: AutomationTaskStatus): AutomationBoardStatu
   switch (status) {
     case 'recommended':
     case 'backlog':
-      return 'backlog'
     case 'queued':
     case 'claimed':
-    case 'blocked':
     case 'todo':
-      return 'todo'
+      return 'new'
+    case 'blocked':
+      return 'waiting'
     case 'running':
     case 'in_progress':
       return 'in_progress'
     case 'human_review':
     case 'in_review':
-      return 'in_review'
+      return 'needs_review'
     case 'completed':
+      return 'ready'
     case 'done':
       return 'done'
   }
@@ -630,6 +632,9 @@ function TaskCard({
             <AgentAvatar label={task.assignee} initials={task.assigneeInitials} agent={isAgentAssigned} />
           ) : null}
           <PriorityBadge priority={task.priority} />
+          {task.handlingLabel ? (
+            <span className="automation-handling-badge">{task.handlingLabel}</span>
+          ) : null}
           {isAgentAssigned ? <span className="automation-agent-badge">AI agent</span> : null}
         </div>
         {task.artifactCount ? (

@@ -32,12 +32,13 @@ type ClientWorkspaceAppProps = {
   workItems?: WorkItem[]
 }
 
-type ClientRequestStatus = 'new' | 'inProgress' | 'needsReview' | 'ready' | 'humanSupport'
+type ClientRequestStatus = 'new' | 'inProgress' | 'waiting' | 'needsReview' | 'ready' | 'done'
 
 type ClientRequest = {
   title: string
   type: 'Request' | 'Review' | 'File' | 'Support'
   status: ClientRequestStatus
+  handlingLabel?: string
   updatedAt: string
 }
 
@@ -50,13 +51,14 @@ type ClientFile = {
 const statusColumns: Array<{
   id: ClientRequestStatus
   label: string
-  tone: 'new' | 'progress' | 'review' | 'ready' | 'support'
+  tone: 'new' | 'progress' | 'waiting' | 'review' | 'ready' | 'done'
 }> = [
   { id: 'new', label: 'New', tone: 'new' },
   { id: 'inProgress', label: 'In Progress', tone: 'progress' },
+  { id: 'waiting', label: 'Waiting', tone: 'waiting' },
   { id: 'needsReview', label: 'Needs Review', tone: 'review' },
   { id: 'ready', label: 'Ready', tone: 'ready' },
-  { id: 'humanSupport', label: 'Human Support', tone: 'support' },
+  { id: 'done', label: 'Done', tone: 'done' },
 ]
 
 const clientRequests: ClientRequest[] = [
@@ -70,6 +72,7 @@ const clientRequests: ClientRequest[] = [
     title: 'Review monthly follow-up summary',
     type: 'Review',
     status: 'needsReview',
+    handlingLabel: 'Client Review',
     updatedAt: 'Today',
   },
   {
@@ -81,25 +84,28 @@ const clientRequests: ClientRequest[] = [
   {
     title: 'Upload brand guidelines',
     type: 'File',
-    status: 'humanSupport',
+    status: 'waiting',
+    handlingLabel: 'Human Support',
     updatedAt: 'Apr 29',
   },
   {
     title: 'Approve booking page copy',
     type: 'Review',
     status: 'needsReview',
+    handlingLabel: 'Client Review',
     updatedAt: 'Apr 28',
   },
   {
     title: 'New customer reply template',
     type: 'File',
-    status: 'ready',
+    status: 'done',
     updatedAt: 'Apr 27',
   },
   {
     title: 'Confirm support contact',
     type: 'Support',
-    status: 'humanSupport',
+    status: 'waiting',
+    handlingLabel: 'Human Support',
     updatedAt: 'Apr 26',
   },
   {
@@ -307,6 +313,9 @@ function ClientRequestCard({ request }: { request: ClientRequest }) {
       </div>
       <div className="client-card-meta">
         <span className={`client-status-pill status-${request.status}`}>{statusLabel(request.status)}</span>
+        {request.handlingLabel ? (
+          <span className="client-handling-badge">{request.handlingLabel}</span>
+        ) : null}
         <span className="client-type-badge">{request.type}</span>
       </div>
       <footer>
@@ -490,12 +499,14 @@ function statusLabel(status: ClientRequestStatus) {
       return 'New'
     case 'inProgress':
       return 'In Progress'
+    case 'waiting':
+      return 'Waiting'
     case 'needsReview':
       return 'Needs Review'
     case 'ready':
       return 'Ready'
-    case 'humanSupport':
-      return 'Human Support'
+    case 'done':
+      return 'Done'
   }
 }
 
@@ -504,6 +515,7 @@ function workItemToClientRequest(workItem: WorkItem): ClientRequest {
     title: workItem.title,
     type: workItemTypeLabel(workItem),
     status: workItemStatusToClientStatus(workItem.status),
+    handlingLabel: workItemHandlingLabel(workItem),
     updatedAt: formatUpdatedAt(workItem.updatedAt),
   }
 }
@@ -513,15 +525,46 @@ function workItemStatusToClientStatus(status: WorkItem['status']): ClientRequest
     case 'in_progress':
       return 'inProgress'
     case 'waiting':
-      return 'humanSupport'
+      return 'waiting'
     case 'needs_review':
       return 'needsReview'
     case 'ready':
-    case 'done':
       return 'ready'
+    case 'done':
+      return 'done'
     case 'new':
       return 'new'
   }
+}
+
+function workItemHandlingLabel(workItem: WorkItem) {
+  const handlingMode = workItem.metadata.handlingMode
+
+  if (handlingMode === 'human_support') {
+    return 'Human Support'
+  }
+
+  if (handlingMode === 'client') {
+    return 'Client Review'
+  }
+
+  if (handlingMode === 'internal') {
+    return 'Internal'
+  }
+
+  if (handlingMode === 'ai') {
+    return 'AI'
+  }
+
+  if (workItem.status === 'waiting') {
+    return 'Human Support'
+  }
+
+  if (workItem.status === 'needs_review') {
+    return 'Client Review'
+  }
+
+  return undefined
 }
 
 function workItemTypeLabel(workItem: WorkItem): ClientRequest['type'] {

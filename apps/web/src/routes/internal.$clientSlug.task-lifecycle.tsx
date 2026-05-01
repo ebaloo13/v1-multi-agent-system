@@ -45,6 +45,7 @@ function workItemToAutomationTask(workItem: WorkItem, index: number): Automation
     nextStep: nextStepFromStatus(workItem.status),
     blocker: workItem.status === 'waiting' ? 'Waiting on client input or clarification.' : undefined,
     workItemStatus: workItem.status,
+    handlingLabel: workItemHandlingLabel(workItem),
   }
 }
 
@@ -59,6 +60,7 @@ function automationStatusFromWorkItem(status: WorkItem['status']): AutomationTas
     case 'needs_review':
       return 'in_review'
     case 'ready':
+      return 'completed'
     case 'done':
       return 'done'
   }
@@ -96,6 +98,36 @@ function nextStepFromStatus(status: WorkItem['status']) {
     case 'done':
       return 'No next step.'
   }
+}
+
+function workItemHandlingLabel(workItem: WorkItem) {
+  const handlingMode = workItem.metadata.handlingMode
+
+  if (handlingMode === 'human_support') {
+    return 'Human Support'
+  }
+
+  if (handlingMode === 'client') {
+    return 'Client Review'
+  }
+
+  if (handlingMode === 'internal') {
+    return 'Internal'
+  }
+
+  if (handlingMode === 'ai') {
+    return 'AI'
+  }
+
+  if (workItem.status === 'waiting') {
+    return 'Human Support'
+  }
+
+  if (workItem.status === 'needs_review') {
+    return 'Client Review'
+  }
+
+  return undefined
 }
 
 function moduleLabel(moduleKey: WorkItem['moduleKey']) {

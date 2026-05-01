@@ -713,7 +713,15 @@ code {
   background: #fbf7e8;
 }
 
+.automation-kanban-column.tone-waiting {
+  background: #f7f7f8;
+}
+
 .automation-kanban-column.tone-review {
+  background: #eef8f1;
+}
+
+.automation-kanban-column.tone-ready {
   background: #eef8f1;
 }
 
@@ -750,7 +758,17 @@ code {
   color: #fff;
 }
 
+.automation-kanban-column.tone-waiting .automation-column-header strong {
+  background: #6b7280;
+  color: #fff;
+}
+
 .automation-kanban-column.tone-review .automation-column-header strong {
+  background: #16803d;
+  color: #fff;
+}
+
+.automation-kanban-column.tone-ready .automation-column-header strong {
   background: #16803d;
   color: #fff;
 }
@@ -781,7 +799,17 @@ code {
   background: #f59e0b;
 }
 
+.automation-column-status.tone-waiting {
+  border-color: #6b7280;
+  background: #9ca3af;
+}
+
 .automation-column-status.tone-review {
+  border-color: #15803d;
+  background: #22c55e;
+}
+
+.automation-column-status.tone-ready {
   border-color: #15803d;
   background: #22c55e;
 }
@@ -895,6 +923,7 @@ code {
 
 .automation-priority-badge,
 .automation-agent-badge,
+.automation-handling-badge,
 .automation-artifact-count,
 .automation-task-blocker {
   display: inline-flex;
@@ -938,6 +967,11 @@ code {
 .automation-agent-badge {
   background: #eff6ff;
   color: #1d4ed8;
+}
+
+.automation-handling-badge {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .automation-artifact-count {
@@ -5637,6 +5671,10 @@ button:disabled,
   background: #fff7e8;
 }
 
+.client-kanban-column.tone-waiting {
+  background: #f7f8fa;
+}
+
 .client-kanban-column.tone-review {
   background: #f4f0ff;
 }
@@ -5645,7 +5683,7 @@ button:disabled,
   background: #eef9f1;
 }
 
-.client-kanban-column.tone-support {
+.client-kanban-column.tone-done {
   background: #eef5ff;
 }
 
@@ -5694,6 +5732,10 @@ button:disabled,
   background: #f59e0b;
 }
 
+.client-status-dot.tone-waiting {
+  background: #9aa3af;
+}
+
 .client-status-dot.tone-review {
   background: #8b5cf6;
 }
@@ -5702,7 +5744,7 @@ button:disabled,
   background: #16a34a;
 }
 
-.client-status-dot.tone-support {
+.client-status-dot.tone-done {
   background: #2563eb;
 }
 
@@ -5759,11 +5801,13 @@ button:disabled,
 }
 
 .client-card-meta {
+  display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
 }
 
 .client-status-pill,
+.client-handling-badge,
 .client-type-badge {
   display: inline-flex;
   align-items: center;
@@ -5784,6 +5828,11 @@ button:disabled,
   color: #a15c00;
 }
 
+.client-status-pill.status-waiting {
+  background: #eef2f6;
+  color: #4b5563;
+}
+
 .client-status-pill.status-needsReview {
   background: #f1eaff;
   color: #6d28d9;
@@ -5794,9 +5843,14 @@ button:disabled,
   color: #15803d;
 }
 
-.client-status-pill.status-humanSupport {
+.client-status-pill.status-done {
   background: #e7f0ff;
   color: #1d4ed8;
+}
+
+.client-handling-badge {
+  background: #fff7ed;
+  color: #9a3412;
 }
 
 .client-type-badge {

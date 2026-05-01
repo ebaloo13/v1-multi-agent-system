@@ -73,6 +73,7 @@ export type AutomationTask = {
   nextStep: string
   blocker?: string
   workItemStatus?: WorkItemStatus
+  handlingLabel?: string
 }
 
 export type AutomationRunStep = {
@@ -335,13 +336,14 @@ export function buildAutomationWorkspace(clientSlug: string): AutomationWorkspac
         agent: 'Sales Follow-up Agent',
         workstream: 'Sales follow-up',
         nextStep: 'Decide when the agent should notify a human.',
+        handlingLabel: 'Client Review',
       },
       {
         id: 'task-004',
         displayId: 'AUT-4',
         title: 'Map booking-to-delivery handoff',
         description: 'Document operations bottlenecks without inventing missing steps.',
-        status: 'todo',
+        status: 'blocked',
         tone: 'pending',
         priority: 'medium',
         assignee: 'Operations Mapping Agent',
@@ -350,6 +352,7 @@ export function buildAutomationWorkspace(clientSlug: string): AutomationWorkspac
         workstream: 'CRM / back-office review',
         nextStep: 'Upload booking export or provide a manual process summary.',
         blocker: 'Booking export is not available yet.',
+        handlingLabel: 'Human Support',
       },
       {
         id: 'task-005',
@@ -405,6 +408,7 @@ export function buildAutomationWorkspace(clientSlug: string): AutomationWorkspac
         assigneeInitials: 'CO',
         workstream: 'Collections workflow',
         nextStep: 'Confirm client policy boundaries before assigning an agent.',
+        handlingLabel: 'Client Review',
       },
       {
         id: 'task-009',
