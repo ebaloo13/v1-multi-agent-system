@@ -12,10 +12,10 @@ import {
   deriveClientSlugFromRecord,
   nextDisplayRunId,
 } from "../shared/runNaming.js";
-import { buildPreauditPrompt } from "../preaudit/contract.js";
-import { PreauditRunError } from "../preaudit/errors.js";
+import { buildPreauditPrompt } from "../workflows/lead-preaudit/contract.js";
+import { PreauditRunError } from "../workflows/lead-preaudit/errors.js";
 import { getLastPreauditLLMSdk, runPreauditLLM } from "../preaudit/piClient.js";
-import { createPreauditRunId } from "../preaudit/runId.js";
+import { createPreauditRunId } from "../workflows/lead-preaudit/runId.js";
 import {
   appendPreauditRunEvent,
   getGitCommit,
@@ -31,9 +31,9 @@ import {
   computeSeoScore,
   computeSpeedScore,
   computeUxScore,
-} from "../preaudit/scoring.js";
-import { classifyPreauditScope } from "../preaudit/scope.js";
-import { parseAndValidatePreauditOutput } from "../preaudit/validateOutput.js";
+} from "../workflows/lead-preaudit/scoring.js";
+import { classifyPreauditScope } from "../workflows/lead-preaudit/scope.js";
+import { parseAndValidatePreauditOutput } from "../workflows/lead-preaudit/validateOutput.js";
 import type { PreauditOutput } from "../schemas/preaudit.js";
 
 export type PreauditAgentSuccess = {

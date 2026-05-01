@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { artifactClientsDir } from "../../src/shared/clientArtifacts.js";
-import { generatePreauditReport } from "../../src/preaudit/report.js";
+import { generatePreauditReport } from "../../src/workflows/lead-preaudit/report.js";
 import type { PreauditOutput } from "../../src/schemas/preaudit.js";
 
 type PreauditRunJson = {
