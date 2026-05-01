@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { formatClientName } from '../lib/product-shell'
 
-type ClientWorkspaceView = 'home' | 'newRequest' | 'reviews' | 'files' | 'settings'
+type ClientWorkspaceView = 'home' | 'newRequest' | 'reviews' | 'files' | 'chat' | 'settings'
 
 type ClientWorkspaceAppProps = {
   clientSlug: string
@@ -125,11 +125,16 @@ export default function ClientWorkspaceApp({ clientSlug, view }: ClientWorkspace
         {view === 'newRequest' ? <NewRequestView clientName={clientName} /> : null}
         {view === 'reviews' ? <ReviewsView requests={reviewRequests} /> : null}
         {view === 'files' ? <FilesView files={clientFiles} /> : null}
+        {view === 'chat' ? <ChatView clientSlug={clientSlug} /> : null}
         {view === 'settings' ? <SettingsView clientName={clientName} /> : null}
       </section>
-      <button type="button" className="client-chat-button" aria-label="Open chat">
+      <a
+        href={`/workspace/${encodeURIComponent(clientSlug)}/chat`}
+        className="client-chat-button"
+        aria-label="Open chat"
+      >
         <MessageCircle size={20} />
-      </button>
+      </a>
     </main>
   )
 }
@@ -147,7 +152,7 @@ function ClientIconSidebar({
     { id: 'newRequest', label: 'Requests', href: `${basePath}/new-request`, icon: CheckSquare },
     { id: 'reviews', label: 'Reviews', href: `${basePath}/reviews`, icon: List },
     { id: 'files', label: 'Files', href: `${basePath}/files`, icon: Folder },
-    { id: 'chat', label: 'Chat', href: `${basePath}#chat`, icon: MessageCircle },
+    { id: 'chat', label: 'Chat', href: `${basePath}/chat`, icon: MessageCircle },
     { id: 'settings', label: 'Settings', href: `${basePath}/settings`, icon: Settings },
   ] as const
 
@@ -378,6 +383,27 @@ function FilesView({ files }: { files: ClientFile[] }) {
             <button type="button">Download</button>
           </article>
         ))}
+      </div>
+    </section>
+  )
+}
+
+function ChatView({ clientSlug }: { clientSlug: string }) {
+  return (
+    <section className="client-simple-page">
+      <div className="client-simple-header">
+        <span>Chat</span>
+        <h1>Chat</h1>
+        <p>Message your automation team.</p>
+      </div>
+      <div className="client-empty-card">
+        <MessageCircle size={24} />
+        <strong>Chat support will be available soon.</strong>
+        <p>For now, use New Request to send anything you need us to work on.</p>
+        <a href={`/workspace/${encodeURIComponent(clientSlug)}/new-request`} className="client-primary-button">
+          <Plus size={16} />
+          New Request
+        </a>
       </div>
     </section>
   )

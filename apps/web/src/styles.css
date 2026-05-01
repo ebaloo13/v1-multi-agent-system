@@ -5286,7 +5286,7 @@ button:disabled,
 
 .client-workspace-app {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 78px minmax(0, 1fr);
   width: 100vw;
   height: 100vh;
   min-height: 100vh;
@@ -5338,7 +5338,7 @@ button:disabled,
   justify-content: center;
   flex-direction: column;
   gap: 0.16rem;
-  width: 42px;
+  width: 56px;
   height: 48px;
   border: 1px solid transparent;
   border-radius: 14px;
@@ -5355,6 +5355,7 @@ button:disabled,
   font-size: 0.58rem;
   font-weight: 850;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .client-sidebar-icon:hover,
@@ -5787,6 +5788,7 @@ button:disabled,
   color: #ffffff;
   box-shadow: 0 18px 42px rgba(17, 24, 39, 0.22);
   cursor: pointer;
+  text-decoration: none;
 }
 
 .client-simple-page {
@@ -5828,7 +5830,8 @@ button:disabled,
 
 .client-request-form-card,
 .client-settings-grid article,
-.client-file-card {
+.client-file-card,
+.client-empty-card {
   border: 1px solid rgba(20, 29, 38, 0.1);
   border-radius: 18px;
   background: #ffffff;
@@ -5866,6 +5869,34 @@ button:disabled,
 
 .client-request-form-card textarea {
   resize: vertical;
+}
+
+.client-empty-card {
+  display: grid;
+  gap: 0.65rem;
+  width: min(460px, 100%);
+  padding: 1.1rem;
+}
+
+.client-empty-card > svg {
+  color: #2563eb;
+}
+
+.client-empty-card strong {
+  color: #17202a;
+  font-size: 0.96rem;
+}
+
+.client-empty-card p {
+  margin: 0;
+  color: #687384;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.client-empty-card .client-primary-button {
+  justify-self: start;
+  margin-top: 0.2rem;
 }
 
 .client-review-list {
@@ -5959,7 +5990,7 @@ button:disabled,
 
 @media (max-width: 900px) {
   .client-workspace-app {
-    grid-template-columns: 60px minmax(0, 1fr);
+    grid-template-columns: 68px minmax(0, 1fr);
   }
 
   .client-icon-sidebar {
@@ -5968,7 +5999,7 @@ button:disabled,
 
   .client-sidebar-logo,
   .client-sidebar-icon {
-    width: 38px;
+    width: 52px;
     height: 44px;
     border-radius: 13px;
   }

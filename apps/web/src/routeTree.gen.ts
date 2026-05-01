@@ -27,6 +27,7 @@ import { Route as WorkspaceClientSlugIntakeRouteImport } from './routes/workspac
 import { Route as WorkspaceClientSlugImpactRouteImport } from './routes/workspace.$clientSlug.impact'
 import { Route as WorkspaceClientSlugFilesRouteImport } from './routes/workspace.$clientSlug.files'
 import { Route as WorkspaceClientSlugDiagnosisRouteImport } from './routes/workspace.$clientSlug.diagnosis'
+import { Route as WorkspaceClientSlugChatRouteImport } from './routes/workspace.$clientSlug.chat'
 import { Route as WorkspaceClientSlugAuditRouteImport } from './routes/workspace.$clientSlug.audit'
 import { Route as WorkspaceClientSlugArtifactsRouteImport } from './routes/workspace.$clientSlug.artifacts'
 import { Route as WorkspaceClientSlugAgentsRouteImport } from './routes/workspace.$clientSlug.agents'
@@ -137,6 +138,11 @@ const WorkspaceClientSlugDiagnosisRoute =
     path: '/diagnosis',
     getParentRoute: () => WorkspaceClientSlugRoute,
   } as any)
+const WorkspaceClientSlugChatRoute = WorkspaceClientSlugChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => WorkspaceClientSlugRoute,
+} as any)
 const WorkspaceClientSlugAuditRoute =
   WorkspaceClientSlugAuditRouteImport.update({
     id: '/audit',
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/workspace/$clientSlug/agents': typeof WorkspaceClientSlugAgentsRoute
   '/workspace/$clientSlug/artifacts': typeof WorkspaceClientSlugArtifactsRoute
   '/workspace/$clientSlug/audit': typeof WorkspaceClientSlugAuditRoute
+  '/workspace/$clientSlug/chat': typeof WorkspaceClientSlugChatRoute
   '/workspace/$clientSlug/diagnosis': typeof WorkspaceClientSlugDiagnosisRoute
   '/workspace/$clientSlug/files': typeof WorkspaceClientSlugFilesRoute
   '/workspace/$clientSlug/impact': typeof WorkspaceClientSlugImpactRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   '/workspace/$clientSlug/agents': typeof WorkspaceClientSlugAgentsRoute
   '/workspace/$clientSlug/artifacts': typeof WorkspaceClientSlugArtifactsRoute
   '/workspace/$clientSlug/audit': typeof WorkspaceClientSlugAuditRoute
+  '/workspace/$clientSlug/chat': typeof WorkspaceClientSlugChatRoute
   '/workspace/$clientSlug/diagnosis': typeof WorkspaceClientSlugDiagnosisRoute
   '/workspace/$clientSlug/files': typeof WorkspaceClientSlugFilesRoute
   '/workspace/$clientSlug/impact': typeof WorkspaceClientSlugImpactRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/workspace/$clientSlug/agents': typeof WorkspaceClientSlugAgentsRoute
   '/workspace/$clientSlug/artifacts': typeof WorkspaceClientSlugArtifactsRoute
   '/workspace/$clientSlug/audit': typeof WorkspaceClientSlugAuditRoute
+  '/workspace/$clientSlug/chat': typeof WorkspaceClientSlugChatRoute
   '/workspace/$clientSlug/diagnosis': typeof WorkspaceClientSlugDiagnosisRoute
   '/workspace/$clientSlug/files': typeof WorkspaceClientSlugFilesRoute
   '/workspace/$clientSlug/impact': typeof WorkspaceClientSlugImpactRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/workspace/$clientSlug/agents'
     | '/workspace/$clientSlug/artifacts'
     | '/workspace/$clientSlug/audit'
+    | '/workspace/$clientSlug/chat'
     | '/workspace/$clientSlug/diagnosis'
     | '/workspace/$clientSlug/files'
     | '/workspace/$clientSlug/impact'
@@ -291,6 +301,7 @@ export interface FileRouteTypes {
     | '/workspace/$clientSlug/agents'
     | '/workspace/$clientSlug/artifacts'
     | '/workspace/$clientSlug/audit'
+    | '/workspace/$clientSlug/chat'
     | '/workspace/$clientSlug/diagnosis'
     | '/workspace/$clientSlug/files'
     | '/workspace/$clientSlug/impact'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/workspace/$clientSlug/agents'
     | '/workspace/$clientSlug/artifacts'
     | '/workspace/$clientSlug/audit'
+    | '/workspace/$clientSlug/chat'
     | '/workspace/$clientSlug/diagnosis'
     | '/workspace/$clientSlug/files'
     | '/workspace/$clientSlug/impact'
@@ -468,6 +480,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceClientSlugDiagnosisRouteImport
       parentRoute: typeof WorkspaceClientSlugRoute
     }
+    '/workspace/$clientSlug/chat': {
+      id: '/workspace/$clientSlug/chat'
+      path: '/chat'
+      fullPath: '/workspace/$clientSlug/chat'
+      preLoaderRoute: typeof WorkspaceClientSlugChatRouteImport
+      parentRoute: typeof WorkspaceClientSlugRoute
+    }
     '/workspace/$clientSlug/audit': {
       id: '/workspace/$clientSlug/audit'
       path: '/audit'
@@ -520,6 +539,7 @@ interface WorkspaceClientSlugRouteChildren {
   WorkspaceClientSlugAgentsRoute: typeof WorkspaceClientSlugAgentsRoute
   WorkspaceClientSlugArtifactsRoute: typeof WorkspaceClientSlugArtifactsRoute
   WorkspaceClientSlugAuditRoute: typeof WorkspaceClientSlugAuditRoute
+  WorkspaceClientSlugChatRoute: typeof WorkspaceClientSlugChatRoute
   WorkspaceClientSlugDiagnosisRoute: typeof WorkspaceClientSlugDiagnosisRoute
   WorkspaceClientSlugFilesRoute: typeof WorkspaceClientSlugFilesRoute
   WorkspaceClientSlugImpactRoute: typeof WorkspaceClientSlugImpactRoute
@@ -542,6 +562,7 @@ const WorkspaceClientSlugRouteChildren: WorkspaceClientSlugRouteChildren = {
   WorkspaceClientSlugAgentsRoute: WorkspaceClientSlugAgentsRoute,
   WorkspaceClientSlugArtifactsRoute: WorkspaceClientSlugArtifactsRoute,
   WorkspaceClientSlugAuditRoute: WorkspaceClientSlugAuditRoute,
+  WorkspaceClientSlugChatRoute: WorkspaceClientSlugChatRoute,
   WorkspaceClientSlugDiagnosisRoute: WorkspaceClientSlugDiagnosisRoute,
   WorkspaceClientSlugFilesRoute: WorkspaceClientSlugFilesRoute,
   WorkspaceClientSlugImpactRoute: WorkspaceClientSlugImpactRoute,
