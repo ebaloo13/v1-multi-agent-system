@@ -1,89 +1,53 @@
 # `apps/web`
 
-TanStack Start UX layer for the local B2B audit product shell.
+TanStack Start UX layer for the AI operations workspace.
 
-This frontend is now split into two product layers:
+The web app has two product surfaces:
 
-- public landing and lead capture at `/`
-- client workspace shell under `/workspace/$clientSlug`
+- Client-facing workspace under `/workspace/$clientSlug`.
+- Internal ops workspace under `/internal/$clientSlug`.
 
-The repo-root agent engine is unchanged. This app still invokes the existing
-local scripts and reads or writes the same file-backed workflow outputs.
+The repo-root agent engine is unchanged. This app still invokes existing local workflows and reads or writes the same file-backed state and outputs.
 
-Naming convention:
+## Product Direction
 
-- Client-facing label: **Business Context**
-- Spanish reference: **Contexto del negocio**
-- Internal legacy term: `intake`, still used by existing route paths, file names, and workflow flags
-- Client-facing generated-work label: **Outputs**
-- Internal technical term: `artifacts`, still used by existing storage paths, loaders, and workflow metadata
+The client workspace should stay simple, non-technical, and operations-focused:
 
-## Local Dev Runtime
+- Inbox
+- WorkItems / Tasks
+- Payments
+- Schedule
+- Files
+- Settings
 
-For local `pnpm dev`, the app now runs without the Cloudflare Vite plugin so
-TanStack Start server work executes in a Node-compatible environment. This is
-intentional for now because the current workflow bridge needs direct filesystem
-and child-process access to the repo-root engine.
+The internal ops workspace can expose diagnostics, run history, agent boards, review tools, artifacts, and implementation details. Client-facing routes should not depend on internal-only concepts.
 
-Production-oriented builds still keep the Cloudflare plugin enabled.
+Pre-audit is a lead acquisition hook. It can capture a prospect, run the existing diagnostic flow, and seed Business Context, but it is not part of the core client platform.
 
-## Current Route Structure
+## Platform Model
+
+The product is a horizontal AI operations workspace for small businesses, not a vertical-specific app. Business-specific behavior should layer in through reusable modules and vertical packs instead of being hardcoded into the core workspace.
+
+`WorkItem` is the shared operational object for requests, messages, leads, tasks, payments, bookings, events, confirmations, file reviews, and support items.
+
+Core schemas live at the repository root in `src/schemas`. Shared and runtime utilities live under `src/shared` and `src/runtime`.
+
+## Current Route Shape
 
 - `/`
-  Business-facing marketing landing page with website + email capture.
+  Public landing and lead capture.
 - `/workspace/$clientSlug`
-  Workspace v2 dashboard for stage, next action, workstreams, and readiness.
-- `/workspace/$clientSlug/diagnosis`
-  Unified diagnosis hub for preaudit, Business Context, and audit material.
-- `/workspace/$clientSlug/workstreams`
-  Workstreams hub that turns findings into active consulting tracks.
-- `/workspace/$clientSlug/agents`
-  Agent gallery and readiness surface for client-specific execution modules.
+  Client-facing workspace shell.
+- `/workspace/$clientSlug/files`
+  Client-facing file surface.
+- `/workspace/$clientSlug/settings`
+  Client-facing settings surface.
+- `/internal/$clientSlug`
+  Internal operations workspace.
+- `/internal/$clientSlug/*`
+  Internal diagnostics, workstreams, agents, reviews, artifacts, activity, impact, and run history.
 
-Legacy routes still exist as compatibility redirects:
-
-- `/preaudit-result`
-- `/audit-intake`
-- `/audit-result`
-- `/workspace/$clientSlug/preaudit`
-- `/workspace/$clientSlug/intake`
-- `/workspace/$clientSlug/audit`
-
-These legacy route names are implementation compatibility paths, not preferred product labels.
-
-## Current Flow
-
-`landing -> preaudit:live -> workspace/diagnosis -> audit:live -> workstreams / agents`
-
-Concretely:
-
-1. A prospect submits `website URL + email` on `/`.
-2. The app runs the existing repo-root preaudit workflow.
-3. The app stores lightweight client context locally in
-   `data/clients/<client-slug>-workspace.json`.
-4. The app redirects into the client workspace and continues using the same
-   generated output files and legacy `intake` files that already exist in the repo workflow.
-5. Diagnosis acts as the operational hub for preaudit, Business Context editing, and
-   audit review.
-6. Workstreams and Agents turn those findings into a more scalable product
-   model for future execution.
-
-## Platform Model Direction
-
-The workspace is evolving toward a horizontal AI operations platform for small
-businesses, not a vertical-specific app or CRM-only dashboard. The core model is
-organized around reusable business modules: Inbox / Conversations, Tasks / Work
-Items, Payments / Collections, Schedule / Confirmations, Files / Documents, and
-Settings / Integrations.
-
-`WorkItem` is the shared operational object for requests, messages, leads,
-tasks, payments, bookings, events, staff confirmations, file reviews, and
-support items. Vertical-specific workflows, such as staffing or ETT-style packs,
-should layer on through `VerticalPack` definitions instead of being hardcoded
-into the core workspace.
-
-The initial TypeScript/Zod foundation for this direction lives at the repository
-root in `src/schemas/operations.ts`.
+Legacy compatibility routes still exist, including older preaudit, audit, intake, diagnosis, workstreams, and agent routes. These route names are implementation compatibility paths, not preferred product labels.
 
 ## Local Persistence
 
@@ -97,49 +61,20 @@ There is still:
 
 The app depends on local files only:
 
-- `artifacts/clients/<client-slug>/preaudit/...`
-- `artifacts/clients/<client-slug>/audit/...`
+- `artifacts/clients/<client-slug>/...`
 - `data/clients/<client-slug>-audit-intake.draft.json`
 - `data/clients/<client-slug>-audit-intake.json`
 - `data/clients/<client-slug>-workspace.json`
 
-`*-workspace.json` is the lightweight client association file used by the UX
-layer. It currently stores:
+Legacy terms such as `intake` and `artifacts` remain in implementation paths. Product-facing language should prefer **Business Context** and **Outputs** where relevant.
 
-- `client_slug`
-- `client_name`
-- `website`
-- `email`
-- `created_at`
-- `updated_at`
-
-This exists only so a free preaudit submission can be linked to a client
-workspace until a real backend is added.
-
-## Architectural Constraints Kept
+## Architectural Constraints
 
 - `apps/web` remains UX-only.
 - The repo-root engine was not moved or rewritten.
-- Existing `preaudit:live` and `audit:live` scripts are still the workflow
-  bridge.
-- Existing Outputs are backed by internal `artifacts` files and legacy `intake` JSON, which remain the source of truth.
-- Public navigation and workspace navigation are separated so dead or
-  misleading links are not exposed.
-- Workspace v2 uses a new navigation model:
-  `Dashboard / Diagnosis / Workstreams / Agents`
-- Future-facing sections remain visible but non-interactive:
-  `Playbooks / Reports / Activity`
-
-## Production Gaps
-
-To make this production-ready, the next major pieces are:
-
-1. Real backend persistence for leads, clients, and workflow state.
-2. Authentication and client-specific access control for `/workspace/*`.
-3. Real email sending or CRM handoff for captured leads.
-4. A proper multi-user audit history model instead of local files.
-5. Decisions about whether to keep or remove legacy redirect routes once public
-   links are updated.
+- Existing local workflows remain the bridge to agent execution.
+- Client and internal navigation must remain clearly separated.
+- Technical/coding agents are internal implementation capabilities, not client-facing product agents.
 
 ## Run Locally
 

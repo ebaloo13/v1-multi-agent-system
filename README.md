@@ -1,129 +1,71 @@
 # Claude Agent B2B Lab
 
-TypeScript multi-agent system for AI-driven SME consulting workflows. The current system combines live preaudit fact collection, structured audit ingestion, validated agent outputs, and per-run artifacts designed for traceability rather than autonomous execution.
+AI operations workspace for small businesses. The repository currently combines local TypeScript agent workflows, validated schemas, deterministic utilities, and a web UX for client and internal operations surfaces.
 
-## Current flow
+## Product Direction
 
-`preaudit:live` -> `preaudit:report` -> Business Context draft (`*-audit-intake.draft.json`) -> `audit:live` -> `orchestrator` -> specialized agents
+The client-facing workspace is intentionally simple and non-technical. It should focus on the operational areas a small business expects to manage:
 
-Naming convention:
+- Inbox
+- WorkItems / Tasks
+- Payments
+- Schedule
+- Files
+- Settings
 
-- Client-facing label: **Business Context**
-- Spanish reference: **Contexto del negocio**
-- Internal legacy term: `intake`, still used by existing file names and CLI flags
+Internal operations are separate under `/internal/:clientSlug`. Internal views can expose diagnostics, run history, agent boards, artifacts, implementation details, and review tooling that should not appear in the client workspace.
 
-- **Preaudit** can analyze a real public website URL, apply deterministic scoring, and add a prudence layer for site fit.
-- **Preaudit report** generates a client-facing Markdown summary from validated output.
-- **Business Context draft** is generated automatically after a successful live preaudit so the next audit stage starts with prefilled context.
-- **Audit live** can run from structured real-world input built from Business Context + preaudit facts.
-- **Orchestrator** still runs after audit and activates the relevant specialist agents.
+Pre-audit remains a lead acquisition hook. It can collect website facts, generate a diagnostic output, and seed Business Context, but it is not the core client platform.
 
 ## Architecture
 
-- `preaudit-agent` and `audit-agent` use **`pi-ai`**
-- `orchestrator-agent`, `collections-agent`, `sales-agent`, and `operations-agent` use the **Claude Agent SDK**
+- `src/schemas/` contains the core Zod schemas and shared domain contracts.
+- `src/shared/` contains shared utilities used across workflows and apps.
+- `src/runtime/` contains runtime utilities and tool abstractions.
+- `src/agents/` contains current agent entrypoints.
+- `apps/web/` contains the TanStack Start UX layer.
+- `data/clients/` and `artifacts/clients/` hold local file-backed workflow state and outputs.
 
-This is intentional: fast diagnostic stages use a provider-agnostic layer, while orchestration and execution remain on the Claude SDK.
+Business-specific behavior should be implemented through reusable modules and vertical packs. Avoid hardcoding one vertical as its own app when the behavior can be represented as module configuration, schema extensions, routing policy, or a vertical pack.
 
-## Live capabilities
+## Agent Model
 
-- `preaudit:live` fetches one public website URL through a deterministic business tool harness
-- `preaudit:live` writes a live input record under `data/clients/`
-- `preaudit:live` generates an editable Business Context draft for the next stage
-- `preaudit:report` writes `report.md` for the latest preaudit run
-- `audit:live` builds normalized stage-1 audit input from confirmed Business Context plus optional preaudit context
+Agents should be organized as domain coordinators plus specialist agents. Coordinators route and sequence work inside a domain; specialists handle narrower tasks such as collections, sales, scheduling, file review, or implementation support.
 
-## Scope note
+Technical and coding agents are internal implementation capabilities. They should not be presented as client-facing product agents.
 
-The preaudit framework is optimized for SME, lead-generation, and service-business websites. It is not a browser automation or full technical crawl system. For enterprise, global, or platform-like sites, the system may soften conclusions through:
+## Existing Workflow Notes
 
-- `site_type`
-- `framework_fit`
-- `scope_confidence`
+The repository still includes preaudit, audit, orchestrator, collections, sales, and operations workflows. These should be interpreted through the newer operations workspace direction:
 
-Reports may include scope warnings when the site falls outside the intended SME/service scope.
+- Preaudit is for lead acquisition and initial Business Context.
+- Audit is a diagnostic input into internal operations and work planning.
+- Orchestrator behavior should evolve toward domain coordination.
+- Specialist agents should support reusable business modules.
 
-## Tool harness
+Legacy implementation terms such as `intake` and `artifacts` still appear in paths, flags, and metadata. Product-facing language should prefer **Business Context** and **Outputs** where relevant.
 
-The current live preaudit tool harness is deterministic and runner-controlled. It is not model-invoked and it is not a generic coding-agent system.
+## Running Locally
 
-Current tools:
-
-- `fetch_web_page`
-- `extract_social_profiles`
-- `detect_tracking_markers`
-
-Not included:
-
-- bash access
-- edit/write tools for the model
-- browser automation
-
-## Artifacts
-
-New preaudit and audit artifacts are stored under:
-
-`artifacts/clients/<client-slug>/<agent>/<display-run-id>/`
-
-Examples:
-
-- `artifacts/clients/morales-propiedades/preaudit/preaudit-morales-propiedades-0001/`
-- `artifacts/clients/morales-propiedades/audit/audit-morales-propiedades-0001/`
-
-Each client/agent folder also stores `latest.json` pointing to the latest run for that client and agent.
-
-Internal `run_id` is still preserved inside `run.json`. Historical folders under `artifacts/runs/` remain legacy and are not migrated automatically.
-
-## Key paths
-
-- `src/tools/` — deterministic preaudit tool harness
-- `src/audit/ingestion/` — stage-1 audit ingestion modules
-- `data/mock/` — demo fixtures
-- `data/clients/` — editable live inputs, generated drafts, and structured audit inputs
-- `artifacts/clients/` — human-readable client-grouped preaudit and audit artifacts
-
-## Scripts
-
-- `npm run preaudit:demo`
-- `npm run preaudit:live -- --url=https://www.example.com/`
-- `npm run preaudit:report`
-- `npm run audit:demo`
-- `npm run audit:live -- --intake=data/clients/audit-intake.sample.json`
-
-The `--intake` flag is a legacy internal implementation name. Product-facing documentation should call this input **Business Context**.
-
-## Running locally
-
-1. Install dependencies:
+Install root dependencies:
 
 ```bash
 npm install
 ```
 
-2. Create `.env` with your Anthropic key:
+Run the lead pre-audit hook:
 
 ```bash
-ANTHROPIC_API_KEY=your_key_here
+npm run preaudit:demo
 ```
 
-3. Run a live preaudit:
+Run the web app:
 
 ```bash
-npm run preaudit:live -- --url=https://www.example.com/
-npm run preaudit:report
+cd apps/web
+corepack pnpm dev
 ```
 
-4. Complete the generated Business Context draft in `data/clients/`, then run audit live:
+## Current Status
 
-```bash
-npm run audit:live -- --intake=data/clients/example-audit-intake.draft.json
-```
-
-## Current status
-
-- Live preaudit is implemented for single-page public website analysis
-- Automatic Business Context draft generation is implemented
-- Stage-1 audit ingestion is implemented for Business Context + preaudit facts
-- Preaudit and audit artifacts are client-grouped and human-readable
-- Orchestrator and specialist agents still use mock/demo data flows
-- The system is still optimized for safe, auditable workflows rather than production integrations
+This is still a local, file-backed lab environment. It does not yet provide production authentication, database persistence, real email delivery, CRM integrations, or production-safe multi-user access control.
