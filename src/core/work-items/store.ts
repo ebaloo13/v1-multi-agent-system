@@ -12,6 +12,7 @@ import {
   type WorkItemType,
 } from "../../schemas/operations.js";
 import { slugifyClientName } from "../../shared/runNaming.js";
+import { appendClientEvent } from "../events/index.js";
 
 type WorkItemOptionalDefaults = Pick<
   WorkItem,
@@ -104,6 +105,18 @@ export async function createWorkItem(
   });
 
   await writeWorkItemsFile(safeSlug, [...existing, workItem]);
+  await appendClientEvent(safeSlug, {
+    type: "work_item.created",
+    entityType: "work_item",
+    entityId: workItem.id,
+    message: `Work item created: ${workItem.title}`,
+    visibility: "internal",
+    metadata: {
+      status: workItem.status,
+      type: workItem.type,
+      moduleKey: workItem.moduleKey,
+    },
+  });
   return workItem;
 }
 
@@ -133,6 +146,19 @@ export async function updateWorkItemStatus(
   nextWorkItems[index] = updated;
 
   await writeWorkItemsFile(safeSlug, nextWorkItems);
+  await appendClientEvent(safeSlug, {
+    type: "work_item.status_updated",
+    entityType: "work_item",
+    entityId: updated.id,
+    message: `Work item status updated: ${updated.title}`,
+    visibility: "internal",
+    metadata: {
+      previousStatus: current.status,
+      status: updated.status,
+      type: updated.type,
+      moduleKey: updated.moduleKey,
+    },
+  });
   return updated;
 }
 
