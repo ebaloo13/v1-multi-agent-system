@@ -6,6 +6,7 @@ dist-ssr/
 
 *.local
 .env
+.env.*
 
 .nitro
 .tanstack/
