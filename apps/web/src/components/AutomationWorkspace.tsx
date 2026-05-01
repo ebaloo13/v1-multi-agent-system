@@ -26,6 +26,7 @@ type AutomationWorkspacePageProps = {
   clientSlug: string
   view: AutomationViewId
   routeScope?: WorkspaceRouteScope
+  tasks?: AutomationTask[]
 }
 
 type AutomationBoardStatus = 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done'
@@ -99,12 +100,21 @@ export function AutomationWorkspacePage({
   clientSlug,
   view,
   routeScope = 'workspace',
+  tasks,
 }: AutomationWorkspacePageProps) {
   const workspace = buildAutomationWorkspace(clientSlug)
+  const boardTasks = tasks && tasks.length > 0 ? tasks : workspace.tasks
   const meta = viewMeta[view]
 
   if (view === 'agentBoard' || view === 'taskLifecycle') {
-    return <AutomationBoardWorkspace workspace={workspace} view={view} routeScope={routeScope} />
+    return (
+      <AutomationBoardWorkspace
+        workspace={workspace}
+        view={view}
+        routeScope={routeScope}
+        tasks={view === 'taskLifecycle' ? boardTasks : workspace.tasks}
+      />
+    )
   }
 
   return (
@@ -148,10 +158,12 @@ function AutomationBoardWorkspace({
   workspace,
   view,
   routeScope,
+  tasks,
 }: {
   workspace: AutomationWorkspace
   view: 'agentBoard' | 'taskLifecycle'
   routeScope: WorkspaceRouteScope
+  tasks: AutomationTask[]
 }) {
   const meta = viewMeta[view]
 
@@ -167,8 +179,8 @@ function AutomationBoardWorkspace({
         />
         <section className="automation-app-main">
           <AutomationBoardHeader workspace={workspace} title={meta.title} sectionLabel={meta.eyebrow} />
-          <AutomationToolbar taskCount={workspace.tasks.length} />
-          <AutomationKanbanBoard tasks={workspace.tasks} />
+          <AutomationToolbar taskCount={tasks.length} />
+          <AutomationKanbanBoard tasks={tasks} />
         </section>
       </section>
     </main>
