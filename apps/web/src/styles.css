@@ -952,6 +952,53 @@ code {
   color: #b91c1c;
 }
 
+.automation-status-form {
+  display: grid;
+  gap: 0.38rem;
+  margin-top: 0.65rem;
+}
+
+.automation-status-form label {
+  display: grid;
+  gap: 0.28rem;
+  color: #6b7280;
+  font-size: 0.62rem;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.automation-status-form select,
+.automation-status-form button {
+  width: 100%;
+  border: 1px solid rgba(16, 24, 40, 0.12);
+  border-radius: 0.45rem;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.42rem 0.5rem;
+}
+
+.automation-status-form button {
+  background: #111827;
+  color: #fff;
+  cursor: pointer;
+}
+
+.automation-status-form button:disabled,
+.automation-status-form select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.automation-status-form span {
+  color: #b91c1c;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
 .automation-run-layout {
   display: grid;
   gap: 1rem;

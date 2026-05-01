@@ -5,6 +5,7 @@ import {
   type WorkspaceRouteScope,
   type WorkspaceSectionId,
 } from './product-shell'
+import type { WorkItemStatus } from '../../../../src/core/work-items/store'
 
 export type AutomationTone = 'success' | 'progress' | 'pending' | 'neutral'
 
@@ -71,6 +72,7 @@ export type AutomationTask = {
   workstream: string
   nextStep: string
   blocker?: string
+  workItemStatus?: WorkItemStatus
 }
 
 export type AutomationRunStep = {

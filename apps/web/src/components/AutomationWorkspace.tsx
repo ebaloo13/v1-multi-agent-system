@@ -1,4 +1,7 @@
+import { type FormEvent, useState } from 'react'
+import { useServerFn } from '@tanstack/react-start'
 import WorkspaceShell, { WorkspaceAppSidebar } from './WorkspaceShell'
+import { updateClientWorkItemStatus } from '../lib/client-work-items.functions'
 import {
   automationHref,
   buildAutomationWorkspace,
@@ -12,6 +15,7 @@ import {
 } from '../lib/automation-workspace'
 import type { WorkspaceSectionId } from '../lib/product-shell'
 import type { WorkspaceRouteScope } from '../lib/product-shell'
+import type { WorkItemStatus } from '../../../../src/core/work-items/store'
 
 export type AutomationViewId =
   | 'dashboard'
@@ -27,6 +31,7 @@ type AutomationWorkspacePageProps = {
   view: AutomationViewId
   routeScope?: WorkspaceRouteScope
   tasks?: AutomationTask[]
+  statusUpdateClientSlug?: string
 }
 
 type AutomationBoardStatus = 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done'
@@ -101,6 +106,7 @@ export function AutomationWorkspacePage({
   view,
   routeScope = 'workspace',
   tasks,
+  statusUpdateClientSlug,
 }: AutomationWorkspacePageProps) {
   const workspace = buildAutomationWorkspace(clientSlug)
   const boardTasks = tasks && tasks.length > 0 ? tasks : workspace.tasks
@@ -113,6 +119,7 @@ export function AutomationWorkspacePage({
         view={view}
         routeScope={routeScope}
         tasks={view === 'taskLifecycle' ? boardTasks : workspace.tasks}
+        statusUpdateClientSlug={view === 'taskLifecycle' ? statusUpdateClientSlug : undefined}
       />
     )
   }
@@ -159,11 +166,13 @@ function AutomationBoardWorkspace({
   view,
   routeScope,
   tasks,
+  statusUpdateClientSlug,
 }: {
   workspace: AutomationWorkspace
   view: 'agentBoard' | 'taskLifecycle'
   routeScope: WorkspaceRouteScope
   tasks: AutomationTask[]
+  statusUpdateClientSlug?: string
 }) {
   const meta = viewMeta[view]
 
@@ -180,7 +189,7 @@ function AutomationBoardWorkspace({
         <section className="automation-app-main">
           <AutomationBoardHeader workspace={workspace} title={meta.title} sectionLabel={meta.eyebrow} />
           <AutomationToolbar taskCount={tasks.length} />
-          <AutomationKanbanBoard tasks={tasks} />
+          <AutomationKanbanBoard tasks={tasks} statusUpdateClientSlug={statusUpdateClientSlug} />
         </section>
       </section>
     </main>
@@ -305,13 +314,26 @@ function AutomationDashboard({
   )
 }
 
-function AutomationKanbanBoard({ tasks }: { tasks: AutomationTask[] }) {
+function AutomationKanbanBoard({
+  tasks,
+  statusUpdateClientSlug,
+}: {
+  tasks: AutomationTask[]
+  statusUpdateClientSlug?: string
+}) {
   return (
     <section className="automation-kanban">
       {boardColumns.map((column) => {
         const columnTasks = tasks.filter((task) => boardStatusFromTask(task.status) === column.status)
 
-        return <BoardColumn key={column.status} column={column} tasks={columnTasks} />
+        return (
+          <BoardColumn
+            key={column.status}
+            column={column}
+            tasks={columnTasks}
+            statusUpdateClientSlug={statusUpdateClientSlug}
+          />
+        )
       })}
     </section>
   )
@@ -320,9 +342,11 @@ function AutomationKanbanBoard({ tasks }: { tasks: AutomationTask[] }) {
 function BoardColumn({
   column,
   tasks,
+  statusUpdateClientSlug,
 }: {
   column: (typeof boardColumns)[number]
   tasks: AutomationTask[]
+  statusUpdateClientSlug?: string
 }) {
   return (
     <article className={`automation-kanban-column tone-${column.tone}`}>
@@ -344,7 +368,7 @@ function BoardColumn({
 
       <div className="automation-kanban-stack">
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
+          <TaskCard key={task.id} task={task} statusUpdateClientSlug={statusUpdateClientSlug} />
         ))}
       </div>
     </article>
@@ -544,8 +568,56 @@ function AgentCard({ agent, profile = false }: { agent: AutomationAgent; profile
   )
 }
 
-function TaskCard({ task }: { task: AutomationTask }) {
+const workItemStatusOptions: Array<{ value: WorkItemStatus; label: string }> = [
+  { value: 'new', label: 'New' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'waiting', label: 'Waiting' },
+  { value: 'needs_review', label: 'Needs Review' },
+  { value: 'ready', label: 'Ready' },
+  { value: 'done', label: 'Done' },
+]
+
+function TaskCard({
+  task,
+  statusUpdateClientSlug,
+}: {
+  task: AutomationTask
+  statusUpdateClientSlug?: string
+}) {
   const isAgentAssigned = Boolean(task.agent)
+  const updateStatus = useServerFn(updateClientWorkItemStatus)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const canUpdateStatus = Boolean(statusUpdateClientSlug && task.workItemStatus)
+
+  async function handleStatusSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!statusUpdateClientSlug || !task.workItemStatus) {
+      return
+    }
+
+    const formData = new FormData(event.currentTarget)
+    const status = String(formData.get('status') ?? task.workItemStatus) as WorkItemStatus
+
+    setErrorMessage(null)
+    setIsUpdating(true)
+
+    try {
+      await updateStatus({
+        data: {
+          clientSlug: statusUpdateClientSlug,
+          workItemId: task.id,
+          status,
+        },
+      })
+
+      window.location.reload()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Could not update status.')
+      setIsUpdating(false)
+    }
+  }
 
   return (
     <article className="automation-task-card">
@@ -565,6 +637,24 @@ function TaskCard({ task }: { task: AutomationTask }) {
         ) : null}
       </footer>
       {task.blocker ? <span className="automation-task-blocker">Blocked input</span> : null}
+      {canUpdateStatus ? (
+        <form className="automation-status-form" onSubmit={handleStatusSubmit}>
+          <label>
+            Status
+            <select name="status" defaultValue={task.workItemStatus} disabled={isUpdating}>
+              {workItemStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" disabled={isUpdating}>
+            {isUpdating ? 'Updating...' : 'Update'}
+          </button>
+          {errorMessage ? <span>{errorMessage}</span> : null}
+        </form>
+      ) : null}
     </article>
   )
 }

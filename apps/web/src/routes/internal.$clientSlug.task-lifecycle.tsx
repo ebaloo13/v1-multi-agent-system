@@ -23,6 +23,7 @@ function InternalTaskLifecyclePage() {
       view="taskLifecycle"
       routeScope="internal"
       tasks={tasks}
+      statusUpdateClientSlug={tasks.length > 0 ? clientSlug : undefined}
     />
   )
 }
@@ -43,6 +44,7 @@ function workItemToAutomationTask(workItem: WorkItem, index: number): Automation
     workstream: moduleLabel(workItem.moduleKey),
     nextStep: nextStepFromStatus(workItem.status),
     blocker: workItem.status === 'waiting' ? 'Waiting on client input or clarification.' : undefined,
+    workItemStatus: workItem.status,
   }
 }
 

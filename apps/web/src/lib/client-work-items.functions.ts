@@ -1,10 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
-import { appendClientEvent } from '../../../../src/core/events/store'
 import {
   createWorkItem,
   listWorkItems,
+  updateWorkItemStatus,
   type BusinessModuleKey,
   type WorkItem,
+  type WorkItemStatus,
   type WorkItemType,
 } from '../../../../src/core/work-items/store'
 
@@ -13,6 +14,12 @@ type ClientWorkItemInput = {
   title: string
   description?: string
   requestType: string
+}
+
+type ClientWorkItemStatusInput = {
+  clientSlug: string
+  workItemId: string
+  status: WorkItemStatus
 }
 
 function normalizeText(value: unknown) {
@@ -77,17 +84,41 @@ export const createClientWorkItem = createServerFn({ method: 'POST' })
       },
     })
 
-    await appendClientEvent(data.clientSlug, {
-      type: 'work_item.created',
-      entityType: 'work_item',
-      entityId: workItem.id,
-      message: `New request created: ${workItem.title}`,
-      visibility: 'internal',
-      metadata: {
-        workItemType: workItem.type,
-        workItemStatus: workItem.status,
-      },
-    })
-
     return workItem
+  })
+
+export const updateClientWorkItemStatus = createServerFn({ method: 'POST' })
+  .inputValidator((data: ClientWorkItemStatusInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const workItemId = normalizeText(data.workItemId)
+    const status = normalizeText(data.status) as WorkItemStatus
+    const allowedStatuses: WorkItemStatus[] = [
+      'new',
+      'in_progress',
+      'waiting',
+      'needs_review',
+      'ready',
+      'done',
+    ]
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!workItemId) {
+      throw new Error('Work item is required.')
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      throw new Error('Unsupported work item status.')
+    }
+
+    return {
+      clientSlug,
+      workItemId,
+      status,
+    }
+  })
+  .handler(async ({ data }) => {
+    return updateWorkItemStatus(data.clientSlug, data.workItemId, data.status)
   })
