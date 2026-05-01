@@ -77,7 +77,6 @@ Keep this simple and swappable. Do not overbuild a second persistence layer.
 Use these docs when changing UX or form structure:
 
 - `../../docs/product/audit-intake-form.md` (Business Context form; filename is legacy)
-- `../../docs/product/preaudit-to-audit-flow.md`
 
 Treat the existing file workflow as the source of truth. The frontend should
 present it more clearly, not replace it.

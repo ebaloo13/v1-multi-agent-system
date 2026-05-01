@@ -21,6 +21,8 @@ coverage/
 # artifacts / runs
 artifacts/
 archive/
+!docs/archive/
+!docs/archive/*.md
 *.ndjson
 data/clients/*.json
 !data/clients/*.sample.json

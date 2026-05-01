@@ -117,7 +117,6 @@ Other docs expand specific areas:
 - `core-entities-and-data-model.md`: core product entities and relationships.
 - `initial-database-schema.md`: first database schema direction.
 - `implementation-roadmap.md`: implementation sequencing and delivery plan.
-- `activity-section-blueprint.md`: client-facing Activity UX direction.
 - `ai-core-definition.md`: deeper AI Core product and architecture definition.
 - Future impact, workflow, integration, reporting, and playbook docs should extend this source of truth.
 
@@ -132,4 +131,3 @@ Use it before prompting Codex on EBC architecture or product changes so naming, 
 Use it to keep visible product language aligned with the official client-facing terms.
 
 Update this document only when a real product-level decision changes. Do not update it for minor implementation details, temporary code names, or isolated experiments.
-
