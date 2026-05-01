@@ -5871,6 +5871,14 @@ button:disabled,
   resize: vertical;
 }
 
+.client-form-error {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
 .client-empty-card {
   display: grid;
   gap: 0.65rem;
