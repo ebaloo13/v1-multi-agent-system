@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { appendClientEvent } from '../../../../src/core/events/store'
 import {
   createWorkItem,
   listWorkItems,
@@ -64,8 +65,7 @@ export const createClientWorkItem = createServerFn({ method: 'POST' })
   })
   .handler(async ({ data }): Promise<WorkItem> => {
     const { type, moduleKey } = workItemMapping(data.requestType)
-
-    return createWorkItem(data.clientSlug, {
+    const workItem = await createWorkItem(data.clientSlug, {
       type,
       moduleKey,
       title: data.title,
@@ -76,4 +76,18 @@ export const createClientWorkItem = createServerFn({ method: 'POST' })
         requestType: data.requestType,
       },
     })
+
+    await appendClientEvent(data.clientSlug, {
+      type: 'work_item.created',
+      entityType: 'work_item',
+      entityId: workItem.id,
+      message: `New request created: ${workItem.title}`,
+      visibility: 'internal',
+      metadata: {
+        workItemType: workItem.type,
+        workItemStatus: workItem.status,
+      },
+    })
+
+    return workItem
   })
