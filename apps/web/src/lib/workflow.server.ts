@@ -40,6 +40,13 @@ import {
   workspaceDiagnosisHref,
   workspaceHref,
 } from './product-shell'
+import {
+  readJsonFile,
+  readJsonIfExists,
+  readMtimeIsoIfExists,
+  readMtimeMsIfExists,
+  readTextIfExists,
+} from './workflow-file-readers.server'
 
 type LatestPointer = {
   display_run_id: string
@@ -210,54 +217,8 @@ function clientContextPath(clientSlug: string) {
   return path.join(clientsDataDir(), `${clientSlug}-workspace.json`)
 }
 
-async function readJsonFile<T>(filePath: string): Promise<T> {
-  return JSON.parse(await fs.readFile(filePath, 'utf8')) as T
-}
-
-async function readJsonIfExists<T>(filePath: string): Promise<T | undefined> {
-  try {
-    return await readJsonFile<T>(filePath)
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return undefined
-    }
-
-    throw error
-  }
-}
-
-async function readTextIfExists(filePath: string) {
-  try {
-    return await fs.readFile(filePath, 'utf8')
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return ''
-    }
-
-    throw error
-  }
-}
-
 async function ensureDirectory(filePath: string) {
   await fs.mkdir(path.dirname(filePath), { recursive: true })
-}
-
-async function readMtimeMsIfExists(filePath: string) {
-  try {
-    const stats = await fs.stat(filePath)
-    return stats.mtimeMs
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return undefined
-    }
-
-    throw error
-  }
-}
-
-async function readMtimeIsoIfExists(filePath: string) {
-  const mtimeMs = await readMtimeMsIfExists(filePath)
-  return typeof mtimeMs === 'number' ? new Date(mtimeMs).toISOString() : undefined
 }
 
 async function runCommand(command: string, args: string[]) {
