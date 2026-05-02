@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { AutomationWorkspacePage } from '../components/AutomationWorkspace'
 import { getClientWorkItems } from '../lib/client-work-items.functions'
 import type { AutomationTask, AutomationTaskStatus, AutomationTone } from '../lib/automation-workspace'
-import type { WorkItem } from '../../../../src/core/work-items/store'
+import type { WorkItem } from '../../../../src/schemas/operations'
 
 export const Route = createFileRoute('/internal/$clientSlug/task-lifecycle')({
   loader: ({ params }) =>

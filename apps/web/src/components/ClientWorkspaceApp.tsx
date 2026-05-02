@@ -22,7 +22,7 @@ import {
 import { createClientWorkItem } from '../lib/client-work-items.functions'
 import { formatClientName } from '../lib/product-shell'
 import { messageFromError } from '../lib/workflow'
-import type { WorkItem } from '../../../../src/core/work-items/store'
+import type { WorkItem } from '../../../../src/schemas/operations'
 
 type ClientWorkspaceView = 'home' | 'newRequest' | 'reviews' | 'files' | 'chat' | 'settings'
 

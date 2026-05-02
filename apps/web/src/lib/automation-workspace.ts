@@ -5,7 +5,7 @@ import {
   type WorkspaceRouteScope,
   type WorkspaceSectionId,
 } from './product-shell'
-import type { WorkItemStatus } from '../../../../src/core/work-items/store'
+import type { WorkItemStatus } from '../../../../src/schemas/operations'
 
 export type AutomationTone = 'success' | 'progress' | 'pending' | 'neutral'
 

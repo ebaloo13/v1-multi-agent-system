@@ -3,12 +3,14 @@ import {
   createWorkItem,
   listWorkItems,
   updateWorkItemStatus,
+} from '../../../../src/core/work-items/store'
+import {
+  WorkItemStatusSchema,
   type BusinessModuleKey,
   type WorkItem,
   type WorkItemStatus,
   type WorkItemType,
-} from '../../../../src/core/work-items/store'
-import { WorkItemStatusSchema } from '../../../../src/schemas/operations'
+} from '../../../../src/schemas/operations'
 
 type ClientWorkItemInput = {
   clientSlug: string
@@ -23,8 +25,24 @@ type ClientWorkItemStatusInput = {
   status: WorkItemStatus
 }
 
+type SerializableJson =
+  | string
+  | number
+  | boolean
+  | null
+  | SerializableJson[]
+  | { [key: string]: SerializableJson }
+
+type SerializableWorkItem = Omit<WorkItem, 'metadata'> & {
+  metadata: Record<string, SerializableJson>
+}
+
 function normalizeText(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function serializeWorkItem(workItem: WorkItem): SerializableWorkItem {
+  return JSON.parse(JSON.stringify(workItem)) as SerializableWorkItem
 }
 
 function workItemMapping(requestType: string): {
@@ -46,7 +64,8 @@ function workItemMapping(requestType: string): {
 export const getClientWorkItems = createServerFn({ method: 'GET' })
   .inputValidator((data: { clientSlug: string }) => data)
   .handler(async ({ data }) => {
-    return listWorkItems(data.clientSlug)
+    const workItems = await listWorkItems(data.clientSlug)
+    return workItems.map(serializeWorkItem)
   })
 
 export const createClientWorkItem = createServerFn({ method: 'POST' })
@@ -71,7 +90,7 @@ export const createClientWorkItem = createServerFn({ method: 'POST' })
       requestType,
     }
   })
-  .handler(async ({ data }): Promise<WorkItem> => {
+  .handler(async ({ data }): Promise<SerializableWorkItem> => {
     const { type, moduleKey } = workItemMapping(data.requestType)
     const workItem = await createWorkItem(data.clientSlug, {
       type,
@@ -85,7 +104,7 @@ export const createClientWorkItem = createServerFn({ method: 'POST' })
       },
     })
 
-    return workItem
+    return serializeWorkItem(workItem)
   })
 
 export const updateClientWorkItemStatus = createServerFn({ method: 'POST' })
@@ -109,5 +128,6 @@ export const updateClientWorkItemStatus = createServerFn({ method: 'POST' })
     }
   })
   .handler(async ({ data }) => {
-    return updateWorkItemStatus(data.clientSlug, data.workItemId, data.status)
+    const workItem = await updateWorkItemStatus(data.clientSlug, data.workItemId, data.status)
+    return serializeWorkItem(workItem)
   })

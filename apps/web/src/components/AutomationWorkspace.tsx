@@ -15,7 +15,7 @@ import {
 } from '../lib/automation-workspace'
 import type { WorkspaceSectionId } from '../lib/product-shell'
 import type { WorkspaceRouteScope } from '../lib/product-shell'
-import type { WorkItemStatus } from '../../../../src/core/work-items/store'
+import type { WorkItemStatus } from '../../../../src/schemas/operations'
 
 export type AutomationViewId =
   | 'dashboard'
