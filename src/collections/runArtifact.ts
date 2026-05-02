@@ -43,6 +43,10 @@ export type RunArtifactV1 = {
   unexpected_message?: string;
 };
 
+type RunArtifactWithLocalTime = RunArtifactV1 & {
+  local_time: string;
+};
+
 export type RunEventLine = {
   ts: string;
   type: string;
@@ -98,10 +102,10 @@ export function eventLineFromSdkMessage(message: {
 
 export async function writeRunJson(runDir: string, body: RunArtifactV1): Promise<void> {
   const filePath = path.join(runDir, "run.json");
-  const withLocalTime = {
+  const withLocalTime: RunArtifactWithLocalTime = {
     ...body,
     local_time: new Date().toLocaleString(),
-  } as any;
+  };
 
   await fs.writeFile(filePath, `${JSON.stringify(withLocalTime, null, 2)}\n`, "utf8");
 }

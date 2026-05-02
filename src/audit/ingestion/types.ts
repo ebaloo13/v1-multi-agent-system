@@ -1,3 +1,5 @@
+import type { PreauditOutput } from "../../schemas/preaudit.js";
+
 export type CompanyProfile = {
   name: string;
   industry: string;
@@ -74,7 +76,7 @@ export type AuditToolFacts = {
 };
 
 export type BuildAuditInputArgs = {
-  preauditOutput?: import("../../schemas/preaudit.js").PreauditOutput;
+  preauditOutput?: PreauditOutput;
   toolFacts?: AuditToolFacts;
   intake?: AuditIntake;
 };

@@ -8,6 +8,7 @@ import {
   type WorkItemStatus,
   type WorkItemType,
 } from '../../../../src/core/work-items/store'
+import { WorkItemStatusSchema } from '../../../../src/schemas/operations'
 
 type ClientWorkItemInput = {
   clientSlug: string
@@ -91,15 +92,7 @@ export const updateClientWorkItemStatus = createServerFn({ method: 'POST' })
   .inputValidator((data: ClientWorkItemStatusInput) => {
     const clientSlug = normalizeText(data.clientSlug)
     const workItemId = normalizeText(data.workItemId)
-    const status = normalizeText(data.status) as WorkItemStatus
-    const allowedStatuses: WorkItemStatus[] = [
-      'new',
-      'in_progress',
-      'waiting',
-      'needs_review',
-      'ready',
-      'done',
-    ]
+    const status = WorkItemStatusSchema.parse(normalizeText(data.status))
 
     if (!clientSlug) {
       throw new Error('Client is required.')
@@ -107,10 +100,6 @@ export const updateClientWorkItemStatus = createServerFn({ method: 'POST' })
 
     if (!workItemId) {
       throw new Error('Work item is required.')
-    }
-
-    if (!allowedStatuses.includes(status)) {
-      throw new Error('Unsupported work item status.')
     }
 
     return {

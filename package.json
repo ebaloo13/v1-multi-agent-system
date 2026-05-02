@@ -19,6 +19,7 @@
     "collections:batch": "tsx scripts/batch/run-collections-batch.ts",
     "orchestrator:batch": "tsx scripts/batch/run-orchestrator-batch.ts",
     "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck",
     "test": "node --import tsx/esm --test src/collections/validateOutput.test.ts"
   },
   "dependencies": {
