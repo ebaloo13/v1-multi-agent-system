@@ -1,5 +1,3 @@
-
-
 # Agent Development Rules
 
 Read `CLAUDE.md` first for product context, architecture, and repository boundaries.
@@ -54,6 +52,7 @@ This file defines how coding agents must work in this repository.
 ## Commands
 
 - After code changes, run:
+- Run `npm run check` from the repository root, not from `apps/web`.
 
 ```bash
 npm run check
