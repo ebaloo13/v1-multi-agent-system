@@ -105,3 +105,45 @@ test("runSalesAgent writes sdk_error when faux runner returns no result", async 
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
+
+test("runSalesAgent writes schema_error when faux runner returns invalid output", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(tmpdir(), "sales-agent-"));
+  const runDir = path.join(tempRoot, "run");
+  const invalidSalesJson = JSON.stringify({
+    summary: "One opportunity reviewed.",
+    opportunities: [
+      {
+        customer: "Acme",
+        type: "invalid_type",
+        priority_score: 25,
+        reason: "Recent inquiry has not received a follow-up.",
+        suggested_action: "Send a follow-up message.",
+        message_draft: "Hello, checking in on your recent inquiry.",
+      },
+    ],
+  });
+
+  const runner: SalesRunner = async () => ({
+    subtype: "success",
+    total_cost_usd: 0,
+    num_turns: 1,
+    session_id: "test-session",
+    result: invalidSalesJson,
+  });
+
+  try {
+    await assert.rejects(
+      () => runSalesAgent({ runner, runDir }),
+      (error: unknown) => error instanceof SalesRunError && error.code === "OUTPUT_SCHEMA",
+    );
+
+    const runJsonPath = path.join(runDir, "run.json");
+    const runJson = requireRecord(
+      JSON.parse(await fs.readFile(runJsonPath, "utf8")) as unknown,
+      "run.json",
+    );
+    assert.equal(runJson.status, "schema_error");
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
