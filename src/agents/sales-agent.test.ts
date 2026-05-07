@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { SalesRunError } from "../sales/errors.js";
 import { runSalesAgent } from "./sales-agent.js";
 
 type SalesRunner = NonNullable<NonNullable<Parameters<typeof runSalesAgent>[0]>["runner"]>;
@@ -66,6 +67,40 @@ test("runSalesAgent writes success artifacts with a faux runner", async () => {
       .filter((line) => line.length > 0);
 
     assert.equal(eventLines.length, 2);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("runSalesAgent writes sdk_error when faux runner returns no result", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(tmpdir(), "sales-agent-"));
+  const runDir = path.join(tempRoot, "run");
+
+  const runner: SalesRunner = async ({ onEvent }) => {
+    await onEvent?.({ type: "assistant" });
+    return undefined;
+  };
+
+  try {
+    await assert.rejects(
+      () => runSalesAgent({ runner, runDir }),
+      (error: unknown) => error instanceof SalesRunError && error.code === "SDK_NO_RESULT",
+    );
+
+    const runJsonPath = path.join(runDir, "run.json");
+    const runJson = requireRecord(
+      JSON.parse(await fs.readFile(runJsonPath, "utf8")) as unknown,
+      "run.json",
+    );
+    assert.equal(runJson.status, "sdk_error");
+
+    const eventsPath = path.join(runDir, "events.ndjson");
+    const eventLines = (await fs.readFile(eventsPath, "utf8"))
+      .trim()
+      .split("\n")
+      .filter((line) => line.length > 0);
+
+    assert.equal(eventLines.length, 1);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
