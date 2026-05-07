@@ -26,6 +26,10 @@ export type CollectionsAgentSuccess = {
   output: CollectionsOutput;
 };
 
+type CollectionsAgentOptions = {
+  runner?: typeof runClaudeAgent;
+};
+
 function parseDetailMessage(details: unknown): string | undefined {
   if (details && typeof details === "object" && "message" in details) {
     return String((details as { message: string }).message);
@@ -33,7 +37,10 @@ function parseDetailMessage(details: unknown): string | undefined {
   return undefined;
 }
 
-export async function runCollectionsAgent(): Promise<CollectionsAgentSuccess> {
+export async function runCollectionsAgent(
+  options: CollectionsAgentOptions = {},
+): Promise<CollectionsAgentSuccess> {
+  const runner = options.runner ?? runClaudeAgent;
   const repoRoot = resolveRepoRootFromModuleUrl(import.meta.url);
   const runId = createRunId();
   const runDir = runDirFor(repoRoot, runId);
@@ -90,7 +97,7 @@ export async function runCollectionsAgent(): Promise<CollectionsAgentSuccess> {
     prompt = buildCollectionsPrompt(invoicesText);
     promptSha = sha256Utf8(prompt);
 
-    const terminalResult = await runClaudeAgent({
+    const terminalResult = await runner({
       prompt,
       onEvent: async (message) => {
         await appendRunEvent(runDir, eventLineFromSdkMessage(message));
