@@ -4,7 +4,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AuditOutput } from "../schemas/audit.js";
-import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import { artifactRunPath } from "../shared/clientArtifacts.js";
 
 export type AuditRunArtifactStatus =
@@ -62,6 +61,14 @@ export type AuditRunEventLine = {
   type: string;
   subtype?: string;
   summary?: string;
+};
+
+export type AuditResultMessage = {
+  subtype: string;
+  errors?: string[];
+  total_cost_usd: number;
+  num_turns: number;
+  session_id?: string;
 };
 
 export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
@@ -144,7 +151,7 @@ export async function appendAuditRunEvent(
 }
 
 export function auditSdkFieldsFromResult(
-  m: SDKResultMessage,
+  m: AuditResultMessage,
 ): AuditRunArtifactV1["sdk"] {
   if (m.subtype === "success") {
     return {

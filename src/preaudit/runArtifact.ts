@@ -3,7 +3,6 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import type {
   PreauditFrameworkFit,
   PreauditScopeConfidence,
@@ -65,6 +64,14 @@ export type PreauditRunEventLine = {
   type: string;
   subtype?: string;
   summary?: string;
+};
+
+export type PreauditResultMessage = {
+  subtype: string;
+  errors?: string[];
+  total_cost_usd: number;
+  num_turns: number;
+  session_id?: string;
 };
 
 export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
@@ -147,7 +154,7 @@ export async function appendPreauditRunEvent(
 }
 
 export function preauditSdkFieldsFromResult(
-  m: SDKResultMessage,
+  m: PreauditResultMessage,
 ): PreauditRunArtifactV1["sdk"] {
   if (m.subtype === "success") {
     return {
