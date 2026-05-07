@@ -6,6 +6,6 @@ This note defines the intended homes for future platform modules. It is only a s
 - `src/agents`: domain coordinators and specialist agents.
 - `src/workflows`: orchestrated business processes that combine agents, core services, and integrations.
 - `src/integrations`: adapters for external systems.
-- `src/runtime`: execution utilities for running and coordinating platform work.
+- `src/runtime`: execution utilities for running and coordinating platform work, including provider-neutral runner contracts and provider adapters.
 - `src/storage`: local and database persistence adapters.
 - `src/shared`: cross-cutting helpers that are not domain-specific.

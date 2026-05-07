@@ -6,14 +6,15 @@ This is a documentation-only inventory for moving the current repository toward 
 
 The repository currently has a compact root `src` implementation with agent runners, domain workflow helpers, schemas, tools, and shared artifact utilities:
 
-- `src/agents`: flat runnable agent implementations for audit, preaudit, orchestrator, sales, collections, and operations.
+- `src/agents`: flat runnable agent implementations for audit, preaudit, orchestrator, sales, collections, and operations. Collections, sales, operations, and orchestrator use injectable runtime runners and no longer import provider SDKs directly.
 - `src/audit`: client audit prompt contract, validation, run artifacts, PI client, errors, and intake/preaudit ingestion helpers.
 - `src/preaudit`: lead pre-audit prompt contract, validation, scoring, report generation, web context, PI client, errors, and run artifacts.
 - `src/sales`, `src/collections`, `src/operations`, `src/orchestrator`: specialist agent contracts, validation, run ids, run artifacts, and errors.
 - `src/schemas`: root-level Zod schemas and exported types for audit, preaudit, sales, operations, collections, and orchestrator outputs.
 - `src/tools`: preaudit fact collection tools and a small in-process tool harness.
 - `src/common`: shared artifact paths and run naming helpers.
-- `src/core`, `src/workflows`, `src/integrations`, `src/runtime`, `src/storage`, `src/shared`: newly created architectural homes with README or `.gitkeep` placeholders.
+- `src/runtime`: provider-neutral runner contract, Claude SDK adapter, and runtime tool helpers.
+- `src/core`, `src/workflows`, `src/integrations`, `src/storage`, `src/shared`: architectural homes with README or `.gitkeep` placeholders.
 
 Other important roots:
 
@@ -70,6 +71,8 @@ Future workflow homes with no current direct implementation:
 
 | Current files | Proposed destination | Notes |
 | --- | --- | --- |
+| `src/runtime/agentRunner.ts` | Remain in `src/runtime/agentRunner.ts` | Provider-neutral `AgentRunner` contract for agent execution seams. |
+| `src/runtime/claudeAgentRunner.ts` | Remain in `src/runtime/claudeAgentRunner.ts` | Claude Agent SDK adapter; owns SDK imports, settings, stream iteration, and terminal result extraction. |
 | `src/common/clientArtifacts.ts` | `src/storage/artifacts.ts` or `src/runtime/artifacts.ts` | It currently owns artifact directory conventions and should become a persistence/runtime boundary. |
 | `src/common/runNaming.ts` | `src/shared/runNaming.ts` | Cross-cutting slug/run naming helper. |
 | `*/runId.ts` files | `src/runtime/run-id/` or local agent/workflow folders first | They are nearly identical. Consolidate only after agent/workflow moves settle. |
@@ -159,9 +162,10 @@ Do not move these until the new boundaries have tests or compatibility wrappers:
 3. Consolidate generic runtime helpers.
    - Create shared run id and artifact/event helper modules in `src/runtime`.
    - Keep domain-specific artifact schemas and JSON shapes local.
+   - Provider isolation for collections, sales, operations, and orchestrator now goes through `src/runtime/agentRunner.ts` and `src/runtime/claudeAgentRunner.ts`.
 
 4. Move one specialist agent family at a time.
-   - Start with `collections` because it has an existing validator test.
+   - Start with `collections` because it has focused validation and agent tests.
    - Then move `sales`, `operations`, and the orchestrator coordinator.
    - Keep prompt contracts and validators close to each moved agent unless runtime/shared ownership is obvious.
 
@@ -194,6 +198,6 @@ Do not move these until the new boundaries have tests or compatibility wrappers:
 - `data/clients` and `artifacts/clients` paths are hardcoded in root source, scripts, and the web server loader. Storage extraction should preserve path compatibility first.
 - Several `runArtifact.ts` files duplicate behavior but likely encode domain-specific JSON fields. Consolidate mechanics before consolidating payload types.
 - Preaudit and Client Audit currently share handoff logic through audit ingestion and draft intake generation. Preserve the product distinction while keeping the handoff intact.
-- The current specialist agents use both `@anthropic-ai/claude-agent-sdk` and PI clients. Provider boundaries should be introduced without changing model behavior.
-- Tests currently cover collections validation only. Move that family first or add focused tests before moving higher-risk workflow code.
+- The current collections, sales, operations, and orchestrator agents use the runtime Claude adapter instead of importing `@anthropic-ai/claude-agent-sdk` directly. Audit and preaudit still have separate provider/client concerns.
+- Tests currently cover collections validation and deterministic agent behavior for collections, sales, and operations. Add comparable seams before moving higher-risk workflow code.
 - Vertical-specific assumptions should not migrate into `src/core`. Put future vertical behavior in modules or vertical packs so the platform remains horizontal.

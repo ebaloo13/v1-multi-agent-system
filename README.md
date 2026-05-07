@@ -21,7 +21,7 @@ Pre-audit remains a lead acquisition hook. It can collect website facts, generat
 
 - `src/schemas/` contains the core Zod schemas and shared domain contracts.
 - `src/shared/` contains shared utilities used across workflows and apps.
-- `src/runtime/` contains runtime utilities and tool abstractions.
+- `src/runtime/` contains runtime utilities, tool abstractions, the provider-neutral `AgentRunner` contract, and provider adapters such as the Claude SDK runner.
 - `src/agents/` contains current agent entrypoints.
 - `apps/web/` contains the TanStack Start UX layer.
 - `data/clients/` and `artifacts/clients/` hold local file-backed workflow state and outputs.
@@ -42,6 +42,7 @@ The repository still includes preaudit, audit, orchestrator, collections, sales,
 - Audit is a diagnostic input into internal operations and work planning.
 - Orchestrator behavior should evolve toward domain coordination.
 - Specialist agents should support reusable business modules.
+- Collections, sales, operations, and orchestrator agents execute model calls through runtime runner adapters instead of importing provider SDKs directly.
 
 Legacy implementation terms such as `intake` and `artifacts` still appear in paths, flags, and metadata. Product-facing language should prefer **Business Context** and **Outputs** where relevant.
 
@@ -57,6 +58,12 @@ Run the lead pre-audit hook:
 
 ```bash
 npm run preaudit:demo
+```
+
+Run the root type check from the repository root:
+
+```bash
+npm run check
 ```
 
 Run the web app:

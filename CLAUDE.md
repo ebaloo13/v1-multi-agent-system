@@ -26,6 +26,8 @@ This repository is evolving into an AI operations workspace for small businesses
 - Core schemas live at root `src/schemas`.
 - Shared utilities live under root `src/shared`.
 - Runtime utilities live under root `src/runtime`.
+- `src/runtime/agentRunner.ts` defines the provider-neutral agent runner contract.
+- `src/runtime/claudeAgentRunner.ts` owns Claude Agent SDK execution.
 - Demo/mock scripts and live workflow entrypoints remain separate.
 - Generated artifacts should remain traceable and auditable.
 - Existing legacy names such as `intake` and `artifacts` may remain in implementation paths, but product-facing docs should prefer **Business Context** and **Outputs** where relevant.
@@ -51,6 +53,7 @@ This repository is evolving into an AI operations workspace for small businesses
 - Strict parsing: fail on invalid JSON.
 - Keep demo/mock execution clearly separated from live execution.
 - Preserve existing artifact readers and traceability metadata.
+- Product agent entrypoints should use runtime runner contracts/adapters instead of importing provider SDKs directly.
 - Do not hardcode business verticals into the core workspace.
 - Do not expose arbitrary shell, edit/write, or coding tools to product agents.
 
