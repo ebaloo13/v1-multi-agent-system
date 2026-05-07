@@ -1,6 +1,4 @@
 import "dotenv/config";
-import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildCollectionsPrompt } from "../collections/contract.js";
@@ -19,6 +17,7 @@ import {
   type RunArtifactV1,
 } from "../collections/runArtifact.js";
 import { parseAndValidateCollectionsOutput } from "../collections/validateOutput.js";
+import { runClaudeAgent } from "../runtime/claudeAgentRunner.js";
 import type { CollectionsOutput } from "../schemas/collections.js";
 
 export type CollectionsAgentSuccess = {
@@ -91,25 +90,12 @@ export async function runCollectionsAgent(): Promise<CollectionsAgentSuccess> {
     prompt = buildCollectionsPrompt(invoicesText);
     promptSha = sha256Utf8(prompt);
 
-    const run = query({
+    const terminalResult = await runClaudeAgent({
       prompt,
-      options: {
-        maxTurns: 2,
-        maxBudgetUsd: 0.1,
-        allowedTools: [],
-        settingSources: ["project"],
+      onEvent: async (message) => {
+        await appendRunEvent(runDir, eventLineFromSdkMessage(message));
       },
     });
-
-    await run.setModel("haiku");
-
-    let terminalResult: SDKResultMessage | undefined;
-    for await (const message of run as AsyncIterable<SDKMessage>) {
-      await appendRunEvent(runDir, eventLineFromSdkMessage(message));
-      if (message.type === "result") {
-        terminalResult = message;
-      }
-    }
 
     const finishedAt = new Date().toISOString();
 
