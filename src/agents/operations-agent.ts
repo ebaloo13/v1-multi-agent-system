@@ -1,6 +1,4 @@
 import "dotenv/config";
-import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildOperationsPrompt } from "../operations/contract.js";
@@ -19,12 +17,18 @@ import {
   type OperationsRunArtifactV1,
 } from "../operations/runArtifact.js";
 import { parseAndValidateOperationsOutput } from "../operations/validateOutput.js";
+import { runClaudeAgent } from "../runtime/claudeAgentRunner.js";
 import type { OperationsOutput } from "../schemas/operations.js";
 
 export type OperationsAgentSuccess = {
   runId: string;
   artifactDir: string;
   output: OperationsOutput;
+};
+
+type OperationsAgentOptions = {
+  runner?: typeof runClaudeAgent;
+  runDir?: string;
 };
 
 function parseDetailMessage(details: unknown): string | undefined {
@@ -34,10 +38,13 @@ function parseDetailMessage(details: unknown): string | undefined {
   return undefined;
 }
 
-export async function runOperationsAgent(): Promise<OperationsAgentSuccess> {
+export async function runOperationsAgent(
+  options: OperationsAgentOptions = {},
+): Promise<OperationsAgentSuccess> {
+  const runner = options.runner ?? runClaudeAgent;
   const repoRoot = resolveRepoRootFromModuleUrl(import.meta.url);
   const runId = createOperationsRunId();
-  const runDir = operationsRunDirFor(repoRoot, runId);
+  const runDir = options.runDir ?? operationsRunDirFor(repoRoot, runId);
   await fs.mkdir(runDir, { recursive: true });
 
   const startedAt = new Date().toISOString();
@@ -91,25 +98,12 @@ export async function runOperationsAgent(): Promise<OperationsAgentSuccess> {
     prompt = buildOperationsPrompt(operationsText);
     promptSha = sha256Utf8(prompt);
 
-    const run = query({
+    const terminalResult = await runner({
       prompt,
-      options: {
-        maxTurns: 2,
-        maxBudgetUsd: 0.1,
-        allowedTools: [],
-        settingSources: ["project"],
+      onEvent: async (message) => {
+        await appendOperationsRunEvent(runDir, operationsEventLineFromSdkMessage(message));
       },
     });
-
-    await run.setModel("haiku");
-
-    let terminalResult: SDKResultMessage | undefined;
-    for await (const message of run as AsyncIterable<SDKMessage>) {
-      await appendOperationsRunEvent(runDir, operationsEventLineFromSdkMessage(message));
-      if (message.type === "result") {
-        terminalResult = message;
-      }
-    }
 
     const finishedAt = new Date().toISOString();
 
