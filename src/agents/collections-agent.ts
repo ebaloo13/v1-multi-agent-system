@@ -28,6 +28,7 @@ export type CollectionsAgentSuccess = {
 
 type CollectionsAgentOptions = {
   runner?: typeof runClaudeAgent;
+  runDir?: string;
 };
 
 function parseDetailMessage(details: unknown): string | undefined {
@@ -43,7 +44,7 @@ export async function runCollectionsAgent(
   const runner = options.runner ?? runClaudeAgent;
   const repoRoot = resolveRepoRootFromModuleUrl(import.meta.url);
   const runId = createRunId();
-  const runDir = runDirFor(repoRoot, runId);
+  const runDir = options.runDir ?? runDirFor(repoRoot, runId);
   await fs.mkdir(runDir, { recursive: true });
 
   const startedAt = new Date().toISOString();
