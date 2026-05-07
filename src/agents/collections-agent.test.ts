@@ -151,3 +151,32 @@ test("runCollectionsAgent writes schema_error when faux runner returns invalid o
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
+
+test("runCollectionsAgent writes parse_error when faux runner returns non-json output", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(tmpdir(), "collections-agent-"));
+  const runDir = path.join(tempRoot, "run");
+
+  const runner: CollectionsRunner = async () => ({
+    subtype: "success",
+    total_cost_usd: 0,
+    num_turns: 1,
+    session_id: "test-session",
+    result: "```json\n{}\n```",
+  });
+
+  try {
+    await assert.rejects(
+      () => runCollectionsAgent({ runner, runDir }),
+      (error: unknown) => error instanceof CollectionsRunError && error.code === "OUTPUT_PARSE",
+    );
+
+    const runJsonPath = path.join(runDir, "run.json");
+    const runJson = requireRecord(
+      JSON.parse(await fs.readFile(runJsonPath, "utf8")) as unknown,
+      "run.json",
+    );
+    assert.equal(runJson.status, "parse_error");
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
