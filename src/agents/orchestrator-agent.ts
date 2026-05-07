@@ -31,7 +31,8 @@ import type {
   OrchestratorFinalResults,
   OrchestratorOutput,
 } from "../schemas/orchestrator.js";
-import { runClaudeAgent, type AgentRunner } from "../runtime/claudeAgentRunner.js";
+import type { AgentRunner } from "../runtime/agentRunner.js";
+import { runClaudeAgent } from "../runtime/claudeAgentRunner.js";
 import type { SalesOutput } from "../schemas/sales.js";
 import type { AuditAgentSuccess } from "./audit-agent.js";
 import { runAuditAgent } from "./audit-agent.js";

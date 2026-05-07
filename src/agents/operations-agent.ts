@@ -17,7 +17,8 @@ import {
   type OperationsRunArtifactV1,
 } from "../operations/runArtifact.js";
 import { parseAndValidateOperationsOutput } from "../operations/validateOutput.js";
-import { runClaudeAgent, type AgentRunner } from "../runtime/claudeAgentRunner.js";
+import type { AgentRunner } from "../runtime/agentRunner.js";
+import { runClaudeAgent } from "../runtime/claudeAgentRunner.js";
 import type { OperationsOutput } from "../schemas/operations.js";
 
 export type OperationsAgentSuccess = {

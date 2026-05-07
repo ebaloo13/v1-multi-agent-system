@@ -1,28 +1,10 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
-
-export type AgentStreamEvent = {
-  type: string;
-  subtype?: string;
-};
-
-export type AgentResultMessage = {
-  subtype: string;
-  errors?: string[];
-  total_cost_usd: number;
-  num_turns: number;
-  session_id?: string;
-  result: string;
-};
-
-export type AgentRunnerOptions = {
-  prompt: string;
-  onEvent?: (event: AgentStreamEvent) => Promise<void>;
-};
-
-export type AgentRunner = (
-  options: AgentRunnerOptions,
-) => Promise<AgentResultMessage | undefined>;
+import type {
+  AgentResultMessage,
+  AgentRunner,
+  AgentStreamEvent,
+} from "./agentRunner.js";
 
 function eventFromSdkMessage(message: SDKMessage): AgentStreamEvent {
   if ("subtype" in message && typeof message.subtype === "string") {

@@ -17,7 +17,8 @@ import {
   type SalesRunArtifactV1,
 } from "../sales/runArtifact.js";
 import { parseAndValidateSalesOutput } from "../sales/validateOutput.js";
-import { runClaudeAgent, type AgentRunner } from "../runtime/claudeAgentRunner.js";
+import type { AgentRunner } from "../runtime/agentRunner.js";
+import { runClaudeAgent } from "../runtime/claudeAgentRunner.js";
 import type { SalesOutput } from "../schemas/sales.js";
 
 export type SalesAgentSuccess = {
