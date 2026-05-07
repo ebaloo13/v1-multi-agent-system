@@ -1,6 +1,4 @@
 import "dotenv/config";
-import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildSalesPrompt } from "../sales/contract.js";
@@ -19,12 +17,18 @@ import {
   type SalesRunArtifactV1,
 } from "../sales/runArtifact.js";
 import { parseAndValidateSalesOutput } from "../sales/validateOutput.js";
+import { runClaudeAgent } from "../runtime/claudeAgentRunner.js";
 import type { SalesOutput } from "../schemas/sales.js";
 
 export type SalesAgentSuccess = {
   runId: string;
   artifactDir: string;
   output: SalesOutput;
+};
+
+type SalesAgentOptions = {
+  runner?: typeof runClaudeAgent;
+  runDir?: string;
 };
 
 function parseDetailMessage(details: unknown): string | undefined {
@@ -34,10 +38,13 @@ function parseDetailMessage(details: unknown): string | undefined {
   return undefined;
 }
 
-export async function runSalesAgent(): Promise<SalesAgentSuccess> {
+export async function runSalesAgent(
+  options: SalesAgentOptions = {},
+): Promise<SalesAgentSuccess> {
+  const runner = options.runner ?? runClaudeAgent;
   const repoRoot = resolveRepoRootFromModuleUrl(import.meta.url);
   const runId = createSalesRunId();
-  const runDir = salesRunDirFor(repoRoot, runId);
+  const runDir = options.runDir ?? salesRunDirFor(repoRoot, runId);
   await fs.mkdir(runDir, { recursive: true });
 
   const startedAt = new Date().toISOString();
@@ -91,25 +98,12 @@ export async function runSalesAgent(): Promise<SalesAgentSuccess> {
     prompt = buildSalesPrompt(salesText);
     promptSha = sha256Utf8(prompt);
 
-    const run = query({
+    const terminalResult = await runner({
       prompt,
-      options: {
-        maxTurns: 2,
-        maxBudgetUsd: 0.1,
-        allowedTools: [],
-        settingSources: ["project"],
+      onEvent: async (message) => {
+        await appendSalesRunEvent(runDir, salesEventLineFromSdkMessage(message));
       },
     });
-
-    await run.setModel("haiku");
-
-    let terminalResult: SDKResultMessage | undefined;
-    for await (const message of run as AsyncIterable<SDKMessage>) {
-      await appendSalesRunEvent(runDir, salesEventLineFromSdkMessage(message));
-      if (message.type === "result") {
-        terminalResult = message;
-      }
-    }
 
     const finishedAt = new Date().toISOString();
 
