@@ -158,7 +158,7 @@ export async function fetchWebPage(url: string): Promise<FetchedWebPage> {
   const normalizedUrl = new URL(url);
   const response = await fetch(normalizedUrl, {
     headers: {
-      "user-agent": "claude-agent-b2b-lab-preaudit/1.0",
+      "user-agent": "b2b-automation-runtime-preaudit/1.0",
       accept: "text/html,application/xhtml+xml",
     },
     redirect: "follow",

@@ -1,5 +1,5 @@
 {
-  "name": "claude-agent-b2b-lab",
+  "name": "b2b-automation-runtime",
   "version": "1.0.0",
   "type": "module",
   "scripts": {

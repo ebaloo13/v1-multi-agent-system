@@ -1,4 +1,4 @@
-# Claude Agent B2B Lab
+# B2B Automation Runtime
 
 AI operations workspace for small businesses. The repository currently combines local TypeScript agent workflows, validated schemas, deterministic utilities, and a web UX for client and internal operations surfaces.
 
