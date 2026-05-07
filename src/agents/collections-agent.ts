@@ -17,7 +17,7 @@ import {
   type RunArtifactV1,
 } from "../collections/runArtifact.js";
 import { parseAndValidateCollectionsOutput } from "../collections/validateOutput.js";
-import { runClaudeAgent } from "../runtime/claudeAgentRunner.js";
+import { runClaudeAgent, type AgentRunner } from "../runtime/claudeAgentRunner.js";
 import type { CollectionsOutput } from "../schemas/collections.js";
 
 export type CollectionsAgentSuccess = {
@@ -27,7 +27,7 @@ export type CollectionsAgentSuccess = {
 };
 
 type CollectionsAgentOptions = {
-  runner?: typeof runClaudeAgent;
+  runner?: AgentRunner;
   runDir?: string;
 };
 

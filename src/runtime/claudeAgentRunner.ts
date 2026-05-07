@@ -1,12 +1,12 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 
-export type ClaudeAgentStreamEvent = {
+export type AgentStreamEvent = {
   type: string;
   subtype?: string;
 };
 
-export type ClaudeAgentResultMessage = {
+export type AgentResultMessage = {
   subtype: string;
   errors?: string[];
   total_cost_usd: number;
@@ -15,12 +15,16 @@ export type ClaudeAgentResultMessage = {
   result: string;
 };
 
-type RunClaudeAgentOptions = {
+export type AgentRunnerOptions = {
   prompt: string;
-  onEvent?: (event: ClaudeAgentStreamEvent) => Promise<void>;
+  onEvent?: (event: AgentStreamEvent) => Promise<void>;
 };
 
-function eventFromSdkMessage(message: SDKMessage): ClaudeAgentStreamEvent {
+export type AgentRunner = (
+  options: AgentRunnerOptions,
+) => Promise<AgentResultMessage | undefined>;
+
+function eventFromSdkMessage(message: SDKMessage): AgentStreamEvent {
   if ("subtype" in message && typeof message.subtype === "string") {
     return {
       type: message.type,
@@ -31,7 +35,7 @@ function eventFromSdkMessage(message: SDKMessage): ClaudeAgentStreamEvent {
   return { type: message.type };
 }
 
-function resultFromSdkMessage(message: SDKResultMessage): ClaudeAgentResultMessage {
+function resultFromSdkMessage(message: SDKResultMessage): AgentResultMessage {
   if (message.subtype === "success") {
     return {
       subtype: message.subtype,
@@ -52,10 +56,10 @@ function resultFromSdkMessage(message: SDKResultMessage): ClaudeAgentResultMessa
   };
 }
 
-export async function runClaudeAgent({
+export const runClaudeAgent: AgentRunner = async ({
   prompt,
   onEvent,
-}: RunClaudeAgentOptions): Promise<ClaudeAgentResultMessage | undefined> {
+}) => {
   const run = query({
     prompt,
     options: {
@@ -68,7 +72,7 @@ export async function runClaudeAgent({
 
   await run.setModel("haiku");
 
-  let terminalResult: ClaudeAgentResultMessage | undefined;
+  let terminalResult: AgentResultMessage | undefined;
   for await (const message of run as AsyncIterable<SDKMessage>) {
     await onEvent?.(eventFromSdkMessage(message));
     if (message.type === "result") {
@@ -77,4 +81,4 @@ export async function runClaudeAgent({
   }
 
   return terminalResult;
-}
+};
