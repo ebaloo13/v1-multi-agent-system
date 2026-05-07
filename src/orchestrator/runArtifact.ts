@@ -7,7 +7,6 @@ import type {
   OrchestratorFinalOutput,
   OrchestratorOutput,
 } from "../schemas/orchestrator.js";
-import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 
 export type OrchestratorRunArtifactStatus =
   | "success"
@@ -58,6 +57,14 @@ export type OrchestratorRunEventLine = {
   type: string;
   subtype?: string;
   summary?: string;
+};
+
+export type OrchestratorResultMessage = {
+  subtype: string;
+  errors?: string[];
+  total_cost_usd: number;
+  num_turns: number;
+  session_id?: string;
 };
 
 export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
@@ -128,7 +135,7 @@ export async function appendOrchestratorRunEvent(
 }
 
 export function orchestratorSdkFieldsFromResult(
-  m: SDKResultMessage,
+  m: OrchestratorResultMessage,
 ): OrchestratorRunArtifactV1["sdk"] {
   if (m.subtype === "success") {
     return {

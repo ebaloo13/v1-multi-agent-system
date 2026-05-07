@@ -4,7 +4,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CollectionsOutput } from "../schemas/collections.js";
-import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 
 export type RunArtifactStatus =
   | "success"
@@ -52,6 +51,14 @@ export type RunEventLine = {
   type: string;
   subtype?: string;
   summary?: string;
+};
+
+export type CollectionsResultMessage = {
+  subtype: string;
+  errors?: string[];
+  total_cost_usd: number;
+  num_turns: number;
+  session_id?: string;
 };
 
 export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
@@ -115,7 +122,7 @@ export async function appendRunEvent(runDir: string, event: RunEventLine): Promi
   await fs.appendFile(filePath, `${JSON.stringify(event)}\n`, "utf8");
 }
 
-export function sdkFieldsFromResult(m: SDKResultMessage): RunArtifactV1["sdk"] {
+export function sdkFieldsFromResult(m: CollectionsResultMessage): RunArtifactV1["sdk"] {
   if (m.subtype === "success") {
     return {
       subtype: m.subtype,

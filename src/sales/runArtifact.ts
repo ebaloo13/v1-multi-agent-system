@@ -4,7 +4,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { SalesOutput } from "../schemas/sales.js";
-import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 
 export type SalesRunArtifactStatus =
   | "success"
@@ -45,6 +44,14 @@ export type SalesRunEventLine = {
   type: string;
   subtype?: string;
   summary?: string;
+};
+
+export type SalesResultMessage = {
+  subtype: string;
+  errors?: string[];
+  total_cost_usd: number;
+  num_turns: number;
+  session_id?: string;
 };
 
 export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
@@ -108,7 +115,7 @@ export async function appendSalesRunEvent(runDir: string, event: SalesRunEventLi
   await fs.appendFile(filePath, `${JSON.stringify(event)}\n`, "utf8");
 }
 
-export function salesSdkFieldsFromResult(m: SDKResultMessage): SalesRunArtifactV1["sdk"] {
+export function salesSdkFieldsFromResult(m: SalesResultMessage): SalesRunArtifactV1["sdk"] {
   if (m.subtype === "success") {
     return {
       subtype: m.subtype,

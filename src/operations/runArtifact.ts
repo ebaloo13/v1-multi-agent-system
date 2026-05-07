@@ -4,7 +4,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { OperationsOutput } from "../schemas/operations.js";
-import type { SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 
 export type OperationsRunArtifactStatus =
   | "success"
@@ -45,6 +44,14 @@ export type OperationsRunEventLine = {
   type: string;
   subtype?: string;
   summary?: string;
+};
+
+export type OperationsResultMessage = {
+  subtype: string;
+  errors?: string[];
+  total_cost_usd: number;
+  num_turns: number;
+  session_id?: string;
 };
 
 export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
@@ -115,7 +122,7 @@ export async function appendOperationsRunEvent(
 }
 
 export function operationsSdkFieldsFromResult(
-  m: SDKResultMessage,
+  m: OperationsResultMessage,
 ): OperationsRunArtifactV1["sdk"] {
   if (m.subtype === "success") {
     return {
