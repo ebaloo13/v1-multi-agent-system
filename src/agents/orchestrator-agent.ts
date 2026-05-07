@@ -1,6 +1,4 @@
 import "dotenv/config";
-import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKMessage, SDKResultMessage } from "@anthropic-ai/claude-agent-sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { AuditRunError } from "../audit/errors.js";
@@ -33,6 +31,7 @@ import type {
   OrchestratorFinalResults,
   OrchestratorOutput,
 } from "../schemas/orchestrator.js";
+import { runClaudeAgent } from "../runtime/claudeAgentRunner.js";
 import type { SalesOutput } from "../schemas/sales.js";
 import type { AuditAgentSuccess } from "./audit-agent.js";
 import { runAuditAgent } from "./audit-agent.js";
@@ -44,6 +43,11 @@ export type OrchestratorAgentSuccess = {
   runId: string;
   artifactDir: string;
   output: OrchestratorFinalOutput;
+};
+
+type OrchestratorAgentOptions = {
+  runner?: typeof runClaudeAgent;
+  runDir?: string;
 };
 
 function buildFinalSummary(
@@ -232,10 +236,13 @@ function parseDetailMessage(details: unknown): string | undefined {
   return undefined;
 }
 
-export async function runOrchestratorAgent(): Promise<OrchestratorAgentSuccess> {
+export async function runOrchestratorAgent(
+  options: OrchestratorAgentOptions = {},
+): Promise<OrchestratorAgentSuccess> {
+  const runner = options.runner ?? runClaudeAgent;
   const repoRoot = resolveRepoRootFromModuleUrl(import.meta.url);
   const runId = createOrchestratorRunId();
-  const runDir = orchestratorRunDirFor(repoRoot, runId);
+  const runDir = options.runDir ?? orchestratorRunDirFor(repoRoot, runId);
   await fs.mkdir(runDir, { recursive: true });
 
   const startedAt = new Date().toISOString();
@@ -295,28 +302,15 @@ export async function runOrchestratorAgent(): Promise<OrchestratorAgentSuccess> 
     }
     promptSha = sha256Utf8(prompt);
 
-    const run = query({
+    const terminalResult = await runner({
       prompt,
-      options: {
-        maxTurns: 2,
-        maxBudgetUsd: 0.1,
-        allowedTools: [],
-        settingSources: ["project"],
+      onEvent: async (message) => {
+        await appendOrchestratorRunEvent(
+          runDir,
+          orchestratorEventLineFromSdkMessage(message),
+        );
       },
     });
-
-    await run.setModel("haiku");
-
-    let terminalResult: SDKResultMessage | undefined;
-    for await (const message of run as AsyncIterable<SDKMessage>) {
-      await appendOrchestratorRunEvent(
-        runDir,
-        orchestratorEventLineFromSdkMessage(message),
-      );
-      if (message.type === "result") {
-        terminalResult = message;
-      }
-    }
 
     const finishedAt = new Date().toISOString();
 
