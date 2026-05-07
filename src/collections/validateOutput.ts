@@ -7,12 +7,7 @@ import { CollectionsRunError } from "./errors.js";
 export function parseAndValidateCollectionsOutput(raw: string): CollectionsOutput {
   let parsed: unknown;
   try {
-    const cleaned = raw
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
-
-    parsed = JSON.parse(cleaned);
+    parsed = JSON.parse(raw);
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause);
     throw new CollectionsRunError("OUTPUT_PARSE", { message, cause });

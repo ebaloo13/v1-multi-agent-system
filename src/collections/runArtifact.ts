@@ -33,7 +33,7 @@ export type RunArtifactV1 = {
     num_turns: number;
     session_id?: string;
   };
-  /** Present on success (demo audit). Omitted on failure statuses. */
+  /** Present on success (collections run). Omitted on failure statuses. */
   raw_model_output?: string | null;
   /** Only when status === "success". Omitted on all failure statuses. */
   validated_output?: CollectionsOutput;

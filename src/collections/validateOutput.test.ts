@@ -74,6 +74,27 @@ test("priority_score as string fails schema", () => {
   );
 });
 
+test("priority_score as decimal fails schema", () => {
+  const bad = JSON.stringify({
+    summary: "x",
+    actions: [
+      {
+        customer: "Acme",
+        invoice_id: "INV-1",
+        risk_tier: "low",
+        priority_score: 10.5,
+        suggested_action: "s",
+        escalate: false,
+        email_draft: "e",
+      },
+    ],
+  });
+  assert.throws(
+    () => parseAndValidateCollectionsOutput(bad),
+    (e: unknown) => e instanceof CollectionsRunError && e.code === "OUTPUT_SCHEMA",
+  );
+});
+
 test("missing required top-level actions fails schema", () => {
   const bad = JSON.stringify({ summary: "only summary" });
   assert.throws(
