@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { CollectionsRunError } from "../collections/errors.js";
 import { runCollectionsAgent } from "./collections-agent.js";
 
 type CollectionsRunner = NonNullable<
@@ -69,6 +70,40 @@ test("runCollectionsAgent writes success artifacts with a faux runner", async ()
       .filter((line) => line.length > 0);
 
     assert.equal(eventLines.length, 2);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("runCollectionsAgent writes sdk_error when faux runner returns no result", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(tmpdir(), "collections-agent-"));
+  const runDir = path.join(tempRoot, "run");
+
+  const runner: CollectionsRunner = async ({ onEvent }) => {
+    await onEvent?.({ type: "assistant" });
+    return undefined;
+  };
+
+  try {
+    await assert.rejects(
+      () => runCollectionsAgent({ runner, runDir }),
+      (error: unknown) => error instanceof CollectionsRunError && error.code === "SDK_NO_RESULT",
+    );
+
+    const runJsonPath = path.join(runDir, "run.json");
+    const runJson = requireRecord(
+      JSON.parse(await fs.readFile(runJsonPath, "utf8")) as unknown,
+      "run.json",
+    );
+    assert.equal(runJson.status, "sdk_error");
+
+    const eventsPath = path.join(runDir, "events.ndjson");
+    const eventLines = (await fs.readFile(eventsPath, "utf8"))
+      .trim()
+      .split("\n")
+      .filter((line) => line.length > 0);
+
+    assert.equal(eventLines.length, 1);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
