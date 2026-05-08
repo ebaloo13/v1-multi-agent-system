@@ -49,6 +49,10 @@ export type OrchestratorAgentSuccess = {
 type OrchestratorAgentOptions = {
   runner?: AgentRunner;
   runDir?: string;
+  auditAgent?: typeof runAuditAgent;
+  collectionsAgent?: typeof runCollectionsAgent;
+  salesAgent?: typeof runSalesAgent;
+  operationsAgent?: typeof runOperationsAgent;
 };
 
 function buildFinalSummary(
@@ -244,6 +248,10 @@ export async function runOrchestratorAgent(
   const repoRoot = resolveRepoRootFromModuleUrl(import.meta.url);
   const runId = createOrchestratorRunId();
   const runDir = options.runDir ?? orchestratorRunDirFor(repoRoot, runId);
+  const auditAgent = options.auditAgent ?? runAuditAgent;
+  const collectionsAgent = options.collectionsAgent ?? runCollectionsAgent;
+  const salesAgent = options.salesAgent ?? runSalesAgent;
+  const operationsAgent = options.operationsAgent ?? runOperationsAgent;
   await fs.mkdir(runDir, { recursive: true });
 
   const startedAt = new Date().toISOString();
@@ -280,7 +288,7 @@ export async function runOrchestratorAgent(
   try {
     let auditResult: AuditAgentSuccess | undefined;
     try {
-      auditResult = await runAuditAgent();
+      auditResult = await auditAgent();
       const auditInputText = JSON.stringify(auditResult.output, null, 2);
       orchestratorDataSha = sha256Utf8(auditInputText);
       prompt = buildOrchestratorPrompt(auditInputText);
@@ -383,19 +391,19 @@ export async function runOrchestratorAgent(
       try {
         switch (agent) {
           case "collections": {
-            const r = await runCollectionsAgent();
+            const r = await collectionsAgent();
             results.collections = r.output;
             agents_executed.push("collections");
             break;
           }
           case "sales": {
-            const r = await runSalesAgent();
+            const r = await salesAgent();
             results.sales = r.output;
             agents_executed.push("sales");
             break;
           }
           case "operations": {
-            const r = await runOperationsAgent();
+            const r = await operationsAgent();
             results.operations = r.output;
             agents_executed.push("operations");
             break;
