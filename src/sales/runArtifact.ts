@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { SalesOutput } from "../schemas/sales.js";
 import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
+import { eventLineFromSdkMessage as runtimeEventLineFromSdkMessage } from "../runtime/runArtifacts.js";
 import { sdkFieldsFromResult as runtimeSdkFieldsFromResult } from "../runtime/runArtifacts.js";
 import { writeRunJsonFile } from "../runtime/runArtifacts.js";
 export {
@@ -67,16 +68,7 @@ export function salesEventLineFromSdkMessage(message: {
   type: string;
   subtype?: string;
 }): SalesRunEventLine {
-  const ts = new Date().toISOString();
-  if (message.type === "result" && message.subtype !== undefined) {
-    return {
-      ts,
-      type: message.type,
-      subtype: message.subtype,
-      summary: `result:${message.subtype}`,
-    };
-  }
-  return { ts, type: message.type };
+  return runtimeEventLineFromSdkMessage(message);
 }
 
 export async function writeSalesRunJson(runDir: string, body: SalesRunArtifactV1): Promise<void> {

@@ -11,6 +11,11 @@ export type RunEventLine = {
   summary?: string;
 };
 
+export type RunSdkEventMessage = {
+  type: string;
+  subtype?: string;
+};
+
 export type RunResultMetadata = {
   subtype: string;
   errors?: string[];
@@ -60,6 +65,19 @@ export function getGitCommit(repoRoot: string): string | null {
 export async function appendRunEvent(runDir: string, event: RunEventLine): Promise<void> {
   const filePath = path.join(runDir, "events.ndjson");
   await fs.appendFile(filePath, `${JSON.stringify(event)}\n`, "utf8");
+}
+
+export function eventLineFromSdkMessage(message: RunSdkEventMessage): RunEventLine {
+  const ts = new Date().toISOString();
+  if (message.type === "result" && message.subtype !== undefined) {
+    return {
+      ts,
+      type: message.type,
+      subtype: message.subtype,
+      summary: `result:${message.subtype}`,
+    };
+  }
+  return { ts, type: message.type };
 }
 
 export async function writeRunJsonFile<Artifact extends object>(

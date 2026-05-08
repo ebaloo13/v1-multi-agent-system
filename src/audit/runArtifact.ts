@@ -2,6 +2,7 @@ import path from "node:path";
 import type { AuditOutput } from "../schemas/audit.js";
 import { artifactRunPath } from "../shared/clientArtifacts.js";
 import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
+import { eventLineFromSdkMessage as runtimeEventLineFromSdkMessage } from "../runtime/runArtifacts.js";
 import { sdkFieldsFromResult as runtimeSdkFieldsFromResult } from "../runtime/runArtifacts.js";
 import { writeRunJsonFile } from "../runtime/runArtifacts.js";
 export {
@@ -96,16 +97,7 @@ export function auditEventLineFromSdkMessage(message: {
   type: string;
   subtype?: string;
 }): AuditRunEventLine {
-  const ts = new Date().toISOString();
-  if (message.type === "result" && message.subtype !== undefined) {
-    return {
-      ts,
-      type: message.type,
-      subtype: message.subtype,
-      summary: `result:${message.subtype}`,
-    };
-  }
-  return { ts, type: message.type };
+  return runtimeEventLineFromSdkMessage(message);
 }
 
 export async function writeAuditRunJson(
