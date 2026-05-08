@@ -68,6 +68,12 @@ npm run check
 
 `npm test` runs deterministic validation and agent tests with faux runners and temporary artifact directories. Those tests do not call provider APIs or spend tokens.
 
+Batch scripts call provider-backed agents. They require `--confirm-provider-cost`, accept `--max-runs=N`, default to 1 run, and cap at 5 runs.
+
+```bash
+npm run collections:batch -- --confirm-provider-cost --max-runs=1
+```
+
 Run the web app:
 
 ```bash
