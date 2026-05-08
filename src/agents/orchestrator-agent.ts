@@ -456,6 +456,7 @@ export async function runOrchestratorAgent(
       exit_code: 0,
       sdk: orchestratorSdkFieldsFromResult(terminalResult),
       raw_model_output: terminalResult.result,
+      orchestrator_routing_output: routingOutput,
       validated_output: finalOutput,
     });
 
