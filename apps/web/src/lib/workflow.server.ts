@@ -47,7 +47,6 @@ import {
 import {
   REPO_ROOT,
   clientArtifactPath,
-  clientContextPath,
   clientsDataDir,
   intakeDraftPath,
   intakePath,
@@ -63,15 +62,7 @@ import {
   readPreauditRun,
   type PreauditRunJson,
 } from './workflow-artifact-readers.server'
-
-type ClientContextFile = {
-  client_slug: string
-  client_name?: string
-  website?: string
-  email?: string
-  created_at: string
-  updated_at: string
-}
+import { readClientContext, saveClientContext } from './workflow-client-context.server'
 
 type AuditIntakeFile = {
   company_profile?: {
@@ -335,36 +326,6 @@ async function resolveClientSlug(search: WorkflowSearch, preferred: 'preaudit' |
   }
 
   return (await findLatestClientSlugForAgent(preferred)) ?? 'generic-client'
-}
-
-async function readClientContext(clientSlug: string) {
-  return readJsonIfExists<ClientContextFile>(clientContextPath(clientSlug))
-}
-
-async function saveClientContext(
-  clientSlug: string,
-  patch: {
-    clientName?: string
-    website?: string
-    email?: string
-  },
-) {
-  const existing = await readClientContext(clientSlug)
-  const now = new Date().toISOString()
-  const filePath = clientContextPath(clientSlug)
-  const next: ClientContextFile = {
-    client_slug: clientSlug,
-    client_name: patch.clientName?.trim() || existing?.client_name || formatClientName(clientSlug),
-    website: patch.website?.trim() || existing?.website || DEFAULT_WEBSITE,
-    email: patch.email?.trim() || existing?.email,
-    created_at: existing?.created_at || now,
-    updated_at: now,
-  }
-
-  await ensureDirectory(filePath)
-  await fs.writeFile(filePath, `${JSON.stringify(next, null, 2)}\n`, 'utf8')
-
-  return next
 }
 
 async function deriveWebsiteFromPreaudit(runJson: PreauditRunJson, clientSlug: string) {
