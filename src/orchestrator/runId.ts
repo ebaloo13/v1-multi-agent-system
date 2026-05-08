@@ -1,10 +1,5 @@
-import { randomBytes } from "node:crypto";
+import { createPrefixedRunId } from "../runtime/runIds.js";
 
 export function createOrchestratorRunId(): string {
-  const stamp = new Date()
-    .toISOString()
-    .replace(/[:-]/g, "")
-    .replace(/\.\d{3}Z/, "Z");
-  const suffix = randomBytes(4).toString("hex");
-  return `orchestrator-${stamp}-${suffix}`;
+  return createPrefixedRunId("orchestrator");
 }
