@@ -1,6 +1,5 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import type {
   AuditIntakeView,
@@ -47,6 +46,15 @@ import {
   readMtimeMsIfExists,
   readTextIfExists,
 } from './workflow-file-readers.server'
+import {
+  REPO_ROOT,
+  clientArtifactPath,
+  clientArtifactsDir,
+  clientContextPath,
+  clientsDataDir,
+  intakeDraftPath,
+  intakePath,
+} from './workflow-paths.server'
 
 type LatestPointer = {
   display_run_id: string
@@ -126,14 +134,6 @@ type AuditIntakeFile = {
   _web_ui?: Partial<IntakeDraft>
 }
 
-const REPO_ROOT = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..',
-  '..',
-  '..',
-  '..',
-)
-
 const DOMAIN_SUFFIX_HINTS = [
   'propiedades',
   'properties',
@@ -173,18 +173,6 @@ function slugifyHostnameLabel(hostname: string) {
   return slugifyClientName(baseLabel)
 }
 
-function clientsDataDir() {
-  return path.join(REPO_ROOT, 'data', 'clients')
-}
-
-function clientArtifactsDir() {
-  return path.join(REPO_ROOT, 'artifacts', 'clients')
-}
-
-function clientArtifactPath(clientSlug: string, agent: 'preaudit' | 'audit') {
-  return path.join(clientArtifactsDir(), clientSlug, agent)
-}
-
 function clientEntityId(clientSlug: string) {
   return `client:${clientSlug}`
 }
@@ -203,18 +191,6 @@ function workstreamEntityId(clientSlug: string, title: string) {
 
 function clientAgentEntityId(clientSlug: string, agentKey: string) {
   return `client_agent:${clientSlug}:${agentKey}`
-}
-
-function intakeDraftPath(clientSlug: string) {
-  return path.join(clientsDataDir(), `${clientSlug}-audit-intake.draft.json`)
-}
-
-function intakePath(clientSlug: string) {
-  return path.join(clientsDataDir(), `${clientSlug}-audit-intake.json`)
-}
-
-function clientContextPath(clientSlug: string) {
-  return path.join(clientsDataDir(), `${clientSlug}-workspace.json`)
 }
 
 async function ensureDirectory(filePath: string) {
