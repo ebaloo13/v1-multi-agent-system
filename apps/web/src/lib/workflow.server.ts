@@ -76,6 +76,10 @@ import {
   parseIntakeForm,
   type AuditIntakeFile,
 } from './workflow-intake.server'
+import {
+  parseSectionBullets,
+  parseSectionParagraph,
+} from './workflow-report-markdown.server'
 
 async function ensureDirectory(filePath: string) {
   await fs.mkdir(path.dirname(filePath), { recursive: true })
@@ -116,33 +120,6 @@ async function runCommand(command: string, args: string[]) {
 
 async function runRepoNodeScript(scriptPath: string, args: string[]) {
   return runCommand(process.execPath, ['--import', 'tsx/esm', scriptPath, ...args])
-}
-
-function parseSection(markdown: string, heading: string) {
-  const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const match = markdown.match(
-    new RegExp(`## ${escapedHeading}\\n([\\s\\S]*?)(?:\\n---\\n|\\n## |$)`),
-  )
-
-  return match?.[1]?.trim() ?? ''
-}
-
-function parseSectionBullets(markdown: string, heading: string) {
-  const body = parseSection(markdown, heading)
-  return body
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith('- '))
-    .map((line) => line.slice(2).trim())
-}
-
-function parseSectionParagraph(markdown: string, heading: string) {
-  return parseSection(markdown, heading)
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith('- '))
-    .join(' ')
-    .trim()
 }
 
 function normalizeTrackingMarkerList(trackingMarkers: AuditIntakeFile['_autofilled_from_preaudit'] extends {
