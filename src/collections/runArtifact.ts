@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { CollectionsOutput } from "../schemas/collections.js";
+import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
 export {
   getGitCommit,
   resolveRepoRootFromModuleUrl,
@@ -95,8 +96,7 @@ export async function writeRunJson(runDir: string, body: RunArtifactV1): Promise
 }
 
 export async function appendRunEvent(runDir: string, event: RunEventLine): Promise<void> {
-  const filePath = path.join(runDir, "events.ndjson");
-  await fs.appendFile(filePath, `${JSON.stringify(event)}\n`, "utf8");
+  await appendRuntimeRunEvent(runDir, event);
 }
 
 export function sdkFieldsFromResult(m: CollectionsResultMessage): RunArtifactV1["sdk"] {

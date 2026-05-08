@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { OperationsOutput } from "../schemas/operations.js";
+import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
 export {
   getGitCommit,
   resolveRepoRootFromModuleUrl,
@@ -94,8 +95,7 @@ export async function appendOperationsRunEvent(
   runDir: string,
   event: OperationsRunEventLine,
 ): Promise<void> {
-  const filePath = path.join(runDir, "events.ndjson");
-  await fs.appendFile(filePath, `${JSON.stringify(event)}\n`, "utf8");
+  await appendRuntimeRunEvent(runDir, event);
 }
 
 export function operationsSdkFieldsFromResult(

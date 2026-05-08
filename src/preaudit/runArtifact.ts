@@ -7,6 +7,7 @@ import type {
 } from "./scope.js";
 import type { PreauditOutput } from "../schemas/preaudit.js";
 import { artifactRunPath } from "../shared/clientArtifacts.js";
+import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
 export {
   getGitCommit,
   resolveRepoRootFromModuleUrl,
@@ -126,8 +127,7 @@ export async function appendPreauditRunEvent(
   runDir: string,
   event: PreauditRunEventLine,
 ): Promise<void> {
-  const filePath = path.join(runDir, "events.ndjson");
-  await fs.appendFile(filePath, `${JSON.stringify(event)}\n`, "utf8");
+  await appendRuntimeRunEvent(runDir, event);
 }
 
 export function preauditSdkFieldsFromResult(
