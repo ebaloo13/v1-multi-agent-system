@@ -64,6 +64,13 @@ import {
 } from './workflow-artifact-readers.server'
 import { readClientContext, saveClientContext } from './workflow-client-context.server'
 import { slugifyClientName, slugifyHostnameLabel } from './workflow-slugs.server'
+import {
+  clientAgentEntityId,
+  clientEntityId,
+  outputEntityId,
+  workflowRunEntityId,
+  workstreamEntityId,
+} from './workflow-entity-ids.server'
 
 type AuditIntakeFile = {
   company_profile?: {
@@ -91,26 +98,6 @@ type AuditIntakeFile = {
   }
   _todo?: string[]
   _web_ui?: Partial<IntakeDraft>
-}
-
-function clientEntityId(clientSlug: string) {
-  return `client:${clientSlug}`
-}
-
-function workflowRunEntityId(clientSlug: string, runType: 'preaudit' | 'audit') {
-  return `workflow_run:${clientSlug}:${runType}`
-}
-
-function outputEntityId(clientSlug: string, outputType: WorkspaceOutputSummary['outputType']) {
-  return `output:${clientSlug}:${outputType}`
-}
-
-function workstreamEntityId(clientSlug: string, title: string) {
-  return `workstream:${clientSlug}:${slugifyClientName(title)}`
-}
-
-function clientAgentEntityId(clientSlug: string, agentKey: string) {
-  return `client_agent:${clientSlug}:${agentKey}`
 }
 
 async function ensureDirectory(filePath: string) {
