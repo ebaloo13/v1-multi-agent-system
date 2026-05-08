@@ -341,3 +341,91 @@ test("runOrchestratorAgent writes schema_error when routing output fails schema"
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
+
+test("runOrchestratorAgent writes parse_error when routing output is not JSON", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(tmpdir(), "orchestrator-agent-"));
+  const runDir = path.join(tempRoot, "run");
+  let auditCalls = 0;
+  let collectionsCalls = 0;
+  let salesCalls = 0;
+  let operationsCalls = 0;
+
+  const runner: OrchestratorRunner = async ({ onEvent }) => {
+    await onEvent?.({ type: "assistant" });
+    await onEvent?.({ type: "result", subtype: "success" });
+
+    return {
+      subtype: "success",
+      total_cost_usd: 0,
+      num_turns: 1,
+      session_id: "test-session",
+      result: "not json",
+    };
+  };
+
+  const auditAgent: AuditAgent = async () => {
+    auditCalls += 1;
+    return auditResult;
+  };
+
+  const collectionsAgent: CollectionsAgent = async () => {
+    collectionsCalls += 1;
+    return collectionsResult;
+  };
+
+  const salesAgent: SalesAgent = async (): Promise<SalesAgentSuccess> => {
+    salesCalls += 1;
+    return {
+      runId: "sales-test-run",
+      artifactDir: "/tmp/sales-test-run",
+      output: {
+        summary: "No sales actions.",
+        opportunities: [],
+      },
+    };
+  };
+
+  const operationsAgent: OperationsAgent =
+    async (): Promise<OperationsAgentSuccess> => {
+      operationsCalls += 1;
+      return {
+        runId: "operations-test-run",
+        artifactDir: "/tmp/operations-test-run",
+        output: {
+          summary: "No operations actions.",
+          issues: [],
+        },
+      };
+    };
+
+  try {
+    await assert.rejects(
+      () =>
+        runOrchestratorAgent({
+          runner,
+          runDir,
+          auditAgent,
+          collectionsAgent,
+          salesAgent,
+          operationsAgent,
+        }),
+      (error: unknown) =>
+        error instanceof OrchestratorRunError &&
+        error.code === "OUTPUT_PARSE",
+    );
+
+    assert.equal(auditCalls, 1);
+    assert.equal(collectionsCalls, 0);
+    assert.equal(salesCalls, 0);
+    assert.equal(operationsCalls, 0);
+
+    const runJsonPath = path.join(runDir, "run.json");
+    const runJson = requireRecord(
+      JSON.parse(await fs.readFile(runJsonPath, "utf8")) as unknown,
+      "run.json",
+    );
+    assert.equal(runJson.status, "parse_error");
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
