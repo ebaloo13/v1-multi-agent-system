@@ -2,6 +2,7 @@ import path from "node:path";
 import type { AuditOutput } from "../schemas/audit.js";
 import { artifactRunPath } from "../shared/clientArtifacts.js";
 import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
+import { sdkFieldsFromResult as runtimeSdkFieldsFromResult } from "../runtime/runArtifacts.js";
 import { writeRunJsonFile } from "../runtime/runArtifacts.js";
 export {
   getGitCommit,
@@ -124,19 +125,5 @@ export async function appendAuditRunEvent(
 export function auditSdkFieldsFromResult(
   m: AuditResultMessage,
 ): AuditRunArtifactV1["sdk"] {
-  if (m.subtype === "success") {
-    return {
-      subtype: m.subtype,
-      total_cost_usd: m.total_cost_usd,
-      num_turns: m.num_turns,
-      session_id: m.session_id,
-    };
-  }
-  return {
-    subtype: m.subtype,
-    errors: m.errors,
-    total_cost_usd: m.total_cost_usd,
-    num_turns: m.num_turns,
-    session_id: m.session_id,
-  };
+  return runtimeSdkFieldsFromResult(m);
 }

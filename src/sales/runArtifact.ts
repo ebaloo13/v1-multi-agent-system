@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { SalesOutput } from "../schemas/sales.js";
 import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
+import { sdkFieldsFromResult as runtimeSdkFieldsFromResult } from "../runtime/runArtifacts.js";
 import { writeRunJsonFile } from "../runtime/runArtifacts.js";
 export {
   getGitCommit,
@@ -87,19 +88,5 @@ export async function appendSalesRunEvent(runDir: string, event: SalesRunEventLi
 }
 
 export function salesSdkFieldsFromResult(m: SalesResultMessage): SalesRunArtifactV1["sdk"] {
-  if (m.subtype === "success") {
-    return {
-      subtype: m.subtype,
-      total_cost_usd: m.total_cost_usd,
-      num_turns: m.num_turns,
-      session_id: m.session_id,
-    };
-  }
-  return {
-    subtype: m.subtype,
-    errors: m.errors,
-    total_cost_usd: m.total_cost_usd,
-    num_turns: m.num_turns,
-    session_id: m.session_id,
-  };
+  return runtimeSdkFieldsFromResult(m);
 }

@@ -11,6 +11,22 @@ export type RunEventLine = {
   summary?: string;
 };
 
+export type RunResultMetadata = {
+  subtype: string;
+  errors?: string[];
+  total_cost_usd: number;
+  num_turns: number;
+  session_id?: string;
+};
+
+export type RunSdkFields = {
+  subtype: string;
+  errors?: string[];
+  total_cost_usd: number;
+  num_turns: number;
+  session_id?: string;
+};
+
 type RunArtifactWithLocalTime<Artifact extends object> = Artifact & {
   local_time: string;
 };
@@ -57,4 +73,22 @@ export async function writeRunJsonFile<Artifact extends object>(
   };
 
   await fs.writeFile(filePath, `${JSON.stringify(withLocalTime, null, 2)}\n`, "utf8");
+}
+
+export function sdkFieldsFromResult(m: RunResultMetadata): RunSdkFields {
+  if (m.subtype === "success") {
+    return {
+      subtype: m.subtype,
+      total_cost_usd: m.total_cost_usd,
+      num_turns: m.num_turns,
+      session_id: m.session_id,
+    };
+  }
+  return {
+    subtype: m.subtype,
+    errors: m.errors,
+    total_cost_usd: m.total_cost_usd,
+    num_turns: m.num_turns,
+    session_id: m.session_id,
+  };
 }
