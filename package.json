@@ -20,7 +20,7 @@
     "orchestrator:batch": "tsx scripts/batch/run-orchestrator-batch.ts",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck",
-    "test": "node --import tsx/esm --test src/collections/validateOutput.test.ts"
+    "test": "node --import tsx/esm --test src/collections/validateOutput.test.ts src/agents/collections-agent.test.ts src/agents/sales-agent.test.ts src/agents/operations-agent.test.ts src/agents/orchestrator-agent.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.87",
