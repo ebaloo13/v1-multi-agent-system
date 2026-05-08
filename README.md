@@ -66,6 +66,8 @@ Run the root type check from the repository root:
 npm run check
 ```
 
+`npm test` runs deterministic validation and agent tests with faux runners and temporary artifact directories. Those tests do not call provider APIs or spend tokens.
+
 Run the web app:
 
 ```bash
