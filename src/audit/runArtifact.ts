@@ -1,8 +1,8 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { AuditOutput } from "../schemas/audit.js";
 import { artifactRunPath } from "../shared/clientArtifacts.js";
 import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
+import { writeRunJsonFile } from "../runtime/runArtifacts.js";
 export {
   getGitCommit,
   resolveRepoRootFromModuleUrl,
@@ -111,13 +111,7 @@ export async function writeAuditRunJson(
   runDir: string,
   body: AuditRunArtifactV1,
 ): Promise<void> {
-  const filePath = path.join(runDir, "run.json");
-  const withLocalTime = {
-    ...body,
-    local_time: new Date().toLocaleString(),
-  } as Record<string, unknown>;
-
-  await fs.writeFile(filePath, `${JSON.stringify(withLocalTime, null, 2)}\n`, "utf8");
+  await writeRunJsonFile(runDir, body);
 }
 
 export async function appendAuditRunEvent(

@@ -1,7 +1,7 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { CollectionsOutput } from "../schemas/collections.js";
 import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
+import { writeRunJsonFile } from "../runtime/runArtifacts.js";
 export {
   getGitCommit,
   resolveRepoRootFromModuleUrl,
@@ -46,10 +46,6 @@ export type RunArtifactV1 = {
   unexpected_message?: string;
 };
 
-type RunArtifactWithLocalTime = RunArtifactV1 & {
-  local_time: string;
-};
-
 export type RunEventLine = {
   ts: string;
   type: string;
@@ -86,13 +82,7 @@ export function eventLineFromSdkMessage(message: {
 }
 
 export async function writeRunJson(runDir: string, body: RunArtifactV1): Promise<void> {
-  const filePath = path.join(runDir, "run.json");
-  const withLocalTime: RunArtifactWithLocalTime = {
-    ...body,
-    local_time: new Date().toLocaleString(),
-  };
-
-  await fs.writeFile(filePath, `${JSON.stringify(withLocalTime, null, 2)}\n`, "utf8");
+  await writeRunJsonFile(runDir, body);
 }
 
 export async function appendRunEvent(runDir: string, event: RunEventLine): Promise<void> {

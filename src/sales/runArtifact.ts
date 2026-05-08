@@ -1,7 +1,7 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { SalesOutput } from "../schemas/sales.js";
 import { appendRunEvent as appendRuntimeRunEvent } from "../runtime/runArtifacts.js";
+import { writeRunJsonFile } from "../runtime/runArtifacts.js";
 export {
   getGitCommit,
   resolveRepoRootFromModuleUrl,
@@ -79,13 +79,7 @@ export function salesEventLineFromSdkMessage(message: {
 }
 
 export async function writeSalesRunJson(runDir: string, body: SalesRunArtifactV1): Promise<void> {
-  const filePath = path.join(runDir, "run.json");
-  const withLocalTime = {
-    ...body,
-    local_time: new Date().toLocaleString(),
-  } as Record<string, unknown>;
-
-  await fs.writeFile(filePath, `${JSON.stringify(withLocalTime, null, 2)}\n`, "utf8");
+  await writeRunJsonFile(runDir, body);
 }
 
 export async function appendSalesRunEvent(runDir: string, event: SalesRunEventLine): Promise<void> {
