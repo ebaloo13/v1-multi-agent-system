@@ -1,8 +1,5 @@
-import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type {
   PreauditFrameworkFit,
   PreauditScopeConfidence,
@@ -10,6 +7,12 @@ import type {
 } from "./scope.js";
 import type { PreauditOutput } from "../schemas/preaudit.js";
 import { artifactRunPath } from "../shared/clientArtifacts.js";
+export {
+  getGitCommit,
+  resolveRepoRootFromModuleUrl,
+  sha256Buffer,
+  sha256Utf8,
+} from "../runtime/runArtifacts.js";
 
 export type PreauditRunArtifactStatus =
   | "success"
@@ -73,32 +76,6 @@ export type PreauditResultMessage = {
   num_turns: number;
   session_id?: string;
 };
-
-export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
-  const file = fileURLToPath(moduleUrl);
-  return path.join(path.dirname(file), "..", "..");
-}
-
-export function sha256Buffer(buf: Buffer): string {
-  return createHash("sha256").update(buf).digest("hex");
-}
-
-export function sha256Utf8(text: string): string {
-  return createHash("sha256").update(text, "utf8").digest("hex");
-}
-
-export function getGitCommit(repoRoot: string): string | null {
-  try {
-    const out = execFileSync("git", ["rev-parse", "HEAD"], {
-      cwd: repoRoot,
-      encoding: "utf8",
-    });
-    const trimmed = out.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  } catch {
-    return null;
-  }
-}
 
 export function preauditRunDirFor(
   repoRoot: string,
