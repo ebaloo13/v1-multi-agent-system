@@ -45,6 +45,21 @@ export const WorkItemStatusSchema = z.enum([
   "done",
 ]);
 
+export const FunnelStageSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  order: z.number().int().nonnegative(),
+  status: WorkItemStatusSchema,
+});
+
+export const FunnelSchema = z.object({
+  id: z.string(),
+  businessId: z.string(),
+  key: z.string(),
+  label: z.string(),
+  stages: z.array(FunnelStageSchema),
+});
+
 export const BusinessModuleKeySchema = z.enum([
   "inbox",
   "tasks",
@@ -207,6 +222,8 @@ export const LegacyRequestStatusSchema = z.enum([
 
 export type WorkItemType = z.infer<typeof WorkItemTypeSchema>;
 export type WorkItemStatus = z.infer<typeof WorkItemStatusSchema>;
+export type FunnelStage = z.infer<typeof FunnelStageSchema>;
+export type Funnel = z.infer<typeof FunnelSchema>;
 export type BusinessModuleKey = z.infer<typeof BusinessModuleKeySchema>;
 export type Contact = z.infer<typeof ContactSchema>;
 export type Conversation = z.infer<typeof ConversationSchema>;
