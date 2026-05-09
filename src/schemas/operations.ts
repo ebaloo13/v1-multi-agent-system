@@ -50,6 +50,9 @@ export const FunnelStageSchema = z.object({
   label: z.string(),
   order: z.number().int().nonnegative(),
   status: WorkItemStatusSchema,
+  description: z.string().optional(),
+  state: z.enum(["open", "won", "lost", "closed"]).optional(),
+  assistantKey: z.string().optional(),
 });
 
 export const FunnelSchema = z.object({
