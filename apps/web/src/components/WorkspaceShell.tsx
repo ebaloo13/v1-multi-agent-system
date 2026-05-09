@@ -139,6 +139,11 @@ export function WorkspaceAppSidebar({
   email?: string
   routeScope?: WorkspaceRouteScope
 }) {
+  const visibleTabs =
+    routeScope === 'workspace'
+      ? workspaceTabs.filter((tab) => tab.id === 'dashboard' || tab.id === 'diagnosis')
+      : workspaceTabs
+
   return (
     <aside className="workspace-sidebar">
       <div className="workspace-sidebar-panel workspace-sidebar-panel-primary">
@@ -161,7 +166,7 @@ export function WorkspaceAppSidebar({
           <p className="workspace-sidebar-section-title">Navigation</p>
         </div>
         <nav className="workspace-sidebar-nav" aria-label="Workspace navigation">
-          {workspaceTabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const isActive = tab.id === section
 
             return (
