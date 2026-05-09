@@ -42,12 +42,6 @@ type ClientRequest = {
   updatedAt: string
 }
 
-type ClientFile = {
-  name: string
-  type: string
-  updatedAt: string
-}
-
 const statusColumns: Array<{
   id: ClientRequestStatus
   label: string
@@ -61,75 +55,13 @@ const statusColumns: Array<{
   { id: 'done', label: 'Done', tone: 'done' },
 ]
 
-const clientRequests: ClientRequest[] = [
-  {
-    title: 'Update sales intake form',
-    type: 'Request',
-    status: 'new',
-    updatedAt: 'Today',
-  },
-  {
-    title: 'Review monthly follow-up summary',
-    type: 'Review',
-    status: 'needsReview',
-    handlingLabel: 'Client Review',
-    updatedAt: 'Today',
-  },
-  {
-    title: 'Prepare client welcome email',
-    type: 'Request',
-    status: 'inProgress',
-    updatedAt: 'Yesterday',
-  },
-  {
-    title: 'Upload brand guidelines',
-    type: 'File',
-    status: 'waiting',
-    handlingLabel: 'Human Support',
-    updatedAt: 'Apr 29',
-  },
-  {
-    title: 'Approve booking page copy',
-    type: 'Review',
-    status: 'needsReview',
-    handlingLabel: 'Client Review',
-    updatedAt: 'Apr 28',
-  },
-  {
-    title: 'New customer reply template',
-    type: 'File',
-    status: 'done',
-    updatedAt: 'Apr 27',
-  },
-  {
-    title: 'Confirm support contact',
-    type: 'Support',
-    status: 'waiting',
-    handlingLabel: 'Human Support',
-    updatedAt: 'Apr 26',
-  },
-  {
-    title: 'Create quarterly review packet',
-    type: 'Request',
-    status: 'inProgress',
-    updatedAt: 'Apr 25',
-  },
-]
-
-const clientFiles: ClientFile[] = [
-  { name: 'Sales intake checklist', type: 'PDF', updatedAt: 'Today' },
-  { name: 'Follow-up summary', type: 'Document', updatedAt: 'Yesterday' },
-  { name: 'Customer reply template', type: 'Document', updatedAt: 'Apr 27' },
-  { name: 'Operations handoff notes', type: 'Sheet', updatedAt: 'Apr 24' },
-]
-
 export default function ClientWorkspaceApp({
   clientSlug,
   view,
   workItems = [],
 }: ClientWorkspaceAppProps) {
   const clientName = formatClientName(clientSlug || 'generic-client')
-  const requests = workItems.length > 0 ? workItems.map(workItemToClientRequest) : clientRequests
+  const requests = workItems.map(workItemToClientRequest)
   const reviewRequests = requests.filter((request) => request.status === 'needsReview')
 
   return (
@@ -142,7 +74,7 @@ export default function ClientWorkspaceApp({
         ) : null}
         {view === 'newRequest' ? <NewRequestView clientName={clientName} clientSlug={clientSlug} /> : null}
         {view === 'reviews' ? <ReviewsView requests={reviewRequests} /> : null}
-        {view === 'files' ? <FilesView files={clientFiles} /> : null}
+        {view === 'files' ? <FilesView /> : null}
         {view === 'chat' ? <ChatView clientSlug={clientSlug} /> : null}
         {view === 'settings' ? <SettingsView clientName={clientName} /> : null}
       </section>
@@ -236,6 +168,17 @@ function ClientKanbanView({
   return (
     <>
       <ClientToolbar clientName={clientName} clientSlug={clientSlug} />
+      {requests.length === 0 ? (
+        <div className="client-empty-card">
+          <CheckSquare size={24} />
+          <strong>No requests yet.</strong>
+          <p>New requests and work items will appear here once they are created.</p>
+          <a href={`/workspace/${encodeURIComponent(clientSlug)}/new-request`} className="client-primary-button">
+            <Plus size={16} />
+            New Request
+          </a>
+        </div>
+      ) : null}
       <section className="client-kanban-board">
         {statusColumns.map((column) => {
           const columnRequests = requests.filter((request) => request.status === column.id)
@@ -408,21 +351,29 @@ function ReviewsView({ requests }: { requests: ClientRequest[] }) {
         <p>Approve work or request changes.</p>
       </div>
       <div className="client-review-list">
-        {requests.map((request) => (
-          <article key={request.title} className="client-review-card">
-            <ClientRequestCard request={request} />
-            <div className="client-review-actions">
-              <button type="button">Approve</button>
-              <button type="button">Request changes</button>
-            </div>
-          </article>
-        ))}
+        {requests.length === 0 ? (
+          <div className="client-empty-card">
+            <List size={24} />
+            <strong>No review items yet.</strong>
+            <p>Items that need your approval will appear here.</p>
+          </div>
+        ) : (
+          requests.map((request) => (
+            <article key={request.title} className="client-review-card">
+              <ClientRequestCard request={request} />
+              <div className="client-review-actions">
+                <button type="button">Approve</button>
+                <button type="button">Request changes</button>
+              </div>
+            </article>
+          ))
+        )}
       </div>
     </section>
   )
 }
 
-function FilesView({ files }: { files: ClientFile[] }) {
+function FilesView() {
   return (
     <section className="client-simple-page">
       <div className="client-simple-header">
@@ -431,16 +382,11 @@ function FilesView({ files }: { files: ClientFile[] }) {
         <p>Approved files ready for your team.</p>
       </div>
       <div className="client-file-grid">
-        {files.map((file) => (
-          <article key={file.name} className="client-file-card">
-            <Files size={19} />
-            <div>
-              <strong>{file.name}</strong>
-              <span>{file.type} - {file.updatedAt}</span>
-            </div>
-            <button type="button">Download</button>
-          </article>
-        ))}
+        <div className="client-empty-card">
+          <Files size={24} />
+          <strong>No files yet.</strong>
+          <p>Approved files will appear here when they are ready.</p>
+        </div>
       </div>
     </section>
   )
