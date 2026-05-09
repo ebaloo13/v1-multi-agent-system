@@ -1,16 +1,30 @@
-import { workspaceHref, workspaceTabs, type WorkspaceTabId } from '../lib/product-shell'
+import {
+  workspaceHref,
+  workspaceTabs,
+  type WorkspaceRouteScope,
+  type WorkspaceTabId,
+} from '../lib/product-shell'
 
 type StageRailProps = {
   currentStage: WorkspaceTabId
   clientSlug?: string
+  routeScope?: WorkspaceRouteScope
 }
 
-export default function StageRail({ currentStage, clientSlug }: StageRailProps) {
+export default function StageRail({
+  currentStage,
+  clientSlug,
+  routeScope = 'workspace',
+}: StageRailProps) {
   const effectiveClientSlug = clientSlug ?? 'generic-client'
+  const visibleTabs =
+    routeScope === 'workspace'
+      ? workspaceTabs.filter((stage) => stage.id === 'dashboard' || stage.id === 'diagnosis')
+      : workspaceTabs
 
   return (
     <ol className="grid gap-3 lg:grid-cols-4">
-      {workspaceTabs.map((stage, index) => {
+      {visibleTabs.map((stage, index) => {
         const isActive = stage.id === currentStage
 
         return (
@@ -18,7 +32,7 @@ export default function StageRail({ currentStage, clientSlug }: StageRailProps) 
             key={stage.id}
             className={isActive ? 'status-card border-[rgba(143,74,47,0.24)]' : 'status-card'}
           >
-            <a href={workspaceHref(effectiveClientSlug, stage.id)} className="block no-underline"
+            <a href={workspaceHref(effectiveClientSlug, stage.id, routeScope)} className="block no-underline"
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="priority-pill">0{index + 1}</span>
