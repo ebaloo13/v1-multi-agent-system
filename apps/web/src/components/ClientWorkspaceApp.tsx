@@ -63,7 +63,7 @@ export default function ClientWorkspaceApp({
   const clientName = formatClientName(clientSlug || 'generic-client')
   const requests = workItems.map(workItemToClientRequest)
   const reviewRequests = requests.filter((request) => request.status === 'needsReview')
-  const fileRequests = requests.filter((request) => request.type === 'File')
+  const fileRequests = workItems.filter(isFileWorkItem).map(workItemToClientRequest)
 
   return (
     <main className="client-workspace-app">
@@ -535,6 +535,10 @@ function workItemTypeLabel(workItem: WorkItem): ClientRequest['type'] {
   }
 
   return 'Request'
+}
+
+function isFileWorkItem(workItem: WorkItem) {
+  return workItem.moduleKey === 'files' || workItem.type === 'file_review'
 }
 
 function formatUpdatedAt(value: string) {
