@@ -22,7 +22,7 @@ import {
 import { createClientWorkItem } from '../lib/client-work-items.functions'
 import { formatClientName } from '../lib/product-shell'
 import { messageFromError } from '../lib/workflow'
-import type { WorkItem } from '../../../../src/schemas/operations'
+import type { Funnel, WorkItem } from '../../../../src/schemas/operations'
 
 type ClientWorkspaceView = 'home' | 'newRequest' | 'reviews' | 'files' | 'chat' | 'settings'
 
@@ -30,6 +30,7 @@ type ClientWorkspaceAppProps = {
   clientSlug: string
   view: ClientWorkspaceView
   workItems?: WorkItem[]
+  funnel?: Funnel
 }
 
 type ClientRequestStatus = 'new' | 'inProgress' | 'waiting' | 'needsReview' | 'ready' | 'done'
@@ -38,27 +39,32 @@ type ClientRequest = {
   title: string
   type: 'Request' | 'Review' | 'File' | 'Support'
   status: ClientRequestStatus
+  workItemStatus: WorkItem['status']
   handlingLabel?: string
   updatedAt: string
 }
 
-const statusColumns: Array<{
+type ClientBoardColumn = {
   id: ClientRequestStatus
   label: string
   tone: 'new' | 'progress' | 'waiting' | 'review' | 'ready' | 'done'
-}> = [
-  { id: 'new', label: 'New', tone: 'new' },
-  { id: 'inProgress', label: 'In Progress', tone: 'progress' },
-  { id: 'waiting', label: 'Waiting', tone: 'waiting' },
-  { id: 'needsReview', label: 'Needs Review', tone: 'review' },
-  { id: 'ready', label: 'Ready', tone: 'ready' },
-  { id: 'done', label: 'Done', tone: 'done' },
+  workItemStatus: WorkItem['status']
+}
+
+const statusColumns: ClientBoardColumn[] = [
+  { id: 'new', label: 'New', tone: 'new', workItemStatus: 'new' },
+  { id: 'inProgress', label: 'In Progress', tone: 'progress', workItemStatus: 'in_progress' },
+  { id: 'waiting', label: 'Waiting', tone: 'waiting', workItemStatus: 'waiting' },
+  { id: 'needsReview', label: 'Needs Review', tone: 'review', workItemStatus: 'needs_review' },
+  { id: 'ready', label: 'Ready', tone: 'ready', workItemStatus: 'ready' },
+  { id: 'done', label: 'Done', tone: 'done', workItemStatus: 'done' },
 ]
 
 export default function ClientWorkspaceApp({
   clientSlug,
   view,
   workItems = [],
+  funnel,
 }: ClientWorkspaceAppProps) {
   const clientName = formatClientName(clientSlug || 'generic-client')
   const requests = workItems.map(workItemToClientRequest)
@@ -71,7 +77,7 @@ export default function ClientWorkspaceApp({
       <section className="client-workspace-main">
         <ClientTopbar clientName={clientName} />
         {view === 'home' ? (
-          <ClientKanbanView clientName={clientName} clientSlug={clientSlug} requests={requests} />
+          <ClientKanbanView clientName={clientName} clientSlug={clientSlug} requests={requests} funnel={funnel} />
         ) : null}
         {view === 'newRequest' ? <NewRequestView clientName={clientName} clientSlug={clientSlug} /> : null}
         {view === 'reviews' ? <ReviewsView requests={reviewRequests} /> : null}
@@ -161,11 +167,15 @@ function ClientKanbanView({
   clientName,
   clientSlug,
   requests,
+  funnel,
 }: {
   clientName: string
   clientSlug: string
   requests: ClientRequest[]
+  funnel?: Funnel
 }) {
+  const columns = funnel ? funnel.stages.map(funnelStageToBoardColumn) : statusColumns
+
   return (
     <>
       <ClientToolbar clientName={clientName} clientSlug={clientSlug} />
@@ -181,8 +191,8 @@ function ClientKanbanView({
         </div>
       ) : null}
       <section className="client-kanban-board">
-        {statusColumns.map((column) => {
-          const columnRequests = requests.filter((request) => request.status === column.id)
+        {columns.map((column) => {
+          const columnRequests = requests.filter((request) => request.workItemStatus === column.workItemStatus)
 
           return (
             <article key={column.id} className={`client-kanban-column tone-${column.tone}`}>
@@ -475,8 +485,37 @@ function workItemToClientRequest(workItem: WorkItem): ClientRequest {
     title: workItem.title,
     type: workItemTypeLabel(workItem),
     status: workItemStatusToClientStatus(workItem.status),
+    workItemStatus: workItem.status,
     handlingLabel: workItemHandlingLabel(workItem),
     updatedAt: formatUpdatedAt(workItem.updatedAt),
+  }
+}
+
+function funnelStageToBoardColumn(stage: Funnel['stages'][number]): ClientBoardColumn {
+  const status = workItemStatusToClientStatus(stage.status)
+
+  return {
+    id: status,
+    label: stage.label,
+    tone: toneForClientStatus(status),
+    workItemStatus: stage.status,
+  }
+}
+
+function toneForClientStatus(status: ClientRequestStatus): ClientBoardColumn['tone'] {
+  switch (status) {
+    case 'inProgress':
+      return 'progress'
+    case 'waiting':
+      return 'waiting'
+    case 'needsReview':
+      return 'review'
+    case 'ready':
+      return 'ready'
+    case 'done':
+      return 'done'
+    case 'new':
+      return 'new'
   }
 }
 

@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { getDefaultWorkItemFunnel } from '../../../../src/core/funnels/store'
 import {
   createWorkItem,
   listWorkItems,
@@ -67,6 +68,10 @@ export const getClientWorkItems = createServerFn({ method: 'GET' })
     const workItems = await listWorkItems(data.clientSlug)
     return workItems.map(serializeWorkItem)
   })
+
+export const getClientWorkItemFunnel = createServerFn({ method: 'GET' })
+  .inputValidator((data: { clientSlug: string }) => data)
+  .handler(async ({ data }) => getDefaultWorkItemFunnel(data.clientSlug))
 
 export const createClientWorkItem = createServerFn({ method: 'POST' })
   .inputValidator((data: ClientWorkItemInput) => {
