@@ -1,5 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
+import { LegacyRedirectNotice } from '../components/LegacyRedirectNotice'
 import { workspaceDiagnosisHref, workspaceHref, type WorkspaceRouteScope } from '../lib/product-shell'
 import { getWorkspaceAgents } from '../lib/workflow.functions'
 import type { WorkspaceAgent } from '../lib/workflow'
@@ -13,9 +15,20 @@ export const Route = createFileRoute('/workspace/$clientSlug/agents')({
 })
 
 function WorkspaceAgentsPage() {
-  const data = Route.useLoaderData()
+  const navigate = useNavigate()
+  const { clientSlug } = Route.useParams()
 
-  return <WorkspaceAgentsView data={data} />
+  useEffect(() => {
+    void navigate({
+      to: '/internal/$clientSlug/agents',
+      params: {
+        clientSlug,
+      },
+      replace: true,
+    })
+  }, [clientSlug, navigate])
+
+  return <LegacyRedirectNotice label="internal agents" />
 }
 
 export type WorkspaceAgentsData = ReturnType<typeof Route.useLoaderData>

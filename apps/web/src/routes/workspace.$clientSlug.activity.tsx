@@ -1,5 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import WorkspaceShell from '../components/WorkspaceShell'
+import { LegacyRedirectNotice } from '../components/LegacyRedirectNotice'
 import { workspaceDiagnosisHref, workspaceHref, type WorkspaceRouteScope } from '../lib/product-shell'
 import { getWorkspaceActivity } from '../lib/workflow.functions'
 import type { WorkspaceActivityItem, WorkspaceActivityView } from '../lib/workflow'
@@ -13,9 +15,20 @@ export const Route = createFileRoute('/workspace/$clientSlug/activity')({
 })
 
 function WorkspaceActivityPage() {
-  const data = Route.useLoaderData()
+  const navigate = useNavigate()
+  const { clientSlug } = Route.useParams()
 
-  return <WorkspaceActivityView data={data} />
+  useEffect(() => {
+    void navigate({
+      to: '/internal/$clientSlug/activity',
+      params: {
+        clientSlug,
+      },
+      replace: true,
+    })
+  }, [clientSlug, navigate])
+
+  return <LegacyRedirectNotice label="internal activity" />
 }
 
 export type WorkspaceActivityData = ReturnType<typeof Route.useLoaderData>
