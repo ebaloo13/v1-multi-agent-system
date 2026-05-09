@@ -63,6 +63,7 @@ export default function ClientWorkspaceApp({
   const clientName = formatClientName(clientSlug || 'generic-client')
   const requests = workItems.map(workItemToClientRequest)
   const reviewRequests = requests.filter((request) => request.status === 'needsReview')
+  const fileRequests = requests.filter((request) => request.type === 'File')
 
   return (
     <main className="client-workspace-app">
@@ -74,7 +75,7 @@ export default function ClientWorkspaceApp({
         ) : null}
         {view === 'newRequest' ? <NewRequestView clientName={clientName} clientSlug={clientSlug} /> : null}
         {view === 'reviews' ? <ReviewsView requests={reviewRequests} /> : null}
-        {view === 'files' ? <FilesView /> : null}
+        {view === 'files' ? <FilesView requests={fileRequests} /> : null}
         {view === 'chat' ? <ChatView clientSlug={clientSlug} /> : null}
         {view === 'settings' ? <SettingsView clientName={clientName} /> : null}
       </section>
@@ -373,20 +374,33 @@ function ReviewsView({ requests }: { requests: ClientRequest[] }) {
   )
 }
 
-function FilesView() {
+function FilesView({ requests }: { requests: ClientRequest[] }) {
   return (
     <section className="client-simple-page">
       <div className="client-simple-header">
         <span>Files</span>
-        <h1>Download Files</h1>
-        <p>Approved files ready for your team.</p>
+        <h1>Files</h1>
+        <p>File-related work items are tracked here.</p>
       </div>
       <div className="client-file-grid">
-        <div className="client-empty-card">
-          <Files size={24} />
-          <strong>No files yet.</strong>
-          <p>Approved files will appear here when they are ready.</p>
-        </div>
+        {requests.length === 0 ? (
+          <div className="client-empty-card">
+            <Files size={24} />
+            <strong>No file items yet.</strong>
+            <p>File-related work items will appear here once they are created.</p>
+          </div>
+        ) : (
+          requests.map((request, index) => (
+            <article key={`${request.title}-${index}`} className="client-file-card">
+              <Files size={19} />
+              <div>
+                <strong>{request.title}</strong>
+                <span>Updated {request.updatedAt}</span>
+              </div>
+              <span className={`client-status-pill status-${request.status}`}>{statusLabel(request.status)}</span>
+            </article>
+          ))
+        )}
       </div>
     </section>
   )
