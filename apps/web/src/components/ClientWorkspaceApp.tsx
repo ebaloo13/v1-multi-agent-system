@@ -5,6 +5,7 @@ import {
   Bell,
   CalendarDays,
   CheckSquare,
+  X,
   ChevronDown,
   Files,
   Folder,
@@ -19,7 +20,7 @@ import {
   SlidersHorizontal,
   UserCircle,
 } from 'lucide-react'
-import { createClientWorkItem } from '../lib/client-work-items.functions'
+import { createClientWorkItem, updateClientWorkItemStatus } from '../lib/client-work-items.functions'
 import { formatClientName } from '../lib/product-shell'
 import { messageFromError } from '../lib/workflow'
 import type { Funnel, WorkItem } from '../../../../src/schemas/operations'
@@ -36,7 +37,9 @@ type ClientWorkspaceAppProps = {
 type ClientRequestStatus = 'new' | 'inProgress' | 'waiting' | 'needsReview' | 'ready' | 'done'
 
 type ClientRequest = {
+  id: string
   title: string
+  description?: string
   type: 'Request' | 'Review' | 'File' | 'Support'
   status: ClientRequestStatus
   workItemStatus: WorkItem['status']
@@ -70,6 +73,41 @@ export default function ClientWorkspaceApp({
   const requests = workItems.map(workItemToClientRequest)
   const reviewRequests = requests.filter((request) => request.status === 'needsReview')
   const fileRequests = workItems.filter(isFileWorkItem).map(workItemToClientRequest)
+  const transitionStages = funnel?.stages ?? statusColumns.map(boardColumnToFunnelStage)
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+  const [statusErrorMessage, setStatusErrorMessage] = useState<string | null>(null)
+  const updateStatus = useServerFn(updateClientWorkItemStatus)
+  const selectedRequest = requests.find((request) => request.id === selectedRequestId)
+
+  function closeDetailDrawer() {
+    setSelectedRequestId(null)
+    setStatusErrorMessage(null)
+  }
+
+  async function handleStageTransition(stage: Funnel['stages'][number]) {
+    if (!selectedRequest || stage.status === selectedRequest.workItemStatus) {
+      return
+    }
+
+    setIsUpdatingStatus(true)
+    setStatusErrorMessage(null)
+
+    try {
+      await updateStatus({
+        data: {
+          clientSlug,
+          workItemId: selectedRequest.id,
+          status: stage.status,
+        },
+      })
+
+      window.location.reload()
+    } catch (error) {
+      setStatusErrorMessage(messageFromError(error))
+      setIsUpdatingStatus(false)
+    }
+  }
 
   return (
     <main className="client-workspace-app">
@@ -77,7 +115,13 @@ export default function ClientWorkspaceApp({
       <section className="client-workspace-main">
         <ClientTopbar clientName={clientName} />
         {view === 'home' ? (
-          <ClientKanbanView clientName={clientName} clientSlug={clientSlug} requests={requests} funnel={funnel} />
+          <ClientKanbanView
+            clientName={clientName}
+            clientSlug={clientSlug}
+            requests={requests}
+            funnel={funnel}
+            onOpenRequest={setSelectedRequestId}
+          />
         ) : null}
         {view === 'newRequest' ? <NewRequestView clientName={clientName} clientSlug={clientSlug} /> : null}
         {view === 'reviews' ? <ReviewsView requests={reviewRequests} /> : null}
@@ -92,6 +136,16 @@ export default function ClientWorkspaceApp({
       >
         <MessageCircle size={20} />
       </a>
+      {selectedRequest ? (
+        <ClientRequestDetailDrawer
+          request={selectedRequest}
+          transitionStages={transitionStages}
+          isUpdatingStatus={isUpdatingStatus}
+          errorMessage={statusErrorMessage}
+          onClose={closeDetailDrawer}
+          onTransition={handleStageTransition}
+        />
+      ) : null}
     </main>
   )
 }
@@ -168,11 +222,13 @@ function ClientKanbanView({
   clientSlug,
   requests,
   funnel,
+  onOpenRequest,
 }: {
   clientName: string
   clientSlug: string
   requests: ClientRequest[]
   funnel?: Funnel
+  onOpenRequest?: (requestId: string) => void
 }) {
   const columns = funnel ? funnel.stages.map(funnelStageToBoardColumn) : statusColumns
 
@@ -205,7 +261,11 @@ function ClientKanbanView({
               </header>
               <div className="client-request-stack">
                 {columnRequests.map((request, index) => (
-                  <ClientRequestCard key={`${request.title}-${index}`} request={request} />
+                  <ClientRequestCard
+                    key={`${request.id}-${index}`}
+                    request={request}
+                    onOpen={onOpenRequest ? () => onOpenRequest(request.id) : undefined}
+                  />
                 ))}
               </div>
             </article>
@@ -259,9 +319,15 @@ function ClientToolbar({ clientName, clientSlug }: { clientName: string; clientS
   )
 }
 
-function ClientRequestCard({ request }: { request: ClientRequest }) {
-  return (
-    <article className="client-request-card">
+function ClientRequestCard({
+  request,
+  onOpen,
+}: {
+  request: ClientRequest
+  onOpen?: () => void
+}) {
+  const content = (
+    <>
       <div className="client-card-head">
         <h3>{request.title}</h3>
       </div>
@@ -278,7 +344,141 @@ function ClientRequestCard({ request }: { request: ClientRequest }) {
           Updated {request.updatedAt}
         </span>
       </footer>
+    </>
+  )
+
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        className="client-request-card"
+        onClick={onOpen}
+        style={{
+          width: '100%',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+        aria-label={`Open ${request.title}`}
+      >
+        {content}
+      </button>
+    )
+  }
+
+  return (
+    <article className="client-request-card">
+      {content}
     </article>
+  )
+}
+
+function ClientRequestDetailDrawer({
+  request,
+  transitionStages,
+  isUpdatingStatus,
+  errorMessage,
+  onClose,
+  onTransition,
+}: {
+  request: ClientRequest
+  transitionStages: Funnel['stages']
+  isUpdatingStatus: boolean
+  errorMessage: string | null
+  onClose: () => void
+  onTransition: (stage: Funnel['stages'][number]) => void
+}) {
+  const currentStage = transitionStages.find((stage) => stage.status === request.workItemStatus)
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="client-request-detail-title"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 60,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        background: 'rgba(17, 24, 39, 0.34)',
+      }}
+    >
+      <button
+        type="button"
+        aria-label="Close request details"
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          border: 0,
+          background: 'transparent',
+          cursor: 'default',
+        }}
+      />
+      <aside
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          width: 'min(430px, 100%)',
+          height: '100%',
+          flexDirection: 'column',
+          gap: '1rem',
+          overflowY: 'auto',
+          borderLeft: '1px solid rgba(20, 29, 38, 0.12)',
+          background: '#ffffff',
+          padding: '1.1rem',
+          boxShadow: '-24px 0 50px rgba(20, 29, 38, 0.16)',
+        }}
+      >
+        <header className="client-card-head">
+          <div>
+            <span className="client-type-badge">{request.type}</span>
+            <h2 id="client-request-detail-title" style={{ margin: '0.75rem 0 0', fontSize: '1.3rem' }}>
+              {request.title}
+            </h2>
+          </div>
+          <button type="button" className="client-icon-button" aria-label="Close details" onClick={onClose}>
+            <X size={17} />
+          </button>
+        </header>
+        <div className="client-card-meta">
+          <span className={`client-status-pill status-${request.status}`}>
+            {currentStage?.label ?? statusLabel(request.status)}
+          </span>
+          {request.handlingLabel ? <span className="client-handling-badge">{request.handlingLabel}</span> : null}
+        </div>
+        {request.description ? (
+          <p style={{ margin: 0, color: '#4b5563', fontSize: '0.92rem', lineHeight: 1.55 }}>{request.description}</p>
+        ) : null}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', color: '#8a94a3', fontSize: '0.8rem', fontWeight: 750 }}>
+          <CalendarDays size={14} />
+          Updated {request.updatedAt}
+        </span>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <strong style={{ color: '#17202a', fontSize: '0.86rem' }}>Move to stage</strong>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {transitionStages.map((stage) => {
+              const isCurrentStage = stage.status === request.workItemStatus
+
+              return (
+                <button
+                  key={stage.id}
+                  type="button"
+                  className={isCurrentStage ? 'client-shortcut-link is-active' : 'client-shortcut-link'}
+                  disabled={isCurrentStage || isUpdatingStatus}
+                  onClick={() => onTransition(stage)}
+                  aria-current={isCurrentStage ? 'step' : undefined}
+                >
+                  {isCurrentStage ? `${stage.label} (current)` : stage.label}
+                </button>
+              )
+            })}
+          </div>
+          {errorMessage ? <p className="client-form-error">{errorMessage}</p> : null}
+        </section>
+      </aside>
+    </div>
   )
 }
 
@@ -482,12 +682,23 @@ function statusLabel(status: ClientRequestStatus) {
 
 function workItemToClientRequest(workItem: WorkItem): ClientRequest {
   return {
+    id: workItem.id,
     title: workItem.title,
+    description: workItem.description,
     type: workItemTypeLabel(workItem),
     status: workItemStatusToClientStatus(workItem.status),
     workItemStatus: workItem.status,
     handlingLabel: workItemHandlingLabel(workItem),
     updatedAt: formatUpdatedAt(workItem.updatedAt),
+  }
+}
+
+function boardColumnToFunnelStage(column: ClientBoardColumn): Funnel['stages'][number] {
+  return {
+    id: column.id,
+    label: column.label,
+    order: statusColumns.findIndex((statusColumn) => statusColumn.id === column.id),
+    status: column.workItemStatus,
   }
 }
 
