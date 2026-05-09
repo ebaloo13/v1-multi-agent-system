@@ -73,7 +73,7 @@ export default function ClientWorkspaceApp({
   const requests = workItems.map(workItemToClientRequest)
   const reviewRequests = requests.filter((request) => request.status === 'needsReview')
   const fileRequests = workItems.filter(isFileWorkItem).map(workItemToClientRequest)
-  const transitionStages = funnel?.stages ?? statusColumns.map(boardColumnToFunnelStage)
+  const transitionStages = sortFunnelStages(funnel?.stages ?? statusColumns.map(boardColumnToFunnelStage))
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [statusErrorMessage, setStatusErrorMessage] = useState<string | null>(null)
@@ -230,7 +230,8 @@ function ClientKanbanView({
   funnel?: Funnel
   onOpenRequest?: (requestId: string) => void
 }) {
-  const columns = funnel ? funnel.stages.map(funnelStageToBoardColumn) : statusColumns
+  const columns = funnel ? sortFunnelStages(funnel.stages).map(funnelStageToBoardColumn) : statusColumns
+  const funnelLabel = funnel?.label ?? 'Work Items'
 
   return (
     <>
@@ -246,6 +247,17 @@ function ClientKanbanView({
           </a>
         </div>
       ) : null}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          padding: '0.75rem 1.1rem 0',
+        }}
+      >
+        <span className="client-type-badge">Funnel</span>
+        <strong style={{ color: '#17202a', fontSize: '0.9rem' }}>{funnelLabel}</strong>
+      </div>
       <section className="client-kanban-board">
         {columns.map((column) => {
           const columnRequests = requests.filter((request) => request.workItemStatus === column.workItemStatus)
@@ -456,7 +468,7 @@ function ClientRequestDetailDrawer({
           Updated {request.updatedAt}
         </span>
         <section style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-          <strong style={{ color: '#17202a', fontSize: '0.86rem' }}>Move to stage</strong>
+          <strong style={{ color: '#17202a', fontSize: '0.86rem' }}>Move through funnel</strong>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             {transitionStages.map((stage) => {
               const isCurrentStage = stage.status === request.workItemStatus
@@ -470,7 +482,7 @@ function ClientRequestDetailDrawer({
                   onClick={() => onTransition(stage)}
                   aria-current={isCurrentStage ? 'step' : undefined}
                 >
-                  {isCurrentStage ? `${stage.label} (current)` : stage.label}
+                  {transitionButtonLabel(stage, isCurrentStage)}
                 </button>
               )
             })}
@@ -700,6 +712,22 @@ function boardColumnToFunnelStage(column: ClientBoardColumn): Funnel['stages'][n
     order: statusColumns.findIndex((statusColumn) => statusColumn.id === column.id),
     status: column.workItemStatus,
   }
+}
+
+function sortFunnelStages(stages: Funnel['stages']): Funnel['stages'] {
+  return [...stages].sort((firstStage, secondStage) => firstStage.order - secondStage.order)
+}
+
+function transitionButtonLabel(stage: Funnel['stages'][number], isCurrentStage: boolean) {
+  if (isCurrentStage) {
+    return `Current: ${stage.label}`
+  }
+
+  if (stage.status === 'done') {
+    return 'Mark Done'
+  }
+
+  return `Move to ${stage.label}`
 }
 
 function funnelStageToBoardColumn(stage: Funnel['stages'][number]): ClientBoardColumn {
