@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { ZodError } from 'zod'
+import { runWorkItemAssistantAgent } from '../../../../src/agents/work-item-assistant-agent'
 import {
   getDefaultWorkItemFunnel,
   listFunnels,
@@ -46,6 +47,8 @@ type ClientWorkItemAssistantResultInput = ClientWorkItemAssistantResultsInput & 
   suggestedNextAction: string
   confidence: WorkItemAssistantResult['confidence']
 }
+
+type RunClientWorkItemAssistantInput = ClientWorkItemAssistantResultsInput
 
 type SerializableJson =
   | string
@@ -242,3 +245,75 @@ export const createClientWorkItemAssistantResult = createServerFn({ method: 'POS
     }
   })
   .handler(async ({ data }) => createWorkItemAssistantResult(data))
+
+export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
+  .inputValidator((data: RunClientWorkItemAssistantInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const workItemId = normalizeText(data.workItemId)
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!workItemId) {
+      throw new Error('Work item is required.')
+    }
+
+    return {
+      clientSlug,
+      workItemId,
+    }
+  })
+  .handler(async ({ data }) => {
+    const workItems = await listWorkItems(data.clientSlug)
+    const workItem = workItems.find((item) => item.id === data.workItemId)
+
+    if (!workItem) {
+      throw new Error('Work item was not found.')
+    }
+
+    const fallback = getDefaultWorkItemFunnel(data.clientSlug)
+    let funnel = fallback
+
+    try {
+      const funnels = await listFunnels(data.clientSlug)
+      funnel = selectFunnelForModule(funnels, workItem.moduleKey, fallback)
+    } catch (error) {
+      if (!(error instanceof SyntaxError || error instanceof ZodError)) {
+        throw error
+      }
+    }
+
+    const currentStage = funnel.stages.find((stage) => stage.status === workItem.status)
+
+    if (!currentStage) {
+      throw new Error('Current funnel stage was not found for this work item.')
+    }
+
+    if (!currentStage.assistantKey) {
+      throw new Error('No assistant is assigned to the current funnel stage.')
+    }
+
+    const assistantOutput = await runWorkItemAssistantAgent({
+      clientSlug: data.clientSlug,
+      workItem: {
+        title: workItem.title,
+        description: workItem.description,
+        type: workItem.type,
+        status: workItem.status,
+      },
+      stageLabel: currentStage.label,
+      assistantKey: currentStage.assistantKey,
+      automationPolicy: currentStage.automationPolicy,
+    })
+
+    return createWorkItemAssistantResult({
+      clientSlug: data.clientSlug,
+      workItemId: workItem.id,
+      assistantKey: currentStage.assistantKey,
+      stageId: currentStage.id,
+      summary: assistantOutput.summary,
+      suggestedNextAction: assistantOutput.suggestedNextAction,
+      confidence: assistantOutput.confidence,
+    })
+  })

@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import {
   createClientWorkItem,
-  createClientWorkItemAssistantResult,
+  runClientWorkItemAssistant,
   updateClientWorkItemStatus,
 } from '../lib/client-work-items.functions'
 import { formatClientName } from '../lib/product-shell'
@@ -421,7 +421,7 @@ function ClientRequestDetailDrawer({
 }) {
   const currentStage = transitionStages.find((stage) => stage.status === request.workItemStatus)
   const enabledCapabilities = enabledAutomationCapabilities(currentStage?.automationPolicy)
-  const createAssistantResult = useServerFn(createClientWorkItemAssistantResult)
+  const runAssistant = useServerFn(runClientWorkItemAssistant)
   const [assistantResults, setAssistantResults] = useState<WorkItemAssistantResult[]>([])
   const [isCreatingAssistantResult, setIsCreatingAssistantResult] = useState(false)
   const [assistantErrorMessage, setAssistantErrorMessage] = useState<string | null>(null)
@@ -435,15 +435,10 @@ function ClientRequestDetailDrawer({
     setAssistantErrorMessage(null)
 
     try {
-      const result = await createAssistantResult({
+      const result = await runAssistant({
         data: {
           clientSlug,
           workItemId: request.id,
-          assistantKey: currentStage.assistantKey,
-          stageId: currentStage.id,
-          summary: assistantResultSummary(request),
-          suggestedNextAction: assistantSuggestedNextAction(request),
-          confidence: 'medium',
         },
       })
 
@@ -857,27 +852,6 @@ function transitionButtonLabel(stage: FunnelStage, isCurrentStage: boolean) {
   }
 
   return `Move to ${stage.label}`
-}
-
-function assistantResultSummary(request: ClientRequest): string {
-  return `${request.type} "${request.title}" is currently ${statusLabel(request.status).toLowerCase()}.`
-}
-
-function assistantSuggestedNextAction(request: ClientRequest): string {
-  switch (request.workItemStatus) {
-    case 'new':
-      return 'Review the request details, add internal notes, and decide whether it should move into active work.'
-    case 'in_progress':
-      return 'Check progress against the request and move it forward when the next deliverable is clear.'
-    case 'waiting':
-      return 'Confirm what input is missing and prepare a follow-up before moving the item forward.'
-    case 'needs_review':
-      return 'Review the item with a human approver before marking it ready.'
-    case 'ready':
-      return 'Confirm the handoff is complete, then move the item to done when accepted.'
-    case 'done':
-      return 'Record any useful completion notes and leave the item closed.'
-  }
 }
 
 function formatAssistantRunCreatedAt(value: string): string {
