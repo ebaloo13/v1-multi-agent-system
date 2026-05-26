@@ -32,6 +32,7 @@ const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
     state: "open",
     assistantKey: "intake-assistant",
     automationPolicy: {
+      canMoveStage: true,
       canCreateInternalNote: true,
       canApplyTags: true,
     },
@@ -56,6 +57,7 @@ const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
     state: "open",
     assistantKey: "followup-assistant",
     automationPolicy: {
+      canMoveStage: true,
       canCreateInternalNote: true,
       canTriggerWorkflow: true,
     },
@@ -68,6 +70,7 @@ const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
     state: "open",
     assistantKey: "review-assistant",
     automationPolicy: {
+      canMoveStage: true,
       requiresHumanApproval: true,
       canCreateInternalNote: true,
     },

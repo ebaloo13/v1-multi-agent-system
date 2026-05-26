@@ -4,6 +4,7 @@ import {
   runWorkItemAssistantAgent,
   WORK_ITEM_ASSISTANT_CONVERSATION_HISTORY_LIMIT,
   type WorkItemAssistantConversationHistoryMessage,
+  type WorkItemAssistantTargetStage,
 } from '../../../../src/agents/work-item-assistant-agent'
 import {
   getDefaultWorkItemFunnel,
@@ -124,6 +125,21 @@ function parseConversationSource(value: unknown): WorkItemConversationMessage['s
   }
 
   throw new Error('Message source is invalid.')
+}
+
+async function selectWorkItemFunnel(clientSlug: string, workItem: WorkItem) {
+  const fallback = getDefaultWorkItemFunnel(clientSlug)
+
+  try {
+    const funnels = await listFunnels(clientSlug)
+    return selectFunnelForModule(funnels, workItem.moduleKey, fallback)
+  } catch (error) {
+    if (error instanceof SyntaxError || error instanceof ZodError) {
+      return fallback
+    }
+
+    throw error
+  }
 }
 
 function workItemMapping(requestType: string): {
@@ -325,6 +341,24 @@ export const applyClientWorkItemSuggestedAction = createServerFn({ method: 'POST
       throw new Error('Move stage suggested actions require a target status.')
     }
 
+    const workItems = await listWorkItems(data.clientSlug)
+    const currentWorkItem = workItems.find((workItem) => workItem.id === data.workItemId)
+
+    if (!currentWorkItem) {
+      throw new Error('Work item was not found.')
+    }
+
+    const funnel = await selectWorkItemFunnel(data.clientSlug, currentWorkItem)
+    const currentStage = funnel.stages.find((stage) => stage.status === currentWorkItem.status)
+
+    if (!currentStage) {
+      throw new Error('Current funnel stage was not found for this work item.')
+    }
+
+    if (currentStage.automationPolicy?.canMoveStage !== true) {
+      throw new Error('Move stage suggested actions are not allowed from the current stage.')
+    }
+
     const workItem = await updateWorkItemStatus(data.clientSlug, data.workItemId, data.suggestedAction.targetStatus)
     return serializeWorkItem(workItem)
   })
@@ -409,17 +443,7 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
       throw new Error('Work item was not found.')
     }
 
-    const fallback = getDefaultWorkItemFunnel(data.clientSlug)
-    let funnel = fallback
-
-    try {
-      const funnels = await listFunnels(data.clientSlug)
-      funnel = selectFunnelForModule(funnels, workItem.moduleKey, fallback)
-    } catch (error) {
-      if (!(error instanceof SyntaxError || error instanceof ZodError)) {
-        throw error
-      }
-    }
+    const funnel = await selectWorkItemFunnel(data.clientSlug, workItem)
 
     const currentStage = funnel.stages.find((stage) => stage.status === workItem.status)
 
@@ -452,6 +476,10 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
         body: message.body,
         createdAt: message.createdAt,
       }))
+    const availableTargetStages: WorkItemAssistantTargetStage[] = funnel.stages.map((stage) => ({
+      label: stage.label,
+      status: stage.status,
+    }))
 
     const assistantOutput = await runWorkItemAssistantAgent({
       clientSlug: data.clientSlug,
@@ -464,6 +492,7 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
       stageLabel: currentStage.label,
       assistantKey: currentStage.assistantKey,
       automationPolicy: currentStage.automationPolicy,
+      availableTargetStages,
       userMessage: data.userMessage,
       conversationHistory: compactConversationHistory,
     })
