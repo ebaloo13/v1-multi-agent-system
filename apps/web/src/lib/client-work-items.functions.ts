@@ -6,7 +6,9 @@ import {
   selectFunnelForModule,
 } from '../../../../src/core/funnels/store'
 import {
+  createWorkItemAssistantResult,
   createWorkItem,
+  listWorkItemAssistantResults,
   listWorkItems,
   updateWorkItemStatus,
 } from '../../../../src/core/work-items/store'
@@ -14,6 +16,7 @@ import {
   WorkItemStatusSchema,
   type BusinessModuleKey,
   type WorkItem,
+  type WorkItemAssistantResult,
   type WorkItemStatus,
   type WorkItemType,
 } from '../../../../src/schemas/operations'
@@ -29,6 +32,19 @@ type ClientWorkItemStatusInput = {
   clientSlug: string
   workItemId: string
   status: WorkItemStatus
+}
+
+type ClientWorkItemAssistantResultsInput = {
+  clientSlug: string
+  workItemId: string
+}
+
+type ClientWorkItemAssistantResultInput = ClientWorkItemAssistantResultsInput & {
+  assistantKey: string
+  stageId?: string
+  summary: string
+  suggestedNextAction: string
+  confidence: WorkItemAssistantResult['confidence']
 }
 
 type SerializableJson =
@@ -49,6 +65,16 @@ function normalizeText(value: unknown) {
 
 function serializeWorkItem(workItem: WorkItem): SerializableWorkItem {
   return JSON.parse(JSON.stringify(workItem)) as SerializableWorkItem
+}
+
+function parseConfidence(value: unknown): WorkItemAssistantResult['confidence'] {
+  const confidence = normalizeText(value)
+
+  if (confidence === 'low' || confidence === 'medium' || confidence === 'high') {
+    return confidence
+  }
+
+  throw new Error('Confidence must be low, medium, or high.')
 }
 
 function workItemMapping(requestType: string): {
@@ -154,3 +180,65 @@ export const updateClientWorkItemStatus = createServerFn({ method: 'POST' })
     const workItem = await updateWorkItemStatus(data.clientSlug, data.workItemId, data.status)
     return serializeWorkItem(workItem)
   })
+
+export const getClientWorkItemAssistantResults = createServerFn({ method: 'GET' })
+  .inputValidator((data: ClientWorkItemAssistantResultsInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const workItemId = normalizeText(data.workItemId)
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!workItemId) {
+      throw new Error('Work item is required.')
+    }
+
+    return {
+      clientSlug,
+      workItemId,
+    }
+  })
+  .handler(async ({ data }) => listWorkItemAssistantResults(data.clientSlug, data.workItemId))
+
+export const createClientWorkItemAssistantResult = createServerFn({ method: 'POST' })
+  .inputValidator((data: ClientWorkItemAssistantResultInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const workItemId = normalizeText(data.workItemId)
+    const assistantKey = normalizeText(data.assistantKey)
+    const stageId = normalizeText(data.stageId)
+    const summary = normalizeText(data.summary)
+    const suggestedNextAction = normalizeText(data.suggestedNextAction)
+    const confidence = parseConfidence(data.confidence)
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!workItemId) {
+      throw new Error('Work item is required.')
+    }
+
+    if (!assistantKey) {
+      throw new Error('Assistant is required.')
+    }
+
+    if (!summary) {
+      throw new Error('Summary is required.')
+    }
+
+    if (!suggestedNextAction) {
+      throw new Error('Suggested next action is required.')
+    }
+
+    return {
+      clientSlug,
+      workItemId,
+      assistantKey,
+      stageId: stageId || undefined,
+      summary,
+      suggestedNextAction,
+      confidence,
+    }
+  })
+  .handler(async ({ data }) => createWorkItemAssistantResult(data))

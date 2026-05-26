@@ -210,6 +210,18 @@ export const WorkItemSchema = z.object({
   completedAt: z.string().optional(),
 });
 
+export const WorkItemAssistantResultSchema = z.object({
+  id: z.string(),
+  clientSlug: z.string(),
+  workItemId: z.string(),
+  assistantKey: z.string(),
+  stageId: z.string().optional(),
+  summary: z.string(),
+  suggestedNextAction: z.string(),
+  confidence: z.enum(["low", "medium", "high"]),
+  createdAt: z.string(),
+});
+
 export const BusinessModuleSchema = z.object({
   key: BusinessModuleKeySchema,
   label: z.string(),
@@ -248,6 +260,7 @@ export type Contact = z.infer<typeof ContactSchema>;
 export type Conversation = z.infer<typeof ConversationSchema>;
 export type ConversationMessage = z.infer<typeof ConversationMessageSchema>;
 export type WorkItem = z.infer<typeof WorkItemSchema>;
+export type WorkItemAssistantResult = z.infer<typeof WorkItemAssistantResultSchema>;
 export type Payment = z.infer<typeof PaymentSchema>;
 export type ScheduleItem = z.infer<typeof ScheduleItemSchema>;
 export type FileOutput = z.infer<typeof FileOutputSchema>;
