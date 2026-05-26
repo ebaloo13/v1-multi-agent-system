@@ -1,6 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
 import { ZodError } from 'zod'
-import { runWorkItemAssistantAgent } from '../../../../src/agents/work-item-assistant-agent'
+import {
+  runWorkItemAssistantAgent,
+  WORK_ITEM_ASSISTANT_CONVERSATION_HISTORY_LIMIT,
+  type WorkItemAssistantConversationHistoryMessage,
+} from '../../../../src/agents/work-item-assistant-agent'
 import {
   getDefaultWorkItemFunnel,
   listFunnels,
@@ -382,15 +386,27 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
       throw new Error('No assistant is assigned to the current funnel stage.')
     }
 
+    const conversationHistory = await listWorkItemConversationMessages(data.clientSlug, workItem.id)
+    let nextConversationHistory = conversationHistory
+
     if (data.userMessage) {
-      await createWorkItemConversationMessage({
+      const userMessage = await createWorkItemConversationMessage({
         clientSlug: data.clientSlug,
         workItemId: workItem.id,
         role: 'user',
         body: data.userMessage,
         source: 'client_workspace',
       })
+      nextConversationHistory = [...conversationHistory, userMessage]
     }
+
+    const compactConversationHistory: WorkItemAssistantConversationHistoryMessage[] = nextConversationHistory
+      .slice(-WORK_ITEM_ASSISTANT_CONVERSATION_HISTORY_LIMIT)
+      .map((message) => ({
+        role: message.role,
+        body: message.body,
+        createdAt: message.createdAt,
+      }))
 
     const assistantOutput = await runWorkItemAssistantAgent({
       clientSlug: data.clientSlug,
@@ -404,6 +420,7 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
       assistantKey: currentStage.assistantKey,
       automationPolicy: currentStage.automationPolicy,
       userMessage: data.userMessage,
+      conversationHistory: compactConversationHistory,
     })
 
     const assistantResult = await createWorkItemAssistantResult({
