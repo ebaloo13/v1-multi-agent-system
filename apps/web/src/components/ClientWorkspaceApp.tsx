@@ -20,10 +20,14 @@ import {
   SlidersHorizontal,
   UserCircle,
 } from 'lucide-react'
-import { createClientWorkItem, updateClientWorkItemStatus } from '../lib/client-work-items.functions'
+import {
+  createClientWorkItem,
+  createClientWorkItemAssistantResult,
+  updateClientWorkItemStatus,
+} from '../lib/client-work-items.functions'
 import { formatClientName } from '../lib/product-shell'
 import { messageFromError } from '../lib/workflow'
-import type { Funnel, WorkItem } from '../../../../src/schemas/operations'
+import type { Funnel, WorkItem, WorkItemAssistantResult } from '../../../../src/schemas/operations'
 
 type ClientWorkspaceView = 'home' | 'newRequest' | 'reviews' | 'files' | 'chat' | 'settings'
 
@@ -151,6 +155,7 @@ export default function ClientWorkspaceApp({
       </a>
       {selectedRequest ? (
         <ClientRequestDetailDrawer
+          clientSlug={clientSlug}
           request={selectedRequest}
           transitionStages={transitionStages}
           isUpdatingStatus={isUpdatingStatus}
@@ -398,6 +403,7 @@ function ClientRequestCard({
 }
 
 function ClientRequestDetailDrawer({
+  clientSlug,
   request,
   transitionStages,
   isUpdatingStatus,
@@ -405,6 +411,7 @@ function ClientRequestDetailDrawer({
   onClose,
   onTransition,
 }: {
+  clientSlug: string
   request: ClientRequest
   transitionStages: Funnel['stages']
   isUpdatingStatus: boolean
@@ -414,7 +421,39 @@ function ClientRequestDetailDrawer({
 }) {
   const currentStage = transitionStages.find((stage) => stage.status === request.workItemStatus)
   const enabledCapabilities = enabledAutomationCapabilities(currentStage?.automationPolicy)
-  const [assistantPreviewMessage, setAssistantPreviewMessage] = useState<string | null>(null)
+  const createAssistantResult = useServerFn(createClientWorkItemAssistantResult)
+  const [assistantResult, setAssistantResult] = useState<WorkItemAssistantResult | null>(null)
+  const [isCreatingAssistantResult, setIsCreatingAssistantResult] = useState(false)
+  const [assistantErrorMessage, setAssistantErrorMessage] = useState<string | null>(null)
+
+  async function handleAssistantPreviewAction() {
+    if (!currentStage?.assistantKey || isCreatingAssistantResult) {
+      return
+    }
+
+    setIsCreatingAssistantResult(true)
+    setAssistantErrorMessage(null)
+
+    try {
+      const result = await createAssistantResult({
+        data: {
+          clientSlug,
+          workItemId: request.id,
+          assistantKey: currentStage.assistantKey,
+          stageId: currentStage.id,
+          summary: assistantResultSummary(request),
+          suggestedNextAction: assistantSuggestedNextAction(request),
+          confidence: 'medium',
+        },
+      })
+
+      setAssistantResult(result)
+    } catch (error) {
+      setAssistantErrorMessage(messageFromError(error))
+    } finally {
+      setIsCreatingAssistantResult(false)
+    }
+  }
 
   return (
     <div
@@ -511,16 +550,26 @@ function ClientRequestDetailDrawer({
               <button
                 type="button"
                 className="client-shortcut-link"
-                onClick={() => {
-                  setAssistantPreviewMessage('Assistant would review this item and suggest the next funnel action.')
-                }}
+                disabled={isCreatingAssistantResult}
+                onClick={handleAssistantPreviewAction}
               >
-                Preview assistant action
+                {isCreatingAssistantResult ? 'Creating preview...' : 'Preview assistant action'}
               </button>
-              {assistantPreviewMessage ? (
-                <p style={{ margin: 0, color: '#4b5563', fontSize: '0.84rem', lineHeight: 1.45 }}>
-                  {assistantPreviewMessage}
-                </p>
+              {assistantResult ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <p style={{ margin: 0, color: '#4b5563', fontSize: '0.84rem', lineHeight: 1.45 }}>
+                    {assistantResult.summary}
+                  </p>
+                  <p style={{ margin: 0, color: '#17202a', fontSize: '0.84rem', fontWeight: 750, lineHeight: 1.45 }}>
+                    {assistantResult.suggestedNextAction}
+                  </p>
+                  <span style={{ color: '#8a94a3', fontSize: '0.76rem', fontWeight: 750 }}>
+                    Confidence: {assistantResult.confidence}
+                  </span>
+                </div>
+              ) : null}
+              {assistantErrorMessage ? (
+                <p className="client-form-error">{assistantErrorMessage}</p>
               ) : null}
             </div>
           ) : null}
@@ -786,6 +835,27 @@ function transitionButtonLabel(stage: FunnelStage, isCurrentStage: boolean) {
   }
 
   return `Move to ${stage.label}`
+}
+
+function assistantResultSummary(request: ClientRequest): string {
+  return `${request.type} "${request.title}" is currently ${statusLabel(request.status).toLowerCase()}.`
+}
+
+function assistantSuggestedNextAction(request: ClientRequest): string {
+  switch (request.workItemStatus) {
+    case 'new':
+      return 'Review the request details, add internal notes, and decide whether it should move into active work.'
+    case 'in_progress':
+      return 'Check progress against the request and move it forward when the next deliverable is clear.'
+    case 'waiting':
+      return 'Confirm what input is missing and prepare a follow-up before moving the item forward.'
+    case 'needs_review':
+      return 'Review the item with a human approver before marking it ready.'
+    case 'ready':
+      return 'Confirm the handoff is complete, then move the item to done when accepted.'
+    case 'done':
+      return 'Record any useful completion notes and leave the item closed.'
+  }
 }
 
 function funnelStageToBoardColumn(stage: FunnelStage): ClientBoardColumn {
