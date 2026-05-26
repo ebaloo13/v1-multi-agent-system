@@ -60,6 +60,10 @@ type ClientBoardColumn = {
 
 type FunnelStage = Funnel['stages'][number]
 type StageAutomationPolicy = NonNullable<FunnelStage['automationPolicy']>
+type AssistantRun = {
+  result: WorkItemAssistantResult
+  userMessage?: string
+}
 
 const statusColumns: ClientBoardColumn[] = [
   { id: 'new', label: 'New', tone: 'new', workItemStatus: 'new' },
@@ -422,7 +426,8 @@ function ClientRequestDetailDrawer({
   const currentStage = transitionStages.find((stage) => stage.status === request.workItemStatus)
   const enabledCapabilities = enabledAutomationCapabilities(currentStage?.automationPolicy)
   const runAssistant = useServerFn(runClientWorkItemAssistant)
-  const [assistantResults, setAssistantResults] = useState<WorkItemAssistantResult[]>([])
+  const [assistantRuns, setAssistantRuns] = useState<AssistantRun[]>([])
+  const [assistantMessage, setAssistantMessage] = useState('')
   const [isCreatingAssistantResult, setIsCreatingAssistantResult] = useState(false)
   const [assistantErrorMessage, setAssistantErrorMessage] = useState<string | null>(null)
 
@@ -435,14 +440,23 @@ function ClientRequestDetailDrawer({
     setAssistantErrorMessage(null)
 
     try {
+      const userMessage = assistantMessage.trim()
       const result = await runAssistant({
         data: {
           clientSlug,
           workItemId: request.id,
+          userMessage: userMessage || undefined,
         },
       })
 
-      setAssistantResults((currentResults) => [result, ...currentResults])
+      setAssistantRuns((currentRuns) => [
+        {
+          result,
+          userMessage: userMessage || undefined,
+        },
+        ...currentRuns,
+      ])
+      setAssistantMessage('')
     } catch (error) {
       setAssistantErrorMessage(messageFromError(error))
     } finally {
@@ -542,24 +556,46 @@ function ClientRequestDetailDrawer({
           ) : null}
           {currentStage?.assistantKey ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '100%' }}>
+                <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>
+                  Ask stage assistant
+                </span>
+                <textarea
+                  value={assistantMessage}
+                  onChange={(event) => setAssistantMessage(event.currentTarget.value)}
+                  placeholder="Review this item and suggest the next action."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    resize: 'vertical',
+                    border: '1px solid rgba(20, 29, 38, 0.14)',
+                    borderRadius: '8px',
+                    padding: '0.65rem',
+                    color: '#17202a',
+                    font: 'inherit',
+                    fontSize: '0.86rem',
+                    lineHeight: 1.4,
+                  }}
+                />
+              </label>
               <button
                 type="button"
                 className="client-shortcut-link"
                 disabled={isCreatingAssistantResult}
                 onClick={handleAssistantPreviewAction}
               >
-                {isCreatingAssistantResult ? 'Running assistant...' : 'Run assistant'}
+                {isCreatingAssistantResult ? 'Sending...' : 'Send to assistant'}
               </button>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', width: '100%' }}>
                 <strong style={{ color: '#17202a', fontSize: '0.8rem' }}>Assistant runs</strong>
-                {assistantResults.length === 0 ? (
+                {assistantRuns.length === 0 ? (
                   <p style={{ margin: 0, color: '#8a94a3', fontSize: '0.82rem', lineHeight: 1.45 }}>
                     No assistant runs yet.
                   </p>
                 ) : (
-                  assistantResults.map((result) => (
+                  assistantRuns.map((run) => (
                     <article
-                      key={result.id}
+                      key={run.result.id}
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -569,17 +605,22 @@ function ClientRequestDetailDrawer({
                       }}
                     >
                       <span style={{ color: '#17202a', fontSize: '0.78rem', fontWeight: 800 }}>
-                        {result.assistantKey}
+                        {run.result.assistantKey}
                       </span>
+                      {run.userMessage ? (
+                        <p style={{ margin: 0, color: '#4b5563', fontSize: '0.82rem', lineHeight: 1.45 }}>
+                          You: {run.userMessage}
+                        </p>
+                      ) : null}
                       <p style={{ margin: 0, color: '#4b5563', fontSize: '0.84rem', lineHeight: 1.45 }}>
-                        {result.summary}
+                        {run.result.summary}
                       </p>
                       <p style={{ margin: 0, color: '#17202a', fontSize: '0.84rem', fontWeight: 750, lineHeight: 1.45 }}>
-                        {result.suggestedNextAction}
+                        {run.result.suggestedNextAction}
                       </p>
                       <span style={{ color: '#8a94a3', fontSize: '0.76rem', fontWeight: 750 }}>
-                        Confidence: {result.confidence}
-                        {result.createdAt ? ` · ${formatAssistantRunCreatedAt(result.createdAt)}` : ''}
+                        Confidence: {run.result.confidence}
+                        {run.result.createdAt ? ` · ${formatAssistantRunCreatedAt(run.result.createdAt)}` : ''}
                       </span>
                     </article>
                   ))

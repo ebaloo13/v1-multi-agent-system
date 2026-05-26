@@ -48,7 +48,9 @@ type ClientWorkItemAssistantResultInput = ClientWorkItemAssistantResultsInput & 
   confidence: WorkItemAssistantResult['confidence']
 }
 
-type RunClientWorkItemAssistantInput = ClientWorkItemAssistantResultsInput
+type RunClientWorkItemAssistantInput = ClientWorkItemAssistantResultsInput & {
+  userMessage?: string
+}
 
 type SerializableJson =
   | string
@@ -250,6 +252,7 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
   .inputValidator((data: RunClientWorkItemAssistantInput) => {
     const clientSlug = normalizeText(data.clientSlug)
     const workItemId = normalizeText(data.workItemId)
+    const userMessage = normalizeText(data.userMessage)
 
     if (!clientSlug) {
       throw new Error('Client is required.')
@@ -262,6 +265,7 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
     return {
       clientSlug,
       workItemId,
+      userMessage: userMessage || undefined,
     }
   })
   .handler(async ({ data }) => {
@@ -305,6 +309,7 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
       stageLabel: currentStage.label,
       assistantKey: currentStage.assistantKey,
       automationPolicy: currentStage.automationPolicy,
+      userMessage: data.userMessage,
     })
 
     return createWorkItemAssistantResult({
