@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import {
   FunnelSchema,
+  type BusinessModuleKey,
   type Funnel,
   type FunnelStage,
 } from "../../schemas/operations.js";
@@ -15,6 +16,12 @@ const DEFAULT_WORK_ITEM_FUNNEL_KEY = "default_work_item_funnel";
 const FUNNELS_SCHEMA = z.array(FunnelSchema);
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(MODULE_DIR, "..", "..", "..");
+const FUNNEL_PRIORITY_ORDER: Record<Funnel["priority"], number> = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
 
 const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
   {
@@ -22,36 +29,42 @@ const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
     label: "New",
     order: 0,
     status: "new",
+    state: "open",
   },
   {
     id: "in-progress",
     label: "In Progress",
     order: 1,
     status: "in_progress",
+    state: "open",
   },
   {
     id: "waiting",
     label: "Waiting",
     order: 2,
     status: "waiting",
+    state: "open",
   },
   {
     id: "needs-review",
     label: "Needs Review",
     order: 3,
     status: "needs_review",
+    state: "open",
   },
   {
     id: "ready",
     label: "Ready",
     order: 4,
     status: "ready",
+    state: "open",
   },
   {
     id: "done",
     label: "Done",
     order: 5,
     status: "done",
+    state: "closed",
   },
 ];
 
@@ -95,6 +108,11 @@ export function getDefaultWorkItemFunnel(clientSlug: string): Funnel {
     businessId: safeSlug,
     key: DEFAULT_WORK_ITEM_FUNNEL_KEY,
     label: "Work Items",
+    moduleKey: "tasks",
+    priority: "critical",
+    isDefault: true,
+    isActive: true,
+    order: 0,
     stages: DEFAULT_WORK_ITEM_FUNNEL_STAGES,
   });
 }
@@ -107,4 +125,54 @@ export async function listFunnels(clientSlug: string): Promise<Funnel[]> {
   }
 
   return FUNNELS_SCHEMA.parse(rawFunnels);
+}
+
+export function selectFunnelForModule(
+  funnels: Funnel[],
+  moduleKey: BusinessModuleKey,
+  fallback: Funnel,
+): Funnel {
+  return funnels
+    .map((funnel, index) => ({ funnel, index }))
+    .filter(({ funnel }) => funnel.moduleKey === moduleKey)
+    .sort((first, second) => {
+      if (first.funnel.isActive !== false && second.funnel.isActive === false) {
+        return -1;
+      }
+
+      if (first.funnel.isActive === false && second.funnel.isActive !== false) {
+        return 1;
+      }
+
+      if (first.funnel.isDefault === true && second.funnel.isDefault !== true) {
+        return -1;
+      }
+
+      if (first.funnel.isDefault !== true && second.funnel.isDefault === true) {
+        return 1;
+      }
+
+      const priorityDifference =
+        FUNNEL_PRIORITY_ORDER[first.funnel.priority] - FUNNEL_PRIORITY_ORDER[second.funnel.priority];
+      if (priorityDifference !== 0) {
+        return priorityDifference;
+      }
+
+      const orderDifference = (first.funnel.order ?? Number.MAX_SAFE_INTEGER) -
+        (second.funnel.order ?? Number.MAX_SAFE_INTEGER);
+      if (orderDifference !== 0) {
+        return orderDifference;
+      }
+
+      return first.index - second.index;
+    })[0]?.funnel ?? fallback;
+}
+
+export async function getFunnelForModule(
+  clientSlug: string,
+  moduleKey: BusinessModuleKey,
+): Promise<Funnel> {
+  const fallback = getDefaultWorkItemFunnel(clientSlug);
+  const funnels = await listFunnels(clientSlug);
+  return selectFunnelForModule(funnels, moduleKey, fallback);
 }

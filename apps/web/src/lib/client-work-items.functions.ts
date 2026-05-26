@@ -1,5 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
-import { getDefaultWorkItemFunnel } from '../../../../src/core/funnels/store'
+import { ZodError } from 'zod'
+import {
+  getDefaultWorkItemFunnel,
+  listFunnels,
+  selectFunnelForModule,
+} from '../../../../src/core/funnels/store'
 import {
   createWorkItem,
   listWorkItems,
@@ -71,7 +76,20 @@ export const getClientWorkItems = createServerFn({ method: 'GET' })
 
 export const getClientWorkItemFunnel = createServerFn({ method: 'GET' })
   .inputValidator((data: { clientSlug: string }) => data)
-  .handler(async ({ data }) => getDefaultWorkItemFunnel(data.clientSlug))
+  .handler(async ({ data }) => {
+    const fallback = getDefaultWorkItemFunnel(data.clientSlug)
+
+    try {
+      const funnels = await listFunnels(data.clientSlug)
+      return selectFunnelForModule(funnels, 'tasks', fallback)
+    } catch (error) {
+      if (error instanceof SyntaxError || error instanceof ZodError) {
+        return fallback
+      }
+
+      throw error
+    }
+  })
 
 export const createClientWorkItem = createServerFn({ method: 'POST' })
   .inputValidator((data: ClientWorkItemInput) => {

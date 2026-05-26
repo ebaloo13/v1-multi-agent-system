@@ -45,24 +45,6 @@ export const WorkItemStatusSchema = z.enum([
   "done",
 ]);
 
-export const FunnelStageSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  order: z.number().int().nonnegative(),
-  status: WorkItemStatusSchema,
-  description: z.string().optional(),
-  state: z.enum(["open", "won", "lost", "closed"]).optional(),
-  assistantKey: z.string().optional(),
-});
-
-export const FunnelSchema = z.object({
-  id: z.string(),
-  businessId: z.string(),
-  key: z.string(),
-  label: z.string(),
-  stages: z.array(FunnelStageSchema),
-});
-
 export const BusinessModuleKeySchema = z.enum([
   "inbox",
   "tasks",
@@ -72,6 +54,40 @@ export const BusinessModuleKeySchema = z.enum([
   "settings",
   "integrations",
 ]);
+
+export const FunnelStageAutomationPolicySchema = z.object({
+  canMoveStage: z.boolean().optional(),
+  canCloseAsWon: z.boolean().optional(),
+  canCloseAsLost: z.boolean().optional(),
+  canCreateInternalNote: z.boolean().optional(),
+  canApplyTags: z.boolean().optional(),
+  canTriggerWorkflow: z.boolean().optional(),
+  requiresHumanApproval: z.boolean().optional(),
+});
+
+export const FunnelStageSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  order: z.number().int().nonnegative(),
+  status: WorkItemStatusSchema,
+  description: z.string().optional(),
+  state: z.enum(["open", "won", "lost", "closed"]).optional(),
+  assistantKey: z.string().optional(),
+  automationPolicy: FunnelStageAutomationPolicySchema.optional(),
+});
+
+export const FunnelSchema = z.object({
+  id: z.string(),
+  businessId: z.string(),
+  key: z.string(),
+  label: z.string(),
+  moduleKey: BusinessModuleKeySchema,
+  priority: z.enum(["critical", "high", "medium", "low"]),
+  isDefault: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+  order: z.number().int().nonnegative().optional(),
+  stages: z.array(FunnelStageSchema),
+});
 
 export const EntityRefSchema = z.object({
   id: z.string(),
