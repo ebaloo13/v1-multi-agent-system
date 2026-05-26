@@ -30,6 +30,11 @@ const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
     order: 0,
     status: "new",
     state: "open",
+    assistantKey: "intake-assistant",
+    automationPolicy: {
+      canCreateInternalNote: true,
+      canApplyTags: true,
+    },
   },
   {
     id: "in-progress",
@@ -37,6 +42,11 @@ const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
     order: 1,
     status: "in_progress",
     state: "open",
+    assistantKey: "operations-assistant",
+    automationPolicy: {
+      canMoveStage: true,
+      canCreateInternalNote: true,
+    },
   },
   {
     id: "waiting",
@@ -44,6 +54,11 @@ const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
     order: 2,
     status: "waiting",
     state: "open",
+    assistantKey: "followup-assistant",
+    automationPolicy: {
+      canCreateInternalNote: true,
+      canTriggerWorkflow: true,
+    },
   },
   {
     id: "needs-review",
@@ -51,6 +66,11 @@ const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
     order: 3,
     status: "needs_review",
     state: "open",
+    assistantKey: "review-assistant",
+    automationPolicy: {
+      requiresHumanApproval: true,
+      canCreateInternalNote: true,
+    },
   },
   {
     id: "ready",
@@ -58,6 +78,11 @@ const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
     order: 4,
     status: "ready",
     state: "open",
+    assistantKey: "delivery-assistant",
+    automationPolicy: {
+      canMoveStage: true,
+      canCreateInternalNote: true,
+    },
   },
   {
     id: "done",
