@@ -21,6 +21,7 @@ import {
   UserCircle,
 } from 'lucide-react'
 import {
+  applyClientWorkItemSuggestedAction,
   createClientWorkItem,
   getClientWorkItemConversationMessages,
   runClientWorkItemAssistant,
@@ -66,6 +67,7 @@ type ClientBoardColumn = {
 
 type FunnelStage = Funnel['stages'][number]
 type StageAutomationPolicy = NonNullable<FunnelStage['automationPolicy']>
+type WorkItemSuggestedAction = NonNullable<WorkItemAssistantResult['suggestedAction']>
 type AssistantRun = {
   result: WorkItemAssistantResult
   userMessage?: string
@@ -432,12 +434,14 @@ function ClientRequestDetailDrawer({
   const currentStage = transitionStages.find((stage) => stage.status === request.workItemStatus)
   const enabledCapabilities = enabledAutomationCapabilities(currentStage?.automationPolicy)
   const runAssistant = useServerFn(runClientWorkItemAssistant)
+  const applySuggestedAction = useServerFn(applyClientWorkItemSuggestedAction)
   const getConversationMessages = useServerFn(getClientWorkItemConversationMessages)
   const [assistantRuns, setAssistantRuns] = useState<AssistantRun[]>([])
   const [conversationMessages, setConversationMessages] = useState<WorkItemConversationMessage[]>([])
   const [assistantMessage, setAssistantMessage] = useState('')
   const [isCreatingAssistantResult, setIsCreatingAssistantResult] = useState(false)
   const [isLoadingConversation, setIsLoadingConversation] = useState(false)
+  const [applyingSuggestedActionId, setApplyingSuggestedActionId] = useState<string | null>(null)
   const [assistantErrorMessage, setAssistantErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -514,6 +518,30 @@ function ClientRequestDetailDrawer({
       setAssistantErrorMessage(messageFromError(error))
     } finally {
       setIsCreatingAssistantResult(false)
+    }
+  }
+
+  async function handleApplySuggestedAction(result: WorkItemAssistantResult) {
+    if (!result.suggestedAction || applyingSuggestedActionId) {
+      return
+    }
+
+    setApplyingSuggestedActionId(result.id)
+    setAssistantErrorMessage(null)
+
+    try {
+      await applySuggestedAction({
+        data: {
+          clientSlug,
+          workItemId: request.id,
+          suggestedAction: result.suggestedAction,
+        },
+      })
+
+      window.location.reload()
+    } catch (error) {
+      setAssistantErrorMessage(messageFromError(error))
+      setApplyingSuggestedActionId(null)
     }
   }
 
@@ -735,6 +763,13 @@ function ClientRequestDetailDrawer({
                       <p style={{ margin: 0, color: '#17202a', fontSize: '0.84rem', fontWeight: 750, lineHeight: 1.45 }}>
                         {run.result.suggestedNextAction}
                       </p>
+                      {run.result.suggestedAction ? (
+                        <SuggestedActionCard
+                          action={run.result.suggestedAction}
+                          isApplying={applyingSuggestedActionId === run.result.id}
+                          onApply={() => handleApplySuggestedAction(run.result)}
+                        />
+                      ) : null}
                       <span style={{ color: '#8a94a3', fontSize: '0.76rem', fontWeight: 750 }}>
                         Confidence: {run.result.confidence}
                         {run.result.createdAt ? ` · ${formatAssistantRunCreatedAt(run.result.createdAt)}` : ''}
@@ -772,6 +807,60 @@ function ClientRequestDetailDrawer({
           {errorMessage ? <p className="client-form-error">{errorMessage}</p> : null}
         </section>
       </aside>
+    </div>
+  )
+}
+
+function SuggestedActionCard({
+  action,
+  isApplying,
+  onApply,
+}: {
+  action: WorkItemSuggestedAction
+  isApplying: boolean
+  onApply: () => void
+}) {
+  const canApplyMoveStage = action.type === 'move_stage' && Boolean(action.targetStatus)
+  const previewOnlyMessage = action.type === 'move_stage'
+    ? 'Preview only. Move stage actions need a target status.'
+    : 'Preview only. This action type is not supported yet.'
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.45rem',
+        border: '1px solid rgba(20, 29, 38, 0.12)',
+        borderRadius: '8px',
+        background: '#f8fafc',
+        padding: '0.65rem',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+        <strong style={{ color: '#17202a', fontSize: '0.82rem', lineHeight: 1.35 }}>{action.label}</strong>
+        <span className="client-type-badge">{suggestedActionTypeLabel(action.type)}</span>
+      </div>
+      {action.targetStatus ? (
+        <span style={{ color: '#4b5563', fontSize: '0.78rem', fontWeight: 750 }}>
+          Target: {workItemStatusLabel(action.targetStatus)}
+        </span>
+      ) : null}
+      {canApplyMoveStage ? (
+        <button
+          type="button"
+          className="client-shortcut-link"
+          disabled={isApplying}
+          onClick={onApply}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          {isApplying ? 'Applying...' : 'Apply action'}
+        </button>
+      ) : (
+        <span style={{ color: '#8a94a3', fontSize: '0.78rem', fontWeight: 750 }}>
+          {previewOnlyMessage}
+        </span>
+      )}
     </div>
   )
 }
@@ -971,6 +1060,23 @@ function statusLabel(status: ClientRequestStatus) {
       return 'Ready'
     case 'done':
       return 'Done'
+  }
+}
+
+function workItemStatusLabel(status: WorkItem['status']) {
+  return statusLabel(workItemStatusToClientStatus(status))
+}
+
+function suggestedActionTypeLabel(type: WorkItemSuggestedAction['type']) {
+  switch (type) {
+    case 'move_stage':
+      return 'Move stage'
+    case 'create_internal_note':
+      return 'Internal note'
+    case 'request_client_info':
+      return 'Client info'
+    case 'apply_tag':
+      return 'Apply tag'
   }
 }
 

@@ -20,6 +20,7 @@ import {
   updateWorkItemStatus,
 } from '../../../../src/core/work-items/store'
 import {
+  WorkItemAssistantSuggestedActionSchema,
   WorkItemStatusSchema,
   type BusinessModuleKey,
   type WorkItem,
@@ -52,11 +53,18 @@ type ClientWorkItemAssistantResultInput = ClientWorkItemAssistantResultsInput & 
   stageId?: string
   summary: string
   suggestedNextAction: string
+  suggestedAction?: WorkItemSuggestedAction
   confidence: WorkItemAssistantResult['confidence']
 }
 
 type RunClientWorkItemAssistantInput = ClientWorkItemAssistantResultsInput & {
   userMessage?: string
+}
+
+type WorkItemSuggestedAction = NonNullable<WorkItemAssistantResult['suggestedAction']>
+
+type ApplyClientWorkItemSuggestedActionInput = ClientWorkItemAssistantResultsInput & {
+  suggestedAction: WorkItemSuggestedAction
 }
 
 type ClientWorkItemConversationMessagesInput = ClientWorkItemAssistantResultsInput
@@ -250,6 +258,9 @@ export const createClientWorkItemAssistantResult = createServerFn({ method: 'POS
     const stageId = normalizeText(data.stageId)
     const summary = normalizeText(data.summary)
     const suggestedNextAction = normalizeText(data.suggestedNextAction)
+    const suggestedAction = data.suggestedAction
+      ? WorkItemAssistantSuggestedActionSchema.parse(data.suggestedAction)
+      : undefined
     const confidence = parseConfidence(data.confidence)
 
     if (!clientSlug) {
@@ -279,10 +290,44 @@ export const createClientWorkItemAssistantResult = createServerFn({ method: 'POS
       stageId: stageId || undefined,
       summary,
       suggestedNextAction,
+      suggestedAction,
       confidence,
     }
   })
   .handler(async ({ data }) => createWorkItemAssistantResult(data))
+
+export const applyClientWorkItemSuggestedAction = createServerFn({ method: 'POST' })
+  .inputValidator((data: ApplyClientWorkItemSuggestedActionInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const workItemId = normalizeText(data.workItemId)
+    const suggestedAction = WorkItemAssistantSuggestedActionSchema.parse(data.suggestedAction)
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!workItemId) {
+      throw new Error('Work item is required.')
+    }
+
+    return {
+      clientSlug,
+      workItemId,
+      suggestedAction,
+    }
+  })
+  .handler(async ({ data }) => {
+    if (data.suggestedAction.type !== 'move_stage') {
+      throw new Error(`Suggested action type "${data.suggestedAction.type}" is not supported yet.`)
+    }
+
+    if (!data.suggestedAction.targetStatus) {
+      throw new Error('Move stage suggested actions require a target status.')
+    }
+
+    const workItem = await updateWorkItemStatus(data.clientSlug, data.workItemId, data.suggestedAction.targetStatus)
+    return serializeWorkItem(workItem)
+  })
 
 export const getClientWorkItemConversationMessages = createServerFn({ method: 'GET' })
   .inputValidator((data: ClientWorkItemConversationMessagesInput) => {
@@ -430,6 +475,7 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
       stageId: currentStage.id,
       summary: assistantOutput.summary,
       suggestedNextAction: assistantOutput.suggestedNextAction,
+      suggestedAction: assistantOutput.suggestedAction,
       confidence: assistantOutput.confidence,
     })
 

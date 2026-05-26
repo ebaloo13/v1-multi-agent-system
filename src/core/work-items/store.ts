@@ -49,6 +49,7 @@ export type CreateWorkItemAssistantResultInput = {
   stageId?: string;
   summary: string;
   suggestedNextAction: string;
+  suggestedAction?: WorkItemAssistantResult["suggestedAction"];
   confidence: WorkItemAssistantResult["confidence"];
 };
 

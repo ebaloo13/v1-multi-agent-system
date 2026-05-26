@@ -210,6 +210,14 @@ export const WorkItemSchema = z.object({
   completedAt: z.string().optional(),
 });
 
+export const WorkItemAssistantSuggestedActionSchema = z.object({
+  type: z.enum(["move_stage", "create_internal_note", "request_client_info", "apply_tag"]),
+  label: z.string(),
+  targetStatus: WorkItemStatusSchema.optional(),
+  note: z.string().optional(),
+  tag: z.string().optional(),
+}).strict();
+
 export const WorkItemAssistantResultSchema = z.object({
   id: z.string(),
   clientSlug: z.string(),
@@ -218,6 +226,7 @@ export const WorkItemAssistantResultSchema = z.object({
   stageId: z.string().optional(),
   summary: z.string(),
   suggestedNextAction: z.string(),
+  suggestedAction: WorkItemAssistantSuggestedActionSchema.optional(),
   confidence: z.enum(["low", "medium", "high"]),
   createdAt: z.string(),
 });
