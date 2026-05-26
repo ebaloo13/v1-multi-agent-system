@@ -456,7 +456,7 @@ function ClientRequestDetailDrawer({
         })
 
         if (isActive) {
-          setConversationMessages(messages)
+          setConversationMessages((currentMessages) => mergeConversationMessages(currentMessages, messages))
         }
       } catch (error) {
         if (isActive) {
@@ -509,7 +509,7 @@ function ClientRequestDetailDrawer({
           workItemId: request.id,
         },
       })
-      setConversationMessages(messages)
+      setConversationMessages((currentMessages) => mergeConversationMessages(currentMessages, messages))
     } catch (error) {
       setAssistantErrorMessage(messageFromError(error))
     } finally {
@@ -1041,6 +1041,25 @@ function conversationMessageLabel(message: WorkItemConversationMessage): string 
   }
 
   return 'You'
+}
+
+function mergeConversationMessages(
+  currentMessages: WorkItemConversationMessage[],
+  persistedMessages: WorkItemConversationMessage[],
+): WorkItemConversationMessage[] {
+  const messagesById = new Map<string, WorkItemConversationMessage>()
+
+  for (const message of currentMessages) {
+    messagesById.set(message.id, message)
+  }
+
+  for (const message of persistedMessages) {
+    messagesById.set(message.id, message)
+  }
+
+  return [...messagesById.values()].sort((first, second) => (
+    new Date(first.createdAt).valueOf() - new Date(second.createdAt).valueOf()
+  ))
 }
 
 function funnelStageToBoardColumn(stage: FunnelStage): ClientBoardColumn {
