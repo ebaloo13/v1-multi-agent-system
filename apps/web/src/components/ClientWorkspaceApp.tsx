@@ -54,6 +54,9 @@ type ClientBoardColumn = {
   workItemStatus: WorkItem['status']
 }
 
+type FunnelStage = Funnel['stages'][number]
+type StageAutomationPolicy = NonNullable<FunnelStage['automationPolicy']>
+
 const statusColumns: ClientBoardColumn[] = [
   { id: 'new', label: 'New', tone: 'new', workItemStatus: 'new' },
   { id: 'inProgress', label: 'In Progress', tone: 'progress', workItemStatus: 'in_progress' },
@@ -61,6 +64,16 @@ const statusColumns: ClientBoardColumn[] = [
   { id: 'needsReview', label: 'Needs Review', tone: 'review', workItemStatus: 'needs_review' },
   { id: 'ready', label: 'Ready', tone: 'ready', workItemStatus: 'ready' },
   { id: 'done', label: 'Done', tone: 'done', workItemStatus: 'done' },
+]
+
+const automationCapabilityLabels: Array<{ key: keyof StageAutomationPolicy; label: string }> = [
+  { key: 'canMoveStage', label: 'Move stage' },
+  { key: 'canCloseAsWon', label: 'Close as won' },
+  { key: 'canCloseAsLost', label: 'Close as lost' },
+  { key: 'canCreateInternalNote', label: 'Internal notes' },
+  { key: 'canApplyTags', label: 'Apply tags' },
+  { key: 'canTriggerWorkflow', label: 'Trigger workflow' },
+  { key: 'requiresHumanApproval', label: 'Human approval required' },
 ]
 
 export default function ClientWorkspaceApp({
@@ -397,9 +410,11 @@ function ClientRequestDetailDrawer({
   isUpdatingStatus: boolean
   errorMessage: string | null
   onClose: () => void
-  onTransition: (stage: Funnel['stages'][number]) => void
+  onTransition: (stage: FunnelStage) => void
 }) {
   const currentStage = transitionStages.find((stage) => stage.status === request.workItemStatus)
+  const enabledCapabilities = enabledAutomationCapabilities(currentStage?.automationPolicy)
+  const [assistantPreviewMessage, setAssistantPreviewMessage] = useState<string | null>(null)
 
   return (
     <div
@@ -467,6 +482,49 @@ function ClientRequestDetailDrawer({
           <CalendarDays size={14} />
           Updated {request.updatedAt}
         </span>
+        <section
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.65rem',
+            borderTop: '1px solid rgba(20, 29, 38, 0.08)',
+            paddingTop: '0.85rem',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <strong style={{ color: '#17202a', fontSize: '0.86rem' }}>Stage assistant</strong>
+            <span style={{ color: '#4b5563', fontSize: '0.86rem', fontWeight: 700 }}>
+              {currentStage?.assistantKey ?? 'No assistant assigned yet'}
+            </span>
+          </div>
+          {enabledCapabilities.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+              {enabledCapabilities.map((capability) => (
+                <span key={capability} className="client-type-badge">
+                  {capability}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {currentStage?.assistantKey ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
+              <button
+                type="button"
+                className="client-shortcut-link"
+                onClick={() => {
+                  setAssistantPreviewMessage('Assistant would review this item and suggest the next funnel action.')
+                }}
+              >
+                Preview assistant action
+              </button>
+              {assistantPreviewMessage ? (
+                <p style={{ margin: 0, color: '#4b5563', fontSize: '0.84rem', lineHeight: 1.45 }}>
+                  {assistantPreviewMessage}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
         <section style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
           <strong style={{ color: '#17202a', fontSize: '0.86rem' }}>Move through funnel</strong>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -718,7 +776,7 @@ function sortFunnelStages(stages: Funnel['stages']): Funnel['stages'] {
   return [...stages].sort((firstStage, secondStage) => firstStage.order - secondStage.order)
 }
 
-function transitionButtonLabel(stage: Funnel['stages'][number], isCurrentStage: boolean) {
+function transitionButtonLabel(stage: FunnelStage, isCurrentStage: boolean) {
   if (isCurrentStage) {
     return `Current: ${stage.label}`
   }
@@ -730,7 +788,7 @@ function transitionButtonLabel(stage: Funnel['stages'][number], isCurrentStage: 
   return `Move to ${stage.label}`
 }
 
-function funnelStageToBoardColumn(stage: Funnel['stages'][number]): ClientBoardColumn {
+function funnelStageToBoardColumn(stage: FunnelStage): ClientBoardColumn {
   const status = workItemStatusToClientStatus(stage.status)
 
   return {
@@ -739,6 +797,16 @@ function funnelStageToBoardColumn(stage: Funnel['stages'][number]): ClientBoardC
     tone: toneForClientStatus(status),
     workItemStatus: stage.status,
   }
+}
+
+function enabledAutomationCapabilities(policy: FunnelStage['automationPolicy']): string[] {
+  if (!policy) {
+    return []
+  }
+
+  return automationCapabilityLabels
+    .filter((capability) => policy[capability.key] === true)
+    .map((capability) => capability.label)
 }
 
 function toneForClientStatus(status: ClientRequestStatus): ClientBoardColumn['tone'] {
