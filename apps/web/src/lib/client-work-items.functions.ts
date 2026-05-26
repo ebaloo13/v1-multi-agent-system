@@ -8,8 +8,10 @@ import {
 } from '../../../../src/core/funnels/store'
 import {
   createWorkItemAssistantResult,
+  createWorkItemConversationMessage,
   createWorkItem,
   listWorkItemAssistantResults,
+  listWorkItemConversationMessages,
   listWorkItems,
   updateWorkItemStatus,
 } from '../../../../src/core/work-items/store'
@@ -18,6 +20,7 @@ import {
   type BusinessModuleKey,
   type WorkItem,
   type WorkItemAssistantResult,
+  type WorkItemConversationMessage,
   type WorkItemStatus,
   type WorkItemType,
 } from '../../../../src/schemas/operations'
@@ -52,6 +55,15 @@ type RunClientWorkItemAssistantInput = ClientWorkItemAssistantResultsInput & {
   userMessage?: string
 }
 
+type ClientWorkItemConversationMessagesInput = ClientWorkItemAssistantResultsInput
+
+type ClientWorkItemConversationMessageInput = ClientWorkItemConversationMessagesInput & {
+  role: WorkItemConversationMessage['role']
+  body: string
+  assistantKey?: string
+  source: WorkItemConversationMessage['source']
+}
+
 type SerializableJson =
   | string
   | number
@@ -80,6 +92,26 @@ function parseConfidence(value: unknown): WorkItemAssistantResult['confidence'] 
   }
 
   throw new Error('Confidence must be low, medium, or high.')
+}
+
+function parseConversationRole(value: unknown): WorkItemConversationMessage['role'] {
+  const role = normalizeText(value)
+
+  if (role === 'client' || role === 'user' || role === 'assistant' || role === 'system') {
+    return role
+  }
+
+  throw new Error('Message role is invalid.')
+}
+
+function parseConversationSource(value: unknown): WorkItemConversationMessage['source'] {
+  const source = normalizeText(value)
+
+  if (source === 'client_workspace' || source === 'agent' || source === 'internal') {
+    return source
+  }
+
+  throw new Error('Message source is invalid.')
 }
 
 function workItemMapping(requestType: string): {
@@ -248,6 +280,58 @@ export const createClientWorkItemAssistantResult = createServerFn({ method: 'POS
   })
   .handler(async ({ data }) => createWorkItemAssistantResult(data))
 
+export const getClientWorkItemConversationMessages = createServerFn({ method: 'GET' })
+  .inputValidator((data: ClientWorkItemConversationMessagesInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const workItemId = normalizeText(data.workItemId)
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!workItemId) {
+      throw new Error('Work item is required.')
+    }
+
+    return {
+      clientSlug,
+      workItemId,
+    }
+  })
+  .handler(async ({ data }) => listWorkItemConversationMessages(data.clientSlug, data.workItemId))
+
+export const createClientWorkItemConversationMessage = createServerFn({ method: 'POST' })
+  .inputValidator((data: ClientWorkItemConversationMessageInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const workItemId = normalizeText(data.workItemId)
+    const role = parseConversationRole(data.role)
+    const body = normalizeText(data.body)
+    const assistantKey = normalizeText(data.assistantKey)
+    const source = parseConversationSource(data.source)
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!workItemId) {
+      throw new Error('Work item is required.')
+    }
+
+    if (!body) {
+      throw new Error('Message body is required.')
+    }
+
+    return {
+      clientSlug,
+      workItemId,
+      role,
+      body,
+      assistantKey: assistantKey || undefined,
+      source,
+    }
+  })
+  .handler(async ({ data }) => createWorkItemConversationMessage(data))
+
 export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
   .inputValidator((data: RunClientWorkItemAssistantInput) => {
     const clientSlug = normalizeText(data.clientSlug)
@@ -298,6 +382,16 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
       throw new Error('No assistant is assigned to the current funnel stage.')
     }
 
+    if (data.userMessage) {
+      await createWorkItemConversationMessage({
+        clientSlug: data.clientSlug,
+        workItemId: workItem.id,
+        role: 'user',
+        body: data.userMessage,
+        source: 'client_workspace',
+      })
+    }
+
     const assistantOutput = await runWorkItemAssistantAgent({
       clientSlug: data.clientSlug,
       workItem: {
@@ -312,7 +406,7 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
       userMessage: data.userMessage,
     })
 
-    return createWorkItemAssistantResult({
+    const assistantResult = await createWorkItemAssistantResult({
       clientSlug: data.clientSlug,
       workItemId: workItem.id,
       assistantKey: currentStage.assistantKey,
@@ -321,4 +415,15 @@ export const runClientWorkItemAssistant = createServerFn({ method: 'POST' })
       suggestedNextAction: assistantOutput.suggestedNextAction,
       confidence: assistantOutput.confidence,
     })
+
+    await createWorkItemConversationMessage({
+      clientSlug: data.clientSlug,
+      workItemId: workItem.id,
+      role: 'assistant',
+      body: `${assistantOutput.summary}\n\nSuggested next action: ${assistantOutput.suggestedNextAction}`,
+      assistantKey: currentStage.assistantKey,
+      source: 'agent',
+    })
+
+    return assistantResult
   })

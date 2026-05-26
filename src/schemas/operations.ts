@@ -222,6 +222,17 @@ export const WorkItemAssistantResultSchema = z.object({
   createdAt: z.string(),
 });
 
+export const WorkItemConversationMessageSchema = z.object({
+  id: z.string(),
+  clientSlug: z.string(),
+  workItemId: z.string(),
+  role: z.enum(["client", "user", "assistant", "system"]),
+  body: z.string(),
+  assistantKey: z.string().optional(),
+  source: z.enum(["client_workspace", "agent", "internal"]),
+  createdAt: z.string(),
+});
+
 export const BusinessModuleSchema = z.object({
   key: BusinessModuleKeySchema,
   label: z.string(),
@@ -261,6 +272,7 @@ export type Conversation = z.infer<typeof ConversationSchema>;
 export type ConversationMessage = z.infer<typeof ConversationMessageSchema>;
 export type WorkItem = z.infer<typeof WorkItemSchema>;
 export type WorkItemAssistantResult = z.infer<typeof WorkItemAssistantResultSchema>;
+export type WorkItemConversationMessage = z.infer<typeof WorkItemConversationMessageSchema>;
 export type Payment = z.infer<typeof PaymentSchema>;
 export type ScheduleItem = z.infer<typeof ScheduleItemSchema>;
 export type FileOutput = z.infer<typeof FileOutputSchema>;

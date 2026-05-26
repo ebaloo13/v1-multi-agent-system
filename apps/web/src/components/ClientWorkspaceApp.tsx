@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import {
@@ -22,12 +22,18 @@ import {
 } from 'lucide-react'
 import {
   createClientWorkItem,
+  getClientWorkItemConversationMessages,
   runClientWorkItemAssistant,
   updateClientWorkItemStatus,
 } from '../lib/client-work-items.functions'
 import { formatClientName } from '../lib/product-shell'
 import { messageFromError } from '../lib/workflow'
-import type { Funnel, WorkItem, WorkItemAssistantResult } from '../../../../src/schemas/operations'
+import type {
+  Funnel,
+  WorkItem,
+  WorkItemAssistantResult,
+  WorkItemConversationMessage,
+} from '../../../../src/schemas/operations'
 
 type ClientWorkspaceView = 'home' | 'newRequest' | 'reviews' | 'files' | 'chat' | 'settings'
 
@@ -426,10 +432,49 @@ function ClientRequestDetailDrawer({
   const currentStage = transitionStages.find((stage) => stage.status === request.workItemStatus)
   const enabledCapabilities = enabledAutomationCapabilities(currentStage?.automationPolicy)
   const runAssistant = useServerFn(runClientWorkItemAssistant)
+  const getConversationMessages = useServerFn(getClientWorkItemConversationMessages)
   const [assistantRuns, setAssistantRuns] = useState<AssistantRun[]>([])
+  const [conversationMessages, setConversationMessages] = useState<WorkItemConversationMessage[]>([])
   const [assistantMessage, setAssistantMessage] = useState('')
   const [isCreatingAssistantResult, setIsCreatingAssistantResult] = useState(false)
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false)
   const [assistantErrorMessage, setAssistantErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isActive = true
+
+    async function loadConversationMessages() {
+      setIsLoadingConversation(true)
+      setAssistantErrorMessage(null)
+
+      try {
+        const messages = await getConversationMessages({
+          data: {
+            clientSlug,
+            workItemId: request.id,
+          },
+        })
+
+        if (isActive) {
+          setConversationMessages(messages)
+        }
+      } catch (error) {
+        if (isActive) {
+          setAssistantErrorMessage(messageFromError(error))
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingConversation(false)
+        }
+      }
+    }
+
+    void loadConversationMessages()
+
+    return () => {
+      isActive = false
+    }
+  }, [clientSlug, request.id])
 
   async function handleAssistantPreviewAction() {
     if (!currentStage?.assistantKey || isCreatingAssistantResult) {
@@ -457,6 +502,14 @@ function ClientRequestDetailDrawer({
         ...currentRuns,
       ])
       setAssistantMessage('')
+
+      const messages = await getConversationMessages({
+        data: {
+          clientSlug,
+          workItemId: request.id,
+        },
+      })
+      setConversationMessages(messages)
     } catch (error) {
       setAssistantErrorMessage(messageFromError(error))
     } finally {
@@ -586,6 +639,70 @@ function ClientRequestDetailDrawer({
               >
                 {isCreatingAssistantResult ? 'Sending...' : 'Send to assistant'}
               </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                <strong style={{ color: '#17202a', fontSize: '0.8rem' }}>Conversation</strong>
+                {isLoadingConversation ? (
+                  <p style={{ margin: 0, color: '#8a94a3', fontSize: '0.82rem', lineHeight: 1.45 }}>
+                    Loading conversation...
+                  </p>
+                ) : null}
+                {!isLoadingConversation && conversationMessages.length === 0 ? (
+                  <p style={{ margin: 0, color: '#8a94a3', fontSize: '0.82rem', lineHeight: 1.45 }}>
+                    No conversation yet.
+                  </p>
+                ) : null}
+                {conversationMessages.map((message) => {
+                  const isAssistantMessage = message.role === 'assistant'
+
+                  return (
+                    <article
+                      key={message.id}
+                      style={{
+                        alignSelf: isAssistantMessage ? 'flex-start' : 'flex-end',
+                        maxWidth: '92%',
+                        border: '1px solid rgba(20, 29, 38, 0.1)',
+                        borderRadius: '8px',
+                        background: isAssistantMessage ? '#f8fafc' : '#17202a',
+                        padding: '0.65rem',
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'block',
+                          color: isAssistantMessage ? '#17202a' : '#ffffff',
+                          fontSize: '0.76rem',
+                          fontWeight: 800,
+                          marginBottom: '0.25rem',
+                        }}
+                      >
+                        {conversationMessageLabel(message)}
+                      </span>
+                      <p
+                        style={{
+                          margin: 0,
+                          whiteSpace: 'pre-wrap',
+                          color: isAssistantMessage ? '#4b5563' : '#ffffff',
+                          fontSize: '0.84rem',
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        {message.body}
+                      </p>
+                      <span
+                        style={{
+                          display: 'block',
+                          marginTop: '0.35rem',
+                          color: isAssistantMessage ? '#8a94a3' : 'rgba(255, 255, 255, 0.72)',
+                          fontSize: '0.72rem',
+                          fontWeight: 750,
+                        }}
+                      >
+                        {formatAssistantRunCreatedAt(message.createdAt)}
+                      </span>
+                    </article>
+                  )
+                })}
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', width: '100%' }}>
                 <strong style={{ color: '#17202a', fontSize: '0.8rem' }}>Assistant runs</strong>
                 {assistantRuns.length === 0 ? (
@@ -908,6 +1025,22 @@ function formatAssistantRunCreatedAt(value: string): string {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date)
+}
+
+function conversationMessageLabel(message: WorkItemConversationMessage): string {
+  if (message.role === 'assistant') {
+    return message.assistantKey ? `Assistant: ${message.assistantKey}` : 'Assistant'
+  }
+
+  if (message.role === 'client') {
+    return 'Client'
+  }
+
+  if (message.role === 'system') {
+    return 'System'
+  }
+
+  return 'You'
 }
 
 function funnelStageToBoardColumn(stage: FunnelStage): ClientBoardColumn {

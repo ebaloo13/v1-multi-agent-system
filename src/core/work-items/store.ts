@@ -5,11 +5,13 @@ import { fileURLToPath } from "node:url";
 
 import {
   WorkItemAssistantResultSchema,
+  WorkItemConversationMessageSchema,
   WorkItemSchema,
   WorkItemStatusSchema,
   type BusinessModuleKey,
   type WorkItem,
   type WorkItemAssistantResult,
+  type WorkItemConversationMessage,
   type WorkItemStatus,
   type WorkItemType,
 } from "../../schemas/operations.js";
@@ -50,8 +52,18 @@ export type CreateWorkItemAssistantResultInput = {
   confidence: WorkItemAssistantResult["confidence"];
 };
 
+export type CreateWorkItemConversationMessageInput = {
+  clientSlug: string;
+  workItemId: string;
+  role: WorkItemConversationMessage["role"];
+  body: string;
+  assistantKey?: string;
+  source: WorkItemConversationMessage["source"];
+};
+
 const WORK_ITEMS_SCHEMA = WorkItemSchema.array();
 const WORK_ITEM_ASSISTANT_RESULTS_SCHEMA = WorkItemAssistantResultSchema.array();
+const WORK_ITEM_CONVERSATION_MESSAGES_SCHEMA = WorkItemConversationMessageSchema.array();
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(MODULE_DIR, "..", "..", "..");
 
@@ -72,12 +84,25 @@ function workItemAssistantResultsPath(clientSlug: string): string {
   );
 }
 
+function workItemConversationMessagesPath(clientSlug: string): string {
+  return path.join(
+    REPO_ROOT,
+    "data",
+    "clients",
+    `${normalizeClientSlug(clientSlug)}-work-item-messages.json`,
+  );
+}
+
 function createWorkItemId(clientSlug: string): string {
   return `work-item-${normalizeClientSlug(clientSlug)}-${randomUUID()}`;
 }
 
 function createWorkItemAssistantResultId(clientSlug: string): string {
   return `work-item-assistant-result-${normalizeClientSlug(clientSlug)}-${randomUUID()}`;
+}
+
+function createWorkItemConversationMessageId(clientSlug: string): string {
+  return `work-item-message-${normalizeClientSlug(clientSlug)}-${randomUUID()}`;
 }
 
 async function readWorkItemsFile(clientSlug: string): Promise<unknown[]> {
@@ -120,6 +145,26 @@ async function readWorkItemAssistantResultsFile(clientSlug: string): Promise<unk
   }
 }
 
+async function readWorkItemConversationMessagesFile(clientSlug: string): Promise<unknown[]> {
+  const filePath = workItemConversationMessagesPath(clientSlug);
+
+  try {
+    const raw = await fs.readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      throw new Error(`${filePath} must contain a JSON array`);
+    }
+
+    return parsed;
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
 async function writeWorkItemsFile(clientSlug: string, workItems: WorkItem[]): Promise<void> {
   const safeSlug = normalizeClientSlug(clientSlug);
   const filePath = workItemsPath(safeSlug);
@@ -141,12 +186,28 @@ async function writeWorkItemAssistantResultsFile(
   await fs.writeFile(filePath, `${JSON.stringify(validated, null, 2)}\n`, "utf8");
 }
 
+async function writeWorkItemConversationMessagesFile(
+  clientSlug: string,
+  messages: WorkItemConversationMessage[],
+): Promise<void> {
+  const safeSlug = normalizeClientSlug(clientSlug);
+  const filePath = workItemConversationMessagesPath(safeSlug);
+  const validated = WORK_ITEM_CONVERSATION_MESSAGES_SCHEMA.parse(messages);
+
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, `${JSON.stringify(validated, null, 2)}\n`, "utf8");
+}
+
 export function workItemsFilePath(clientSlug: string): string {
   return workItemsPath(clientSlug);
 }
 
 export function workItemAssistantResultsFilePath(clientSlug: string): string {
   return workItemAssistantResultsPath(clientSlug);
+}
+
+export function workItemConversationMessagesFilePath(clientSlug: string): string {
+  return workItemConversationMessagesPath(clientSlug);
 }
 
 export async function listWorkItems(clientSlug: string): Promise<WorkItem[]> {
@@ -162,6 +223,16 @@ export async function listWorkItemAssistantResults(
   const rawResults = await readWorkItemAssistantResultsFile(safeSlug);
   return WORK_ITEM_ASSISTANT_RESULTS_SCHEMA.parse(rawResults)
     .filter((result) => result.workItemId === workItemId);
+}
+
+export async function listWorkItemConversationMessages(
+  clientSlug: string,
+  workItemId: string,
+): Promise<WorkItemConversationMessage[]> {
+  const safeSlug = normalizeClientSlug(clientSlug);
+  const rawMessages = await readWorkItemConversationMessagesFile(safeSlug);
+  return WORK_ITEM_CONVERSATION_MESSAGES_SCHEMA.parse(rawMessages)
+    .filter((message) => message.workItemId === workItemId);
 }
 
 export async function createWorkItem(
@@ -203,6 +274,38 @@ export async function createWorkItem(
     createdAt: workItem.createdAt,
   });
   return workItem;
+}
+
+export async function createWorkItemConversationMessage(
+  input: CreateWorkItemConversationMessageInput,
+): Promise<WorkItemConversationMessage> {
+  const safeSlug = normalizeClientSlug(input.clientSlug);
+  const existing = WORK_ITEM_CONVERSATION_MESSAGES_SCHEMA.parse(
+    await readWorkItemConversationMessagesFile(safeSlug),
+  );
+  const message = WorkItemConversationMessageSchema.parse({
+    ...input,
+    id: createWorkItemConversationMessageId(safeSlug),
+    clientSlug: safeSlug,
+    createdAt: new Date().toISOString(),
+  });
+
+  await writeWorkItemConversationMessagesFile(safeSlug, [...existing, message]);
+  await appendClientEvent(safeSlug, {
+    type: "work_item.message_created",
+    entityType: "work_item",
+    entityId: message.workItemId,
+    message: `Work item message created: ${message.role}`,
+    visibility: "internal",
+    metadata: {
+      messageId: message.id,
+      role: message.role,
+      source: message.source,
+      assistantKey: message.assistantKey,
+    },
+  });
+
+  return message;
 }
 
 export async function createWorkItemAssistantResult(
