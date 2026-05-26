@@ -422,7 +422,7 @@ function ClientRequestDetailDrawer({
   const currentStage = transitionStages.find((stage) => stage.status === request.workItemStatus)
   const enabledCapabilities = enabledAutomationCapabilities(currentStage?.automationPolicy)
   const createAssistantResult = useServerFn(createClientWorkItemAssistantResult)
-  const [assistantResult, setAssistantResult] = useState<WorkItemAssistantResult | null>(null)
+  const [assistantResults, setAssistantResults] = useState<WorkItemAssistantResult[]>([])
   const [isCreatingAssistantResult, setIsCreatingAssistantResult] = useState(false)
   const [assistantErrorMessage, setAssistantErrorMessage] = useState<string | null>(null)
 
@@ -447,7 +447,7 @@ function ClientRequestDetailDrawer({
         },
       })
 
-      setAssistantResult(result)
+      setAssistantResults((currentResults) => [result, ...currentResults])
     } catch (error) {
       setAssistantErrorMessage(messageFromError(error))
     } finally {
@@ -553,21 +553,43 @@ function ClientRequestDetailDrawer({
                 disabled={isCreatingAssistantResult}
                 onClick={handleAssistantPreviewAction}
               >
-                {isCreatingAssistantResult ? 'Creating preview...' : 'Preview assistant action'}
+                {isCreatingAssistantResult ? 'Running assistant...' : 'Run assistant'}
               </button>
-              {assistantResult ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  <p style={{ margin: 0, color: '#4b5563', fontSize: '0.84rem', lineHeight: 1.45 }}>
-                    {assistantResult.summary}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', width: '100%' }}>
+                <strong style={{ color: '#17202a', fontSize: '0.8rem' }}>Assistant runs</strong>
+                {assistantResults.length === 0 ? (
+                  <p style={{ margin: 0, color: '#8a94a3', fontSize: '0.82rem', lineHeight: 1.45 }}>
+                    No assistant runs yet.
                   </p>
-                  <p style={{ margin: 0, color: '#17202a', fontSize: '0.84rem', fontWeight: 750, lineHeight: 1.45 }}>
-                    {assistantResult.suggestedNextAction}
-                  </p>
-                  <span style={{ color: '#8a94a3', fontSize: '0.76rem', fontWeight: 750 }}>
-                    Confidence: {assistantResult.confidence}
-                  </span>
-                </div>
-              ) : null}
+                ) : (
+                  assistantResults.map((result) => (
+                    <article
+                      key={result.id}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.3rem',
+                        borderLeft: '2px solid rgba(20, 29, 38, 0.12)',
+                        paddingLeft: '0.65rem',
+                      }}
+                    >
+                      <span style={{ color: '#17202a', fontSize: '0.78rem', fontWeight: 800 }}>
+                        {result.assistantKey}
+                      </span>
+                      <p style={{ margin: 0, color: '#4b5563', fontSize: '0.84rem', lineHeight: 1.45 }}>
+                        {result.summary}
+                      </p>
+                      <p style={{ margin: 0, color: '#17202a', fontSize: '0.84rem', fontWeight: 750, lineHeight: 1.45 }}>
+                        {result.suggestedNextAction}
+                      </p>
+                      <span style={{ color: '#8a94a3', fontSize: '0.76rem', fontWeight: 750 }}>
+                        Confidence: {result.confidence}
+                        {result.createdAt ? ` · ${formatAssistantRunCreatedAt(result.createdAt)}` : ''}
+                      </span>
+                    </article>
+                  ))
+                )}
+              </div>
               {assistantErrorMessage ? (
                 <p className="client-form-error">{assistantErrorMessage}</p>
               ) : null}
@@ -856,6 +878,21 @@ function assistantSuggestedNextAction(request: ClientRequest): string {
     case 'done':
       return 'Record any useful completion notes and leave the item closed.'
   }
+}
+
+function formatAssistantRunCreatedAt(value: string): string {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.valueOf())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
 }
 
 function funnelStageToBoardColumn(stage: FunnelStage): ClientBoardColumn {
