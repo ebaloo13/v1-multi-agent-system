@@ -20,12 +20,14 @@ import {
   Search,
   Settings,
   SlidersHorizontal,
+  Trash2,
   UserCircle,
 } from 'lucide-react'
 import {
   applyClientWorkItemSuggestedAction,
   createClientFunnelStage,
   createClientWorkItem,
+  deleteClientFunnelStage,
   getClientWorkItemConversationMessages,
   reorderClientFunnelStage,
   runClientWorkItemAssistant,
@@ -437,6 +439,11 @@ function ClientKanbanView({
           clientSlug={clientSlug}
           funnelId={funnelId}
           stage={selectedSettingsStage}
+          stageCount={stages.length}
+          stageWorkItemCount={
+            requests.filter((request) => request.workItemStatus === selectedSettingsStage.status).length
+          }
+          canDeleteStage={isEditingFunnel}
           onClose={() => setSelectedSettingsStage(null)}
         />
       ) : null}
@@ -713,21 +720,32 @@ function StageSettingsPanel({
   clientSlug,
   funnelId,
   stage,
+  stageCount,
+  stageWorkItemCount,
+  canDeleteStage,
   onClose,
 }: {
   clientSlug: string
   funnelId?: string
   stage: FunnelStage
+  stageCount: number
+  stageWorkItemCount: number
+  canDeleteStage: boolean
   onClose: () => void
 }) {
   const updateStageSettings = useServerFn(updateClientFunnelStageSettings)
+  const deleteStage = useServerFn(deleteClientFunnelStage)
   const [stageLabel, setStageLabel] = useState(stage.label)
   const [stageDescription, setStageDescription] = useState(stage.description ?? '')
   const [assistantKey, setAssistantKey] = useState(stage.assistantKey ?? '')
   const [canMoveStage, setCanMoveStage] = useState(stage.automationPolicy?.canMoveStage === true)
   const [stageState, setStageState] = useState<StageState>(stage.state ?? 'open')
   const [isSavingStageSettings, setIsSavingStageSettings] = useState(false)
+  const [isDeletingStage, setIsDeletingStage] = useState(false)
+  const [isConfirmingDeleteStage, setIsConfirmingDeleteStage] = useState(false)
   const [stageSettingsErrorMessage, setStageSettingsErrorMessage] = useState<string | null>(null)
+  const hasStageWorkItems = stageWorkItemCount > 0
+  const isOnlyStage = stageCount <= 1
   const displayedAutomationPolicy: FunnelStage['automationPolicy'] = {
     ...(stage.automationPolicy ?? {}),
     canMoveStage,
@@ -743,6 +761,8 @@ function StageSettingsPanel({
     setAssistantKey(stage.assistantKey ?? '')
     setCanMoveStage(stage.automationPolicy?.canMoveStage === true)
     setStageState(stage.state ?? 'open')
+    setIsDeletingStage(false)
+    setIsConfirmingDeleteStage(false)
     setStageSettingsErrorMessage(null)
   }, [stage.id, stage.label, stage.description, stage.assistantKey, stage.automationPolicy?.canMoveStage, stage.state])
 
@@ -790,6 +810,36 @@ function StageSettingsPanel({
     } catch (error) {
       setStageSettingsErrorMessage(messageFromError(error))
       setIsSavingStageSettings(false)
+    }
+  }
+
+  async function handleDeleteStage() {
+    if (!funnelId || isDeletingStage || hasStageWorkItems || isOnlyStage) {
+      return
+    }
+
+    if (!isConfirmingDeleteStage) {
+      setIsConfirmingDeleteStage(true)
+      setStageSettingsErrorMessage(null)
+      return
+    }
+
+    setIsDeletingStage(true)
+    setStageSettingsErrorMessage(null)
+
+    try {
+      await deleteStage({
+        data: {
+          clientSlug,
+          funnelId,
+          stageId: stage.id,
+        },
+      })
+
+      window.location.reload()
+    } catch (error) {
+      setStageSettingsErrorMessage(messageFromError(error))
+      setIsDeletingStage(false)
     }
   }
 
@@ -988,6 +1038,49 @@ function StageSettingsPanel({
             </p>
           )}
         </section>
+        {canDeleteStage ? (
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.65rem',
+              borderTop: '1px solid rgba(20, 29, 38, 0.08)',
+              paddingTop: '0.85rem',
+            }}
+          >
+            <strong style={{ color: '#7f1d1d', fontSize: '0.86rem' }}>Delete stage</strong>
+            {hasStageWorkItems ? (
+              <p style={{ margin: 0, color: '#7f1d1d', fontSize: '0.82rem', lineHeight: 1.45 }}>
+                This stage has {stageWorkItemCount} work item{stageWorkItemCount === 1 ? '' : 's'}.
+                Move or complete them before deleting it.
+              </p>
+            ) : (
+              <p style={{ margin: 0, color: '#4b5563', fontSize: '0.82rem', lineHeight: 1.45 }}>
+                This removes the stage from the funnel. Work items are not changed.
+              </p>
+            )}
+            {isOnlyStage ? (
+              <p style={{ margin: 0, color: '#7f1d1d', fontSize: '0.82rem', lineHeight: 1.45 }}>
+                A funnel must keep at least one stage.
+              </p>
+            ) : null}
+            {isConfirmingDeleteStage && !hasStageWorkItems && !isOnlyStage ? (
+              <p style={{ margin: 0, color: '#7f1d1d', fontSize: '0.82rem', lineHeight: 1.45 }}>
+                Click again to confirm deleting {stage.label}.
+              </p>
+            ) : null}
+            <button
+              type="button"
+              className="client-shortcut-link"
+              disabled={!funnelId || isSavingStageSettings || isDeletingStage || hasStageWorkItems || isOnlyStage}
+              onClick={handleDeleteStage}
+              style={{ alignSelf: 'flex-start', color: '#7f1d1d' }}
+            >
+              <Trash2 size={14} />
+              {isDeletingStage ? 'Deleting...' : isConfirmingDeleteStage ? 'Confirm delete' : 'Delete stage'}
+            </button>
+          </section>
+        ) : null}
       </aside>
     </div>
   )

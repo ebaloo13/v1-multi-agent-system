@@ -360,6 +360,50 @@ export async function reorderFunnelStage(
   return nextFunnel;
 }
 
+export async function deleteFunnelStage(
+  clientSlug: string,
+  funnelId: string,
+  stageId: string,
+): Promise<Funnel> {
+  const rawFunnels = await readFunnelsFile(clientSlug);
+  const funnels = rawFunnels === null
+    ? [getDefaultWorkItemFunnel(clientSlug)]
+    : FUNNELS_SCHEMA.parse(rawFunnels);
+  const funnelIndex = funnels.findIndex((funnel) => funnel.id === funnelId);
+
+  if (funnelIndex === -1) {
+    throw new Error(`Funnel "${funnelId}" was not found.`);
+  }
+
+  const funnel = funnels[funnelIndex];
+
+  if (funnel.stages.length <= 1) {
+    throw new Error("Cannot delete the only stage in a funnel.");
+  }
+
+  const stageIndex = funnel.stages.findIndex((stage) => stage.id === stageId);
+
+  if (stageIndex === -1) {
+    throw new Error(`Funnel stage "${stageId}" was not found.`);
+  }
+
+  const nextStages = sortStagesByOrder(funnel.stages)
+    .filter((stage) => stage.id !== stageId)
+    .map((stage, index) => FunnelStageSchema.parse({
+      ...stage,
+      order: index,
+    }));
+  const nextFunnel = FunnelSchema.parse({
+    ...funnel,
+    stages: nextStages,
+  });
+  const nextFunnels = [...funnels];
+  nextFunnels[funnelIndex] = nextFunnel;
+
+  await writeFunnelsFile(clientSlug, nextFunnels);
+  return nextFunnel;
+}
+
 export function selectFunnelForModule(
   funnels: Funnel[],
   moduleKey: BusinessModuleKey,

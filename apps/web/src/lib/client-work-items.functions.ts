@@ -8,6 +8,7 @@ import {
 } from '../../../../src/agents/work-item-assistant-agent'
 import {
   addFunnelStage,
+  deleteFunnelStage,
   getDefaultWorkItemFunnel,
   listFunnels,
   reorderFunnelStage,
@@ -93,6 +94,12 @@ type ReorderClientFunnelStageInput = {
   funnelId: string
   stageId: string
   direction: FunnelStageReorderDirection
+}
+
+type DeleteClientFunnelStageInput = {
+  clientSlug: string
+  funnelId: string
+  stageId: string
 }
 
 type FunnelStageState = NonNullable<Funnel['stages'][number]['state']>
@@ -395,6 +402,54 @@ export const reorderClientFunnelStage = createServerFn({ method: 'POST' })
     }
   })
   .handler(async ({ data }) => reorderFunnelStage(data.clientSlug, data.funnelId, data.stageId, data.direction))
+
+export const deleteClientFunnelStage = createServerFn({ method: 'POST' })
+  .inputValidator((data: DeleteClientFunnelStageInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const funnelId = normalizeText(data.funnelId)
+    const stageId = normalizeText(data.stageId)
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!funnelId) {
+      throw new Error('Funnel is required.')
+    }
+
+    if (!stageId) {
+      throw new Error('Stage is required.')
+    }
+
+    return {
+      clientSlug,
+      funnelId,
+      stageId,
+    }
+  })
+  .handler(async ({ data }) => {
+    const funnels = await listFunnels(data.clientSlug)
+    const funnel = funnels.find((currentFunnel) => currentFunnel.id === data.funnelId)
+
+    if (!funnel) {
+      throw new Error(`Funnel "${data.funnelId}" was not found.`)
+    }
+
+    const stage = funnel.stages.find((currentStage) => currentStage.id === data.stageId)
+
+    if (!stage) {
+      throw new Error(`Funnel stage "${data.stageId}" was not found.`)
+    }
+
+    const workItems = await listWorkItems(data.clientSlug)
+    const hasStageWorkItems = workItems.some((workItem) => workItem.status === stage.status)
+
+    if (hasStageWorkItems) {
+      throw new Error('Cannot delete a stage that contains work items. Move or complete those items first.')
+    }
+
+    return deleteFunnelStage(data.clientSlug, data.funnelId, data.stageId)
+  })
 
 export const createClientWorkItem = createServerFn({ method: 'POST' })
   .inputValidator((data: ClientWorkItemInput) => {
