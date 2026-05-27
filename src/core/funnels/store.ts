@@ -27,6 +27,7 @@ const FUNNEL_PRIORITY_ORDER: Record<Funnel["priority"], number> = {
 export type UpdateFunnelStagePatch = {
   assistantKey?: string;
   canMoveStage?: boolean;
+  state?: FunnelStage["state"];
 };
 
 const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
@@ -197,7 +198,8 @@ export async function updateFunnelStage(
   const updatedStage = FunnelStageSchema.parse({
     ...currentStage,
     assistantKey: "assistantKey" in patch ? patch.assistantKey : currentStage.assistantKey,
-    automationPolicy: "canMoveStage" in patch
+    state: patch.state !== undefined ? patch.state : currentStage.state,
+    automationPolicy: patch.canMoveStage !== undefined
       ? {
           ...(currentStage.automationPolicy ?? {}),
           canMoveStage: patch.canMoveStage,

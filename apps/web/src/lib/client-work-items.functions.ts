@@ -25,6 +25,7 @@ import {
   WorkItemAssistantSuggestedActionSchema,
   WorkItemStatusSchema,
   type BusinessModuleKey,
+  type Funnel,
   type WorkItem,
   type WorkItemAssistantResult,
   type WorkItemConversationMessage,
@@ -69,7 +70,10 @@ type UpdateClientFunnelStageSettingsInput = {
   stageId: string
   assistantKey?: string
   canMoveStage?: boolean
+  state?: FunnelStageState
 }
+
+type FunnelStageState = NonNullable<Funnel['stages'][number]['state']>
 
 type WorkItemSuggestedAction = NonNullable<WorkItemAssistantResult['suggestedAction']>
 
@@ -136,6 +140,20 @@ function parseConversationSource(value: unknown): WorkItemConversationMessage['s
   throw new Error('Message source is invalid.')
 }
 
+function parseFunnelStageState(value: unknown): FunnelStageState | undefined {
+  const state = normalizeText(value)
+
+  if (!state) {
+    return undefined
+  }
+
+  if (state === 'open' || state === 'won' || state === 'lost' || state === 'closed') {
+    return state
+  }
+
+  throw new Error('Stage type is invalid.')
+}
+
 async function selectWorkItemFunnel(clientSlug: string, workItem: WorkItem) {
   const fallback = getDefaultWorkItemFunnel(clientSlug)
 
@@ -198,6 +216,7 @@ export const updateClientFunnelStageSettings = createServerFn({ method: 'POST' }
     const stageId = normalizeText(data.stageId)
     const assistantKey = normalizeText(data.assistantKey)
     const canMoveStage = data.canMoveStage
+    const state = parseFunnelStageState(data.state)
 
     if (!clientSlug) {
       throw new Error('Client is required.')
@@ -221,11 +240,13 @@ export const updateClientFunnelStageSettings = createServerFn({ method: 'POST' }
       stageId,
       assistantKey: assistantKey || undefined,
       canMoveStage,
+      state,
     }
   })
   .handler(async ({ data }) => updateFunnelStage(data.clientSlug, data.funnelId, data.stageId, {
     assistantKey: data.assistantKey,
     canMoveStage: data.canMoveStage,
+    state: data.state,
   }))
 
 export const createClientWorkItem = createServerFn({ method: 'POST' })

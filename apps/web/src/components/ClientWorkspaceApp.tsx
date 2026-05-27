@@ -68,6 +68,7 @@ type ClientBoardColumn = {
 
 type FunnelStage = Funnel['stages'][number]
 type StageAutomationPolicy = NonNullable<FunnelStage['automationPolicy']>
+type StageState = NonNullable<FunnelStage['state']>
 type WorkItemSuggestedAction = NonNullable<WorkItemAssistantResult['suggestedAction']>
 type AssistantRun = {
   result: WorkItemAssistantResult
@@ -91,6 +92,13 @@ const automationCapabilityLabels: Array<{ key: keyof StageAutomationPolicy; labe
   { key: 'canApplyTags', label: 'Apply tags' },
   { key: 'canTriggerWorkflow', label: 'Trigger workflow' },
   { key: 'requiresHumanApproval', label: 'Human approval required' },
+]
+
+const stageStateOptions: Array<{ value: StageState; label: string }> = [
+  { value: 'open', label: 'Open' },
+  { value: 'won', label: 'Winning' },
+  { value: 'lost', label: 'Losing' },
+  { value: 'closed', label: 'Closed' },
 ]
 
 export default function ClientWorkspaceApp({
@@ -384,6 +392,7 @@ function ClientKanbanView({
 function StageColumnSettingsSummary({ stage }: { stage: FunnelStage }) {
   const assistantLabel = stage.assistantKey ?? 'No assistant assigned'
   const canMoveStage = stage.automationPolicy?.canMoveStage === true
+  const stageState = stage.state ?? 'open'
 
   return (
     <div
@@ -407,6 +416,10 @@ function StageColumnSettingsSummary({ stage }: { stage: FunnelStage }) {
         <span style={{ color: '#4b5563', fontSize: '0.8rem', fontWeight: 750 }}>Move stage</span>
         <span className="client-type-badge">{canMoveStage ? 'Enabled' : 'Off'}</span>
       </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+        <span style={{ color: '#4b5563', fontSize: '0.8rem', fontWeight: 750 }}>Stage type</span>
+        <span className="client-type-badge">{stageStateLabel(stageState)}</span>
+      </div>
     </div>
   )
 }
@@ -425,6 +438,7 @@ function StageSettingsPanel({
   const updateStageSettings = useServerFn(updateClientFunnelStageSettings)
   const [assistantKey, setAssistantKey] = useState(stage.assistantKey ?? '')
   const [canMoveStage, setCanMoveStage] = useState(stage.automationPolicy?.canMoveStage === true)
+  const [stageState, setStageState] = useState<StageState>(stage.state ?? 'open')
   const [isSavingStageSettings, setIsSavingStageSettings] = useState(false)
   const [stageSettingsErrorMessage, setStageSettingsErrorMessage] = useState<string | null>(null)
   const displayedAutomationPolicy: FunnelStage['automationPolicy'] = {
@@ -439,8 +453,9 @@ function StageSettingsPanel({
   useEffect(() => {
     setAssistantKey(stage.assistantKey ?? '')
     setCanMoveStage(stage.automationPolicy?.canMoveStage === true)
+    setStageState(stage.state ?? 'open')
     setStageSettingsErrorMessage(null)
-  }, [stage.id, stage.assistantKey, stage.automationPolicy?.canMoveStage])
+  }, [stage.id, stage.assistantKey, stage.automationPolicy?.canMoveStage, stage.state])
 
   async function handleSaveStageSettings() {
     if (!funnelId || isSavingStageSettings) {
@@ -458,6 +473,7 @@ function StageSettingsPanel({
           stageId: stage.id,
           assistantKey: assistantKey.trim() || undefined,
           canMoveStage,
+          state: stageState,
         },
       })
 
@@ -522,9 +538,34 @@ function StageSettingsPanel({
           </button>
         </header>
         <p style={{ margin: 0, color: '#4b5563', fontSize: '0.88rem', lineHeight: 1.5 }}>
-          Stage editing will be available here. For now, update assistant assignment and move-stage automation.
+          Stage editing will be available here. For now, update stage type, assistant assignment, and move-stage automation.
+        </p>
+        <p style={{ margin: 0, color: '#4b5563', fontSize: '0.82rem', lineHeight: 1.45 }}>
+          Winning/Losing stages affect analytics; they do not automatically close the item yet.
         </p>
         <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>Stage type</span>
+            <select
+              value={stageState}
+              onChange={(event) => setStageState(event.currentTarget.value as StageState)}
+              style={{
+                width: '100%',
+                border: '1px solid rgba(20, 29, 38, 0.14)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.65rem',
+                color: '#17202a',
+                font: 'inherit',
+                fontSize: '0.86rem',
+              }}
+            >
+              {stageStateOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
             <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>Assistant key</span>
             <input
@@ -577,7 +618,7 @@ function StageSettingsPanel({
         <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <StageSettingRow label="Label" value={stage.label} />
           <StageSettingRow label="Status" value={`${workItemStatusLabel(stage.status)} (${stage.status})`} />
-          <StageSettingRow label="State" value={stage.state ?? 'open'} />
+          <StageSettingRow label="State" value={`${stageStateLabel(stageState)} (${stageState})`} />
           <StageSettingRow label="Assistant" value={trimmedAssistantKey || 'No assistant assigned'} />
           <StageSettingRow label="AI-assisted stage" value={isAiAssisted ? 'Yes' : 'No'} />
           <StageSettingRow label="Human stage" value={isHumanStage ? 'Yes' : 'No'} />
@@ -1358,6 +1399,19 @@ function statusLabel(status: ClientRequestStatus) {
       return 'Ready'
     case 'done':
       return 'Done'
+  }
+}
+
+function stageStateLabel(state: StageState) {
+  switch (state) {
+    case 'open':
+      return 'Open'
+    case 'won':
+      return 'Winning'
+    case 'lost':
+      return 'Losing'
+    case 'closed':
+      return 'Closed'
   }
 }
 
