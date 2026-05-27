@@ -268,6 +268,7 @@ function ClientKanbanView({
   }))
   const funnelLabel = funnel?.label ?? 'Work Items'
   const funnelId = funnel?.id
+  const [isEditingFunnel, setIsEditingFunnel] = useState(false)
   const [selectedSettingsStage, setSelectedSettingsStage] = useState<FunnelStage | null>(null)
 
   return (
@@ -288,19 +289,49 @@ function ClientKanbanView({
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: '0.5rem',
           padding: '0.75rem 1.1rem 0',
         }}
       >
-        <span className="client-type-badge">Funnel</span>
-        <strong style={{ color: '#17202a', fontSize: '0.9rem' }}>{funnelLabel}</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span className="client-type-badge">Funnel</span>
+          <strong style={{ color: '#17202a', fontSize: '0.9rem' }}>{funnelLabel}</strong>
+          {isEditingFunnel ? <span className="client-type-badge">Edit mode</span> : null}
+        </div>
+        <button
+          type="button"
+          className="client-shortcut-link"
+          onClick={() => setIsEditingFunnel((currentValue) => !currentValue)}
+        >
+          {isEditingFunnel ? 'Done editing' : 'Edit funnel'}
+        </button>
       </div>
+      {isEditingFunnel ? (
+        <div
+          style={{
+            margin: '0.75rem 1.1rem 0',
+            border: '1px solid rgba(20, 29, 38, 0.1)',
+            borderRadius: '8px',
+            background: '#f8fafc',
+            padding: '0.75rem',
+          }}
+        >
+          <p style={{ margin: 0, color: '#4b5563', fontSize: '0.86rem', lineHeight: 1.45 }}>
+            Edit stage assistants and automation. Full stage editing is coming soon.
+          </p>
+        </div>
+      ) : null}
       <section className="client-kanban-board">
         {columns.map(({ column, stage }) => {
           const columnRequests = requests.filter((request) => request.workItemStatus === column.workItemStatus)
 
           return (
-            <article key={column.id} className={`client-kanban-column tone-${column.tone}`}>
+            <article
+              key={column.id}
+              className={`client-kanban-column tone-${column.tone}`}
+              style={isEditingFunnel ? { outline: '2px solid rgba(20, 29, 38, 0.12)' } : undefined}
+            >
               <header>
                 <div>
                   <span className={`client-status-dot tone-${column.tone}`} />
@@ -309,14 +340,22 @@ function ClientKanbanView({
                 </div>
                 <button
                   type="button"
-                  className="client-icon-button"
+                  className={isEditingFunnel ? 'client-shortcut-link' : 'client-icon-button'}
                   aria-label={`Open ${stage.label} stage settings`}
                   title={`${stage.label} settings`}
                   onClick={() => setSelectedSettingsStage(stage)}
                 >
-                  <Settings size={15} />
+                  {isEditingFunnel ? (
+                    <>
+                      <Settings size={14} />
+                      Stage settings
+                    </>
+                  ) : (
+                    <Settings size={15} />
+                  )}
                 </button>
               </header>
+              {isEditingFunnel ? <StageColumnSettingsSummary stage={stage} /> : null}
               <div className="client-request-stack">
                 {columnRequests.map((request, index) => (
                   <ClientRequestCard
@@ -339,6 +378,36 @@ function ClientKanbanView({
         />
       ) : null}
     </>
+  )
+}
+
+function StageColumnSettingsSummary({ stage }: { stage: FunnelStage }) {
+  const assistantLabel = stage.assistantKey ?? 'No assistant assigned'
+  const canMoveStage = stage.automationPolicy?.canMoveStage === true
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.45rem',
+        border: '1px solid rgba(20, 29, 38, 0.1)',
+        borderRadius: '8px',
+        background: '#ffffff',
+        padding: '0.65rem',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+        <span style={{ color: '#8a94a3', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+          Assistant
+        </span>
+        <strong style={{ color: '#17202a', fontSize: '0.82rem', lineHeight: 1.35 }}>{assistantLabel}</strong>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+        <span style={{ color: '#4b5563', fontSize: '0.8rem', fontWeight: 750 }}>Move stage</span>
+        <span className="client-type-badge">{canMoveStage ? 'Enabled' : 'Off'}</span>
+      </div>
+    </div>
   )
 }
 
