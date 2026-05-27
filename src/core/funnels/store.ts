@@ -42,6 +42,8 @@ export type AddFunnelStageInput = {
   canMoveStage?: boolean;
 };
 
+export type ReorderFunnelStageDirection = "left" | "right";
+
 const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
   {
     id: "new",
@@ -172,6 +174,21 @@ async function writeFunnelsFile(clientSlug: string, funnels: Funnel[]): Promise<
   await fs.writeFile(filePath, `${JSON.stringify(validated, null, 2)}\n`, "utf8");
 }
 
+function sortStagesByOrder(stages: FunnelStage[]): FunnelStage[] {
+  return stages
+    .map((stage, index) => ({ stage, index }))
+    .sort((first, second) => {
+      const orderDifference = first.stage.order - second.stage.order;
+
+      if (orderDifference !== 0) {
+        return orderDifference;
+      }
+
+      return first.index - second.index;
+    })
+    .map(({ stage }) => stage);
+}
+
 export function funnelsFilePath(clientSlug: string): string {
   return funnelsPath(clientSlug);
 }
@@ -291,6 +308,56 @@ export async function addFunnelStage(
 
   await writeFunnelsFile(clientSlug, nextFunnels);
   return stage;
+}
+
+export async function reorderFunnelStage(
+  clientSlug: string,
+  funnelId: string,
+  stageId: string,
+  direction: ReorderFunnelStageDirection,
+): Promise<Funnel> {
+  const rawFunnels = await readFunnelsFile(clientSlug);
+  const funnels = rawFunnels === null
+    ? [getDefaultWorkItemFunnel(clientSlug)]
+    : FUNNELS_SCHEMA.parse(rawFunnels);
+  const funnelIndex = funnels.findIndex((funnel) => funnel.id === funnelId);
+
+  if (funnelIndex === -1) {
+    throw new Error(`Funnel "${funnelId}" was not found.`);
+  }
+
+  const funnel = funnels[funnelIndex];
+  const sortedStages = sortStagesByOrder(funnel.stages);
+  const stageIndex = sortedStages.findIndex((stage) => stage.id === stageId);
+
+  if (stageIndex === -1) {
+    throw new Error(`Funnel stage "${stageId}" was not found.`);
+  }
+
+  const targetIndex = direction === "left" ? stageIndex - 1 : stageIndex + 1;
+
+  if (targetIndex < 0 || targetIndex >= sortedStages.length) {
+    return funnel;
+  }
+
+  const reorderedStages = [...sortedStages];
+  const currentStage = reorderedStages[stageIndex];
+  reorderedStages[stageIndex] = reorderedStages[targetIndex];
+  reorderedStages[targetIndex] = currentStage;
+
+  const nextStages = reorderedStages.map((stage, index) => FunnelStageSchema.parse({
+    ...stage,
+    order: index,
+  }));
+  const nextFunnel = FunnelSchema.parse({
+    ...funnel,
+    stages: nextStages,
+  });
+  const nextFunnels = [...funnels];
+  nextFunnels[funnelIndex] = nextFunnel;
+
+  await writeFunnelsFile(clientSlug, nextFunnels);
+  return nextFunnel;
 }
 
 export function selectFunnelForModule(

@@ -10,6 +10,7 @@ import {
   addFunnelStage,
   getDefaultWorkItemFunnel,
   listFunnels,
+  reorderFunnelStage,
   selectFunnelForModule,
   updateFunnelStage,
 } from '../../../../src/core/funnels/store'
@@ -87,7 +88,16 @@ type CreateClientFunnelStageInput = {
   canMoveStage?: boolean
 }
 
+type ReorderClientFunnelStageInput = {
+  clientSlug: string
+  funnelId: string
+  stageId: string
+  direction: FunnelStageReorderDirection
+}
+
 type FunnelStageState = NonNullable<Funnel['stages'][number]['state']>
+
+type FunnelStageReorderDirection = 'left' | 'right'
 
 type WorkItemSuggestedAction = NonNullable<WorkItemAssistantResult['suggestedAction']>
 
@@ -166,6 +176,16 @@ function parseFunnelStageState(value: unknown): FunnelStageState | undefined {
   }
 
   throw new Error('Stage type is invalid.')
+}
+
+function parseFunnelStageReorderDirection(value: unknown): FunnelStageReorderDirection {
+  const direction = normalizeText(value)
+
+  if (direction === 'left' || direction === 'right') {
+    return direction
+  }
+
+  throw new Error('Stage reorder direction is invalid.')
 }
 
 function parseStageLabel(value: unknown): string | undefined {
@@ -347,6 +367,34 @@ export const createClientFunnelStage = createServerFn({ method: 'POST' })
     assistantKey: data.assistantKey,
     canMoveStage: data.canMoveStage,
   }))
+
+export const reorderClientFunnelStage = createServerFn({ method: 'POST' })
+  .inputValidator((data: ReorderClientFunnelStageInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const funnelId = normalizeText(data.funnelId)
+    const stageId = normalizeText(data.stageId)
+    const direction = parseFunnelStageReorderDirection(data.direction)
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!funnelId) {
+      throw new Error('Funnel is required.')
+    }
+
+    if (!stageId) {
+      throw new Error('Stage is required.')
+    }
+
+    return {
+      clientSlug,
+      funnelId,
+      stageId,
+      direction,
+    }
+  })
+  .handler(async ({ data }) => reorderFunnelStage(data.clientSlug, data.funnelId, data.stageId, data.direction))
 
 export const createClientWorkItem = createServerFn({ method: 'POST' })
   .inputValidator((data: ClientWorkItemInput) => {

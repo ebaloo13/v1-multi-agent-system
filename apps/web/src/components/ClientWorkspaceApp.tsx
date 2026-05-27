@@ -2,6 +2,8 @@ import { type FormEvent, useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import {
+  ArrowLeft,
+  ArrowRight,
   Bell,
   CalendarDays,
   CheckSquare,
@@ -25,6 +27,7 @@ import {
   createClientFunnelStage,
   createClientWorkItem,
   getClientWorkItemConversationMessages,
+  reorderClientFunnelStage,
   runClientWorkItemAssistant,
   updateClientFunnelStageSettings,
   updateClientWorkItemStatus,
@@ -70,6 +73,7 @@ type ClientBoardColumn = {
 type FunnelStage = Funnel['stages'][number]
 type StageAutomationPolicy = NonNullable<FunnelStage['automationPolicy']>
 type StageState = NonNullable<FunnelStage['state']>
+type FunnelStageReorderDirection = 'left' | 'right'
 type WorkItemSuggestedAction = NonNullable<WorkItemAssistantResult['suggestedAction']>
 type AssistantRun = {
   result: WorkItemAssistantResult
@@ -279,6 +283,34 @@ function ClientKanbanView({
   const funnelId = funnel?.id
   const [isEditingFunnel, setIsEditingFunnel] = useState(false)
   const [selectedSettingsStage, setSelectedSettingsStage] = useState<FunnelStage | null>(null)
+  const reorderStage = useServerFn(reorderClientFunnelStage)
+  const [reorderingStageId, setReorderingStageId] = useState<string | null>(null)
+  const [stageReorderErrorMessage, setStageReorderErrorMessage] = useState<string | null>(null)
+
+  async function handleReorderStage(stageId: string, direction: FunnelStageReorderDirection) {
+    if (!funnelId || reorderingStageId) {
+      return
+    }
+
+    setReorderingStageId(stageId)
+    setStageReorderErrorMessage(null)
+
+    try {
+      await reorderStage({
+        data: {
+          clientSlug,
+          funnelId,
+          stageId,
+          direction,
+        },
+      })
+
+      window.location.reload()
+    } catch (error) {
+      setStageReorderErrorMessage(messageFromError(error))
+      setReorderingStageId(null)
+    }
+  }
 
   return (
     <>
@@ -329,11 +361,15 @@ function ClientKanbanView({
           <p style={{ margin: 0, color: '#4b5563', fontSize: '0.86rem', lineHeight: 1.45 }}>
             Edit stage assistants and automation. Full stage editing is coming soon.
           </p>
+          {stageReorderErrorMessage ? <p className="client-form-error">{stageReorderErrorMessage}</p> : null}
         </div>
       ) : null}
       <section className="client-kanban-board">
-        {columns.map(({ column, stage }) => {
+        {columns.map(({ column, stage }, stageIndex) => {
           const columnRequests = requests.filter((request) => request.workItemStatus === column.workItemStatus)
+          const isFirstStage = stageIndex === 0
+          const isLastStage = stageIndex === columns.length - 1
+          const isReorderingStage = reorderingStageId === stage.id
 
           return (
             <article
@@ -364,7 +400,19 @@ function ClientKanbanView({
                   )}
                 </button>
               </header>
-              {isEditingFunnel ? <StageColumnSettingsSummary stage={stage} /> : null}
+              {isEditingFunnel ? (
+                <>
+                  <StageColumnReorderControls
+                    isFirstStage={isFirstStage}
+                    isLastStage={isLastStage}
+                    isReorderingStage={isReorderingStage}
+                    isReorderingDisabled={Boolean(reorderingStageId)}
+                    onMoveLeft={() => handleReorderStage(stage.id, 'left')}
+                    onMoveRight={() => handleReorderStage(stage.id, 'right')}
+                  />
+                  <StageColumnSettingsSummary stage={stage} />
+                </>
+              ) : null}
               <div className="client-request-stack">
                 {columnRequests.map((request, index) => (
                   <ClientRequestCard
@@ -393,6 +441,45 @@ function ClientKanbanView({
         />
       ) : null}
     </>
+  )
+}
+
+function StageColumnReorderControls({
+  isFirstStage,
+  isLastStage,
+  isReorderingStage,
+  isReorderingDisabled,
+  onMoveLeft,
+  onMoveRight,
+}: {
+  isFirstStage: boolean
+  isLastStage: boolean
+  isReorderingStage: boolean
+  isReorderingDisabled: boolean
+  onMoveLeft: () => void
+  onMoveRight: () => void
+}) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+      <button
+        type="button"
+        className="client-shortcut-link"
+        disabled={isFirstStage || isReorderingDisabled}
+        onClick={onMoveLeft}
+      >
+        <ArrowLeft size={14} />
+        {isReorderingStage ? 'Moving...' : 'Move left'}
+      </button>
+      <button
+        type="button"
+        className="client-shortcut-link"
+        disabled={isLastStage || isReorderingDisabled}
+        onClick={onMoveRight}
+      >
+        <ArrowRight size={14} />
+        {isReorderingStage ? 'Moving...' : 'Move right'}
+      </button>
+    </div>
   )
 }
 
