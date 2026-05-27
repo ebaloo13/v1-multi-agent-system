@@ -408,6 +408,12 @@ function StageColumnSettingsSummary({ stage }: { stage: FunnelStage }) {
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
         <span style={{ color: '#8a94a3', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
+          Stage name
+        </span>
+        <strong style={{ color: '#17202a', fontSize: '0.82rem', lineHeight: 1.35 }}>{stage.label}</strong>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+        <span style={{ color: '#8a94a3', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>
           Assistant
         </span>
         <strong style={{ color: '#17202a', fontSize: '0.82rem', lineHeight: 1.35 }}>{assistantLabel}</strong>
@@ -436,6 +442,8 @@ function StageSettingsPanel({
   onClose: () => void
 }) {
   const updateStageSettings = useServerFn(updateClientFunnelStageSettings)
+  const [stageLabel, setStageLabel] = useState(stage.label)
+  const [stageDescription, setStageDescription] = useState(stage.description ?? '')
   const [assistantKey, setAssistantKey] = useState(stage.assistantKey ?? '')
   const [canMoveStage, setCanMoveStage] = useState(stage.automationPolicy?.canMoveStage === true)
   const [stageState, setStageState] = useState<StageState>(stage.state ?? 'open')
@@ -451,14 +459,34 @@ function StageSettingsPanel({
   const isHumanStage = !trimmedAssistantKey || stage.automationPolicy?.requiresHumanApproval === true
 
   useEffect(() => {
+    setStageLabel(stage.label)
+    setStageDescription(stage.description ?? '')
     setAssistantKey(stage.assistantKey ?? '')
     setCanMoveStage(stage.automationPolicy?.canMoveStage === true)
     setStageState(stage.state ?? 'open')
     setStageSettingsErrorMessage(null)
-  }, [stage.id, stage.assistantKey, stage.automationPolicy?.canMoveStage, stage.state])
+  }, [stage.id, stage.label, stage.description, stage.assistantKey, stage.automationPolicy?.canMoveStage, stage.state])
 
   async function handleSaveStageSettings() {
     if (!funnelId || isSavingStageSettings) {
+      return
+    }
+
+    const nextStageLabel = stageLabel.trim()
+    const nextStageDescription = stageDescription.trim()
+
+    if (!nextStageLabel) {
+      setStageSettingsErrorMessage('Stage name is required.')
+      return
+    }
+
+    if (nextStageLabel.length > 80) {
+      setStageSettingsErrorMessage('Stage name must be 80 characters or fewer.')
+      return
+    }
+
+    if (nextStageDescription.length > 500) {
+      setStageSettingsErrorMessage('Stage description must be 500 characters or fewer.')
       return
     }
 
@@ -471,6 +499,8 @@ function StageSettingsPanel({
           clientSlug,
           funnelId,
           stageId: stage.id,
+          label: nextStageLabel,
+          description: nextStageDescription || undefined,
           assistantKey: assistantKey.trim() || undefined,
           canMoveStage,
           state: stageState,
@@ -545,6 +575,45 @@ function StageSettingsPanel({
         </p>
         <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>Stage name</span>
+            <input
+              type="text"
+              value={stageLabel}
+              maxLength={80}
+              onChange={(event) => setStageLabel(event.currentTarget.value)}
+              style={{
+                width: '100%',
+                border: '1px solid rgba(20, 29, 38, 0.14)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.65rem',
+                color: '#17202a',
+                font: 'inherit',
+                fontSize: '0.86rem',
+              }}
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>Stage description</span>
+            <textarea
+              value={stageDescription}
+              maxLength={500}
+              rows={3}
+              onChange={(event) => setStageDescription(event.currentTarget.value)}
+              placeholder="Optional stage description"
+              style={{
+                width: '100%',
+                resize: 'vertical',
+                border: '1px solid rgba(20, 29, 38, 0.14)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.65rem',
+                color: '#17202a',
+                font: 'inherit',
+                fontSize: '0.86rem',
+                lineHeight: 1.4,
+              }}
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
             <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>Stage type</span>
             <select
               value={stageState}
@@ -616,7 +685,8 @@ function StageSettingsPanel({
           {stageSettingsErrorMessage ? <p className="client-form-error">{stageSettingsErrorMessage}</p> : null}
         </section>
         <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <StageSettingRow label="Label" value={stage.label} />
+          <StageSettingRow label="Label" value={stageLabel.trim() || 'Stage name is required'} />
+          <StageSettingRow label="Description" value={stageDescription.trim() || 'No description'} />
           <StageSettingRow label="Status" value={`${workItemStatusLabel(stage.status)} (${stage.status})`} />
           <StageSettingRow label="State" value={`${stageStateLabel(stageState)} (${stageState})`} />
           <StageSettingRow label="Assistant" value={trimmedAssistantKey || 'No assistant assigned'} />

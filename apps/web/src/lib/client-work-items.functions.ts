@@ -68,6 +68,8 @@ type UpdateClientFunnelStageSettingsInput = {
   clientSlug: string
   funnelId: string
   stageId: string
+  label?: string
+  description?: string
   assistantKey?: string
   canMoveStage?: boolean
   state?: FunnelStageState
@@ -154,6 +156,38 @@ function parseFunnelStageState(value: unknown): FunnelStageState | undefined {
   throw new Error('Stage type is invalid.')
 }
 
+function parseStageLabel(value: unknown): string | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  const label = normalizeText(value)
+
+  if (!label) {
+    throw new Error('Stage name is required.')
+  }
+
+  if (label.length > 80) {
+    throw new Error('Stage name must be 80 characters or fewer.')
+  }
+
+  return label
+}
+
+function parseStageDescription(value: unknown): string | undefined {
+  const description = normalizeText(value)
+
+  if (!description) {
+    return undefined
+  }
+
+  if (description.length > 500) {
+    throw new Error('Stage description must be 500 characters or fewer.')
+  }
+
+  return description
+}
+
 async function selectWorkItemFunnel(clientSlug: string, workItem: WorkItem) {
   const fallback = getDefaultWorkItemFunnel(clientSlug)
 
@@ -214,6 +248,8 @@ export const updateClientFunnelStageSettings = createServerFn({ method: 'POST' }
     const clientSlug = normalizeText(data.clientSlug)
     const funnelId = normalizeText(data.funnelId)
     const stageId = normalizeText(data.stageId)
+    const label = parseStageLabel(data.label)
+    const description = parseStageDescription(data.description)
     const assistantKey = normalizeText(data.assistantKey)
     const canMoveStage = data.canMoveStage
     const state = parseFunnelStageState(data.state)
@@ -238,12 +274,16 @@ export const updateClientFunnelStageSettings = createServerFn({ method: 'POST' }
       clientSlug,
       funnelId,
       stageId,
+      label,
+      description,
       assistantKey: assistantKey || undefined,
       canMoveStage,
       state,
     }
   })
   .handler(async ({ data }) => updateFunnelStage(data.clientSlug, data.funnelId, data.stageId, {
+    label: data.label,
+    description: data.description,
     assistantKey: data.assistantKey,
     canMoveStage: data.canMoveStage,
     state: data.state,
