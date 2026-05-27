@@ -10,6 +10,7 @@ import {
   getDefaultWorkItemFunnel,
   listFunnels,
   selectFunnelForModule,
+  updateFunnelStage,
 } from '../../../../src/core/funnels/store'
 import {
   createWorkItemAssistantResult,
@@ -60,6 +61,14 @@ type ClientWorkItemAssistantResultInput = ClientWorkItemAssistantResultsInput & 
 
 type RunClientWorkItemAssistantInput = ClientWorkItemAssistantResultsInput & {
   userMessage?: string
+}
+
+type UpdateClientFunnelStageSettingsInput = {
+  clientSlug: string
+  funnelId: string
+  stageId: string
+  assistantKey?: string
+  canMoveStage?: boolean
 }
 
 type WorkItemSuggestedAction = NonNullable<WorkItemAssistantResult['suggestedAction']>
@@ -181,6 +190,43 @@ export const getClientWorkItemFunnel = createServerFn({ method: 'GET' })
       throw error
     }
   })
+
+export const updateClientFunnelStageSettings = createServerFn({ method: 'POST' })
+  .inputValidator((data: UpdateClientFunnelStageSettingsInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const funnelId = normalizeText(data.funnelId)
+    const stageId = normalizeText(data.stageId)
+    const assistantKey = normalizeText(data.assistantKey)
+    const canMoveStage = data.canMoveStage
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!funnelId) {
+      throw new Error('Funnel is required.')
+    }
+
+    if (!stageId) {
+      throw new Error('Stage is required.')
+    }
+
+    if (canMoveStage !== undefined && typeof canMoveStage !== 'boolean') {
+      throw new Error('Move stage setting must be true or false.')
+    }
+
+    return {
+      clientSlug,
+      funnelId,
+      stageId,
+      assistantKey: assistantKey || undefined,
+      canMoveStage,
+    }
+  })
+  .handler(async ({ data }) => updateFunnelStage(data.clientSlug, data.funnelId, data.stageId, {
+    assistantKey: data.assistantKey,
+    canMoveStage: data.canMoveStage,
+  }))
 
 export const createClientWorkItem = createServerFn({ method: 'POST' })
   .inputValidator((data: ClientWorkItemInput) => {

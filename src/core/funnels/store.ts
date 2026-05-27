@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import {
   FunnelSchema,
+  FunnelStageSchema,
   type BusinessModuleKey,
   type Funnel,
   type FunnelStage,
@@ -21,6 +22,11 @@ const FUNNEL_PRIORITY_ORDER: Record<Funnel["priority"], number> = {
   high: 1,
   medium: 2,
   low: 3,
+};
+
+export type UpdateFunnelStagePatch = {
+  assistantKey?: string;
+  canMoveStage?: boolean;
 };
 
 const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
@@ -124,6 +130,15 @@ async function readFunnelsFile(clientSlug: string): Promise<unknown[] | null> {
   }
 }
 
+async function writeFunnelsFile(clientSlug: string, funnels: Funnel[]): Promise<void> {
+  const safeSlug = normalizeClientSlug(clientSlug);
+  const filePath = funnelsPath(safeSlug);
+  const validated = FUNNELS_SCHEMA.parse(funnels);
+
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, `${JSON.stringify(validated, null, 2)}\n`, "utf8");
+}
+
 export function funnelsFilePath(clientSlug: string): string {
   return funnelsPath(clientSlug);
 }
@@ -153,6 +168,53 @@ export async function listFunnels(clientSlug: string): Promise<Funnel[]> {
   }
 
   return FUNNELS_SCHEMA.parse(rawFunnels);
+}
+
+export async function updateFunnelStage(
+  clientSlug: string,
+  funnelId: string,
+  stageId: string,
+  patch: UpdateFunnelStagePatch,
+): Promise<FunnelStage> {
+  const rawFunnels = await readFunnelsFile(clientSlug);
+  const funnels = rawFunnels === null
+    ? [getDefaultWorkItemFunnel(clientSlug)]
+    : FUNNELS_SCHEMA.parse(rawFunnels);
+  const funnelIndex = funnels.findIndex((funnel) => funnel.id === funnelId);
+
+  if (funnelIndex === -1) {
+    throw new Error(`Funnel "${funnelId}" was not found.`);
+  }
+
+  const funnel = funnels[funnelIndex];
+  const stageIndex = funnel.stages.findIndex((stage) => stage.id === stageId);
+
+  if (stageIndex === -1) {
+    throw new Error(`Funnel stage "${stageId}" was not found.`);
+  }
+
+  const currentStage = funnel.stages[stageIndex];
+  const updatedStage = FunnelStageSchema.parse({
+    ...currentStage,
+    assistantKey: "assistantKey" in patch ? patch.assistantKey : currentStage.assistantKey,
+    automationPolicy: "canMoveStage" in patch
+      ? {
+          ...(currentStage.automationPolicy ?? {}),
+          canMoveStage: patch.canMoveStage,
+        }
+      : currentStage.automationPolicy,
+  });
+  const nextStages = [...funnel.stages];
+  nextStages[stageIndex] = updatedStage;
+
+  const nextFunnels = [...funnels];
+  nextFunnels[funnelIndex] = FunnelSchema.parse({
+    ...funnel,
+    stages: nextStages,
+  });
+
+  await writeFunnelsFile(clientSlug, nextFunnels);
+  return updatedStage;
 }
 
 export function selectFunnelForModule(

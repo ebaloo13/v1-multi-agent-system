@@ -25,6 +25,7 @@ import {
   createClientWorkItem,
   getClientWorkItemConversationMessages,
   runClientWorkItemAssistant,
+  updateClientFunnelStageSettings,
   updateClientWorkItemStatus,
 } from '../lib/client-work-items.functions'
 import { formatClientName } from '../lib/product-shell'
@@ -266,6 +267,7 @@ function ClientKanbanView({
     column: funnelStageToBoardColumn(stage),
   }))
   const funnelLabel = funnel?.label ?? 'Work Items'
+  const funnelId = funnel?.id
   const [selectedSettingsStage, setSelectedSettingsStage] = useState<FunnelStage | null>(null)
 
   return (
@@ -330,6 +332,8 @@ function ClientKanbanView({
       </section>
       {selectedSettingsStage ? (
         <StageSettingsPanel
+          clientSlug={clientSlug}
+          funnelId={funnelId}
           stage={selectedSettingsStage}
           onClose={() => setSelectedSettingsStage(null)}
         />
@@ -339,15 +343,61 @@ function ClientKanbanView({
 }
 
 function StageSettingsPanel({
+  clientSlug,
+  funnelId,
   stage,
   onClose,
 }: {
+  clientSlug: string
+  funnelId?: string
   stage: FunnelStage
   onClose: () => void
 }) {
-  const capabilities = enabledAutomationCapabilities(stage.automationPolicy)
-  const isAiAssisted = Boolean(stage.assistantKey)
-  const isHumanStage = !stage.assistantKey || stage.automationPolicy?.requiresHumanApproval === true
+  const updateStageSettings = useServerFn(updateClientFunnelStageSettings)
+  const [assistantKey, setAssistantKey] = useState(stage.assistantKey ?? '')
+  const [canMoveStage, setCanMoveStage] = useState(stage.automationPolicy?.canMoveStage === true)
+  const [isSavingStageSettings, setIsSavingStageSettings] = useState(false)
+  const [stageSettingsErrorMessage, setStageSettingsErrorMessage] = useState<string | null>(null)
+  const displayedAutomationPolicy: FunnelStage['automationPolicy'] = {
+    ...(stage.automationPolicy ?? {}),
+    canMoveStage,
+  }
+  const capabilities = enabledAutomationCapabilities(displayedAutomationPolicy)
+  const trimmedAssistantKey = assistantKey.trim()
+  const isAiAssisted = Boolean(trimmedAssistantKey)
+  const isHumanStage = !trimmedAssistantKey || stage.automationPolicy?.requiresHumanApproval === true
+
+  useEffect(() => {
+    setAssistantKey(stage.assistantKey ?? '')
+    setCanMoveStage(stage.automationPolicy?.canMoveStage === true)
+    setStageSettingsErrorMessage(null)
+  }, [stage.id, stage.assistantKey, stage.automationPolicy?.canMoveStage])
+
+  async function handleSaveStageSettings() {
+    if (!funnelId || isSavingStageSettings) {
+      return
+    }
+
+    setIsSavingStageSettings(true)
+    setStageSettingsErrorMessage(null)
+
+    try {
+      await updateStageSettings({
+        data: {
+          clientSlug,
+          funnelId,
+          stageId: stage.id,
+          assistantKey: assistantKey.trim() || undefined,
+          canMoveStage,
+        },
+      })
+
+      window.location.reload()
+    } catch (error) {
+      setStageSettingsErrorMessage(messageFromError(error))
+      setIsSavingStageSettings(false)
+    }
+  }
 
   return (
     <div
@@ -403,13 +453,63 @@ function StageSettingsPanel({
           </button>
         </header>
         <p style={{ margin: 0, color: '#4b5563', fontSize: '0.88rem', lineHeight: 1.5 }}>
-          Stage editing will be available here.
+          Stage editing will be available here. For now, update assistant assignment and move-stage automation.
         </p>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>Assistant key</span>
+            <input
+              type="text"
+              value={assistantKey}
+              onChange={(event) => setAssistantKey(event.currentTarget.value)}
+              placeholder="No assistant assigned"
+              style={{
+                width: '100%',
+                border: '1px solid rgba(20, 29, 38, 0.14)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.65rem',
+                color: '#17202a',
+                font: 'inherit',
+                fontSize: '0.86rem',
+              }}
+            />
+          </label>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: '#17202a',
+              fontSize: '0.84rem',
+              fontWeight: 800,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={canMoveStage}
+              onChange={(event) => setCanMoveStage(event.currentTarget.checked)}
+            />
+            Move stage automation
+          </label>
+          <button
+            type="button"
+            className="client-shortcut-link"
+            disabled={!funnelId || isSavingStageSettings}
+            onClick={handleSaveStageSettings}
+            style={{ alignSelf: 'flex-start' }}
+          >
+            {isSavingStageSettings ? 'Saving...' : 'Save settings'}
+          </button>
+          {!funnelId ? (
+            <p className="client-form-error">A funnel is required before stage settings can be saved.</p>
+          ) : null}
+          {stageSettingsErrorMessage ? <p className="client-form-error">{stageSettingsErrorMessage}</p> : null}
+        </section>
         <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <StageSettingRow label="Label" value={stage.label} />
           <StageSettingRow label="Status" value={`${workItemStatusLabel(stage.status)} (${stage.status})`} />
           <StageSettingRow label="State" value={stage.state ?? 'open'} />
-          <StageSettingRow label="Assistant" value={stage.assistantKey ?? 'No assistant assigned'} />
+          <StageSettingRow label="Assistant" value={trimmedAssistantKey || 'No assistant assigned'} />
           <StageSettingRow label="AI-assisted stage" value={isAiAssisted ? 'Yes' : 'No'} />
           <StageSettingRow label="Human stage" value={isHumanStage ? 'Yes' : 'No'} />
         </section>
