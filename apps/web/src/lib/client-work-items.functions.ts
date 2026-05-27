@@ -7,6 +7,7 @@ import {
   type WorkItemAssistantTargetStage,
 } from '../../../../src/agents/work-item-assistant-agent'
 import {
+  addFunnelStage,
   getDefaultWorkItemFunnel,
   listFunnels,
   selectFunnelForModule,
@@ -73,6 +74,17 @@ type UpdateClientFunnelStageSettingsInput = {
   assistantKey?: string
   canMoveStage?: boolean
   state?: FunnelStageState
+}
+
+type CreateClientFunnelStageInput = {
+  clientSlug: string
+  funnelId: string
+  label: string
+  description?: string
+  status?: WorkItemStatus
+  state?: FunnelStageState
+  assistantKey?: string
+  canMoveStage?: boolean
 }
 
 type FunnelStageState = NonNullable<Funnel['stages'][number]['state']>
@@ -287,6 +299,53 @@ export const updateClientFunnelStageSettings = createServerFn({ method: 'POST' }
     assistantKey: data.assistantKey,
     canMoveStage: data.canMoveStage,
     state: data.state,
+  }))
+
+export const createClientFunnelStage = createServerFn({ method: 'POST' })
+  .inputValidator((data: CreateClientFunnelStageInput) => {
+    const clientSlug = normalizeText(data.clientSlug)
+    const funnelId = normalizeText(data.funnelId)
+    const label = parseStageLabel(data.label)
+    const description = parseStageDescription(data.description)
+    const status = data.status === undefined ? undefined : WorkItemStatusSchema.parse(normalizeText(data.status))
+    const state = parseFunnelStageState(data.state)
+    const assistantKey = normalizeText(data.assistantKey)
+    const canMoveStage = data.canMoveStage
+
+    if (!clientSlug) {
+      throw new Error('Client is required.')
+    }
+
+    if (!funnelId) {
+      throw new Error('Funnel is required.')
+    }
+
+    if (!label) {
+      throw new Error('Stage name is required.')
+    }
+
+    if (canMoveStage !== undefined && typeof canMoveStage !== 'boolean') {
+      throw new Error('Move stage setting must be true or false.')
+    }
+
+    return {
+      clientSlug,
+      funnelId,
+      label,
+      description,
+      status,
+      state,
+      assistantKey: assistantKey || undefined,
+      canMoveStage,
+    }
+  })
+  .handler(async ({ data }) => addFunnelStage(data.clientSlug, data.funnelId, {
+    label: data.label,
+    description: data.description,
+    status: data.status,
+    state: data.state,
+    assistantKey: data.assistantKey,
+    canMoveStage: data.canMoveStage,
   }))
 
 export const createClientWorkItem = createServerFn({ method: 'POST' })

@@ -10,6 +10,7 @@ import {
   type BusinessModuleKey,
   type Funnel,
   type FunnelStage,
+  type WorkItemStatus,
 } from "../../schemas/operations.js";
 import { slugifyClientName } from "../../shared/runNaming.js";
 
@@ -30,6 +31,15 @@ export type UpdateFunnelStagePatch = {
   assistantKey?: string;
   canMoveStage?: boolean;
   state?: FunnelStage["state"];
+};
+
+export type AddFunnelStageInput = {
+  label: string;
+  description?: string;
+  status?: WorkItemStatus;
+  state?: FunnelStage["state"];
+  assistantKey?: string;
+  canMoveStage?: boolean;
 };
 
 const DEFAULT_WORK_ITEM_FUNNEL_STAGES: FunnelStage[] = [
@@ -111,6 +121,26 @@ function normalizeClientSlug(clientSlug: string): string {
 
 function funnelsPath(clientSlug: string): string {
   return path.join(REPO_ROOT, "data", "clients", `${normalizeClientSlug(clientSlug)}-funnels.json`);
+}
+
+function createStageId(label: string, existingStages: FunnelStage[]): string {
+  const baseId = label
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "stage";
+  const existingIds = new Set(existingStages.map((stage) => stage.id));
+
+  if (!existingIds.has(baseId)) {
+    return baseId;
+  }
+
+  for (let suffix = 2; ; suffix += 1) {
+    const candidate = `${baseId}-${suffix}`;
+    if (!existingIds.has(candidate)) {
+      return candidate;
+    }
+  }
 }
 
 async function readFunnelsFile(clientSlug: string): Promise<unknown[] | null> {
@@ -221,6 +251,46 @@ export async function updateFunnelStage(
 
   await writeFunnelsFile(clientSlug, nextFunnels);
   return updatedStage;
+}
+
+export async function addFunnelStage(
+  clientSlug: string,
+  funnelId: string,
+  input: AddFunnelStageInput,
+): Promise<FunnelStage> {
+  const rawFunnels = await readFunnelsFile(clientSlug);
+  const funnels = rawFunnels === null
+    ? [getDefaultWorkItemFunnel(clientSlug)]
+    : FUNNELS_SCHEMA.parse(rawFunnels);
+  const funnelIndex = funnels.findIndex((funnel) => funnel.id === funnelId);
+
+  if (funnelIndex === -1) {
+    throw new Error(`Funnel "${funnelId}" was not found.`);
+  }
+
+  const funnel = funnels[funnelIndex];
+  const nextOrder = Math.max(-1, ...funnel.stages.map((stage) => stage.order)) + 1;
+  const stage = FunnelStageSchema.parse({
+    id: createStageId(input.label, funnel.stages),
+    label: input.label,
+    description: input.description,
+    order: nextOrder,
+    status: input.status ?? "new",
+    state: input.state ?? "open",
+    assistantKey: input.assistantKey,
+    automationPolicy: {
+      canMoveStage: input.canMoveStage ?? true,
+    },
+  });
+
+  const nextFunnels = [...funnels];
+  nextFunnels[funnelIndex] = FunnelSchema.parse({
+    ...funnel,
+    stages: [...funnel.stages, stage],
+  });
+
+  await writeFunnelsFile(clientSlug, nextFunnels);
+  return stage;
 }
 
 export function selectFunnelForModule(

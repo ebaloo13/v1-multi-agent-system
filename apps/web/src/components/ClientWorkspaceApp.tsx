@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import {
   applyClientWorkItemSuggestedAction,
+  createClientFunnelStage,
   createClientWorkItem,
   getClientWorkItemConversationMessages,
   runClientWorkItemAssistant,
@@ -376,6 +377,12 @@ function ClientKanbanView({
             </article>
           )
         })}
+        {isEditingFunnel ? (
+          <AddStageCard
+            clientSlug={clientSlug}
+            funnelId={funnelId}
+          />
+        ) : null}
       </section>
       {selectedSettingsStage ? (
         <StageSettingsPanel
@@ -427,6 +434,191 @@ function StageColumnSettingsSummary({ stage }: { stage: FunnelStage }) {
         <span className="client-type-badge">{stageStateLabel(stageState)}</span>
       </div>
     </div>
+  )
+}
+
+function AddStageCard({ clientSlug, funnelId }: { clientSlug: string; funnelId?: string }) {
+  const createStage = useServerFn(createClientFunnelStage)
+  const [isAddingStage, setIsAddingStage] = useState(false)
+  const [stageLabel, setStageLabel] = useState('')
+  const [stageDescription, setStageDescription] = useState('')
+  const [assistantKey, setAssistantKey] = useState('')
+  const [canMoveStage, setCanMoveStage] = useState(true)
+  const [isSavingStage, setIsSavingStage] = useState(false)
+  const [stageErrorMessage, setStageErrorMessage] = useState<string | null>(null)
+
+  function resetAddStageForm() {
+    setIsAddingStage(false)
+    setStageLabel('')
+    setStageDescription('')
+    setAssistantKey('')
+    setCanMoveStage(true)
+    setStageErrorMessage(null)
+  }
+
+  async function handleCreateStage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!funnelId || isSavingStage) {
+      return
+    }
+
+    const nextStageLabel = stageLabel.trim()
+    const nextStageDescription = stageDescription.trim()
+
+    if (!nextStageLabel) {
+      setStageErrorMessage('Stage name is required.')
+      return
+    }
+
+    if (nextStageLabel.length > 80) {
+      setStageErrorMessage('Stage name must be 80 characters or fewer.')
+      return
+    }
+
+    if (nextStageDescription.length > 500) {
+      setStageErrorMessage('Stage description must be 500 characters or fewer.')
+      return
+    }
+
+    setIsSavingStage(true)
+    setStageErrorMessage(null)
+
+    try {
+      await createStage({
+        data: {
+          clientSlug,
+          funnelId,
+          label: nextStageLabel,
+          description: nextStageDescription || undefined,
+          assistantKey: assistantKey.trim() || undefined,
+          canMoveStage,
+        },
+      })
+
+      window.location.reload()
+    } catch (error) {
+      setStageErrorMessage(messageFromError(error))
+      setIsSavingStage(false)
+    }
+  }
+
+  return (
+    <article
+      className="client-kanban-column tone-new"
+      style={{
+        borderStyle: 'dashed',
+        background: '#ffffff',
+      }}
+    >
+      <header>
+        <div>
+          <span className="client-status-dot tone-new" />
+          <strong>Add stage</strong>
+        </div>
+      </header>
+      {!isAddingStage ? (
+        <button
+          type="button"
+          className="client-shortcut-link"
+          disabled={!funnelId}
+          onClick={() => setIsAddingStage(true)}
+          style={{ alignSelf: 'flex-start' }}
+        >
+          <Plus size={14} />
+          Add stage
+        </button>
+      ) : (
+        <form onSubmit={handleCreateStage} style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>Stage name</span>
+            <input
+              type="text"
+              value={stageLabel}
+              maxLength={80}
+              onChange={(event) => setStageLabel(event.currentTarget.value)}
+              style={{
+                width: '100%',
+                border: '1px solid rgba(20, 29, 38, 0.14)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.65rem',
+                color: '#17202a',
+                font: 'inherit',
+                fontSize: '0.86rem',
+              }}
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>Description</span>
+            <textarea
+              value={stageDescription}
+              maxLength={500}
+              rows={3}
+              onChange={(event) => setStageDescription(event.currentTarget.value)}
+              placeholder="Optional stage description"
+              style={{
+                width: '100%',
+                resize: 'vertical',
+                border: '1px solid rgba(20, 29, 38, 0.14)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.65rem',
+                color: '#17202a',
+                font: 'inherit',
+                fontSize: '0.86rem',
+                lineHeight: 1.4,
+              }}
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <span style={{ color: '#17202a', fontSize: '0.8rem', fontWeight: 800 }}>Assistant key</span>
+            <input
+              type="text"
+              value={assistantKey}
+              onChange={(event) => setAssistantKey(event.currentTarget.value)}
+              placeholder="Optional"
+              style={{
+                width: '100%',
+                border: '1px solid rgba(20, 29, 38, 0.14)',
+                borderRadius: '8px',
+                padding: '0.6rem 0.65rem',
+                color: '#17202a',
+                font: 'inherit',
+                fontSize: '0.86rem',
+              }}
+            />
+          </label>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              color: '#17202a',
+              fontSize: '0.84rem',
+              fontWeight: 800,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={canMoveStage}
+              onChange={(event) => setCanMoveStage(event.currentTarget.checked)}
+            />
+            Allow move stage
+          </label>
+          {!funnelId ? (
+            <p className="client-form-error">A funnel is required before stages can be added.</p>
+          ) : null}
+          {stageErrorMessage ? <p className="client-form-error">{stageErrorMessage}</p> : null}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <button type="submit" className="client-shortcut-link" disabled={!funnelId || isSavingStage}>
+              {isSavingStage ? 'Saving...' : 'Save stage'}
+            </button>
+            <button type="button" className="client-shortcut-link" disabled={isSavingStage} onClick={resetAddStageForm}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </article>
   )
 }
 
