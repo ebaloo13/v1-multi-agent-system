@@ -1547,7 +1547,9 @@ function ClientRequestDetailDrawer({
                       {run.result.suggestedAction ? (
                         <SuggestedActionCard
                           action={run.result.suggestedAction}
+                          transitionStages={transitionStages}
                           isApplying={applyingSuggestedActionId === run.result.id}
+                          isApplyDisabled={Boolean(applyingSuggestedActionId)}
                           onApply={() => handleApplySuggestedAction(run.result)}
                         />
                       ) : null}
@@ -1594,17 +1596,35 @@ function ClientRequestDetailDrawer({
 
 function SuggestedActionCard({
   action,
+  transitionStages,
   isApplying,
+  isApplyDisabled,
   onApply,
 }: {
   action: WorkItemSuggestedAction
+  transitionStages: Funnel['stages']
   isApplying: boolean
+  isApplyDisabled: boolean
   onApply: () => void
 }) {
   const canApplyMoveStage = action.type === 'move_stage' && Boolean(action.targetStatus)
+  const targetStage = action.targetStatus
+    ? transitionStages.find((stage) => stage.status === action.targetStatus)
+    : undefined
+  const actionReadinessLabel = canApplyMoveStage ? 'Ready to apply' : 'Preview only'
   const previewOnlyMessage = action.type === 'move_stage'
     ? 'Preview only. Move stage actions need a target status.'
     : 'Preview only. This action type is not supported yet.'
+  const targetLabel = targetStage
+    ? `${targetStage.label} (${targetStage.status})`
+    : action.targetStatus
+      ? `${workItemStatusLabel(action.targetStatus)} (${action.targetStatus})`
+      : undefined
+  const applyButtonLabel = isApplying
+    ? 'Applying...'
+    : isApplyDisabled
+      ? 'Applying another action...'
+      : 'Apply action'
 
   return (
     <div
@@ -1622,20 +1642,30 @@ function SuggestedActionCard({
         <strong style={{ color: '#17202a', fontSize: '0.82rem', lineHeight: 1.35 }}>{action.label}</strong>
         <span className="client-type-badge">{suggestedActionTypeLabel(action.type)}</span>
       </div>
-      {action.targetStatus ? (
-        <span style={{ color: '#4b5563', fontSize: '0.78rem', fontWeight: 750 }}>
-          Target: {workItemStatusLabel(action.targetStatus)}
+      <span
+        className="client-type-badge"
+        style={{
+          alignSelf: 'flex-start',
+          color: canApplyMoveStage ? '#14532d' : '#4b5563',
+        }}
+      >
+        {actionReadinessLabel}
+      </span>
+      {targetLabel ? (
+        <span style={{ color: '#4b5563', fontSize: '0.78rem', fontWeight: 750, lineHeight: 1.4 }}>
+          Target stage: {targetLabel}
         </span>
       ) : null}
       {canApplyMoveStage ? (
         <button
           type="button"
           className="client-shortcut-link"
-          disabled={isApplying}
+          disabled={isApplyDisabled}
           onClick={onApply}
           style={{ alignSelf: 'flex-start' }}
+          aria-busy={isApplying}
         >
-          {isApplying ? 'Applying...' : 'Apply action'}
+          {applyButtonLabel}
         </button>
       ) : (
         <span style={{ color: '#8a94a3', fontSize: '0.78rem', fontWeight: 750 }}>
