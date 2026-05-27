@@ -260,8 +260,13 @@ function ClientKanbanView({
   funnel?: Funnel
   onOpenRequest?: (requestId: string) => void
 }) {
-  const columns = funnel ? sortFunnelStages(funnel.stages).map(funnelStageToBoardColumn) : statusColumns
+  const stages = sortFunnelStages(funnel?.stages ?? statusColumns.map(boardColumnToFunnelStage))
+  const columns = stages.map((stage) => ({
+    stage,
+    column: funnelStageToBoardColumn(stage),
+  }))
   const funnelLabel = funnel?.label ?? 'Work Items'
+  const [selectedSettingsStage, setSelectedSettingsStage] = useState<FunnelStage | null>(null)
 
   return (
     <>
@@ -289,7 +294,7 @@ function ClientKanbanView({
         <strong style={{ color: '#17202a', fontSize: '0.9rem' }}>{funnelLabel}</strong>
       </div>
       <section className="client-kanban-board">
-        {columns.map((column) => {
+        {columns.map(({ column, stage }) => {
           const columnRequests = requests.filter((request) => request.workItemStatus === column.workItemStatus)
 
           return (
@@ -300,6 +305,15 @@ function ClientKanbanView({
                   <strong>{column.label}</strong>
                   <em>{columnRequests.length}</em>
                 </div>
+                <button
+                  type="button"
+                  className="client-icon-button"
+                  aria-label={`Open ${stage.label} stage settings`}
+                  title={`${stage.label} settings`}
+                  onClick={() => setSelectedSettingsStage(stage)}
+                >
+                  <Settings size={15} />
+                </button>
               </header>
               <div className="client-request-stack">
                 {columnRequests.map((request, index) => (
@@ -314,7 +328,122 @@ function ClientKanbanView({
           )
         })}
       </section>
+      {selectedSettingsStage ? (
+        <StageSettingsPanel
+          stage={selectedSettingsStage}
+          onClose={() => setSelectedSettingsStage(null)}
+        />
+      ) : null}
     </>
+  )
+}
+
+function StageSettingsPanel({
+  stage,
+  onClose,
+}: {
+  stage: FunnelStage
+  onClose: () => void
+}) {
+  const capabilities = enabledAutomationCapabilities(stage.automationPolicy)
+  const isAiAssisted = Boolean(stage.assistantKey)
+  const isHumanStage = !stage.assistantKey || stage.automationPolicy?.requiresHumanApproval === true
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="stage-settings-title"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 55,
+        display: 'flex',
+        justifyContent: 'flex-end',
+        background: 'rgba(17, 24, 39, 0.28)',
+      }}
+    >
+      <button
+        type="button"
+        aria-label="Close stage settings"
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          border: 0,
+          background: 'transparent',
+          cursor: 'default',
+        }}
+      />
+      <aside
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          width: 'min(380px, 100%)',
+          height: '100%',
+          flexDirection: 'column',
+          gap: '1rem',
+          overflowY: 'auto',
+          borderLeft: '1px solid rgba(20, 29, 38, 0.12)',
+          background: '#ffffff',
+          padding: '1.1rem',
+          boxShadow: '-24px 0 50px rgba(20, 29, 38, 0.16)',
+        }}
+      >
+        <header className="client-card-head">
+          <div>
+            <span className="client-type-badge">Stage settings</span>
+            <h2 id="stage-settings-title" style={{ margin: '0.75rem 0 0', fontSize: '1.25rem' }}>
+              {stage.label}
+            </h2>
+          </div>
+          <button type="button" className="client-icon-button" aria-label="Close stage settings" onClick={onClose}>
+            <X size={17} />
+          </button>
+        </header>
+        <p style={{ margin: 0, color: '#4b5563', fontSize: '0.88rem', lineHeight: 1.5 }}>
+          Stage editing will be available here.
+        </p>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <StageSettingRow label="Label" value={stage.label} />
+          <StageSettingRow label="Status" value={`${workItemStatusLabel(stage.status)} (${stage.status})`} />
+          <StageSettingRow label="State" value={stage.state ?? 'open'} />
+          <StageSettingRow label="Assistant" value={stage.assistantKey ?? 'No assistant assigned'} />
+          <StageSettingRow label="AI-assisted stage" value={isAiAssisted ? 'Yes' : 'No'} />
+          <StageSettingRow label="Human stage" value={isHumanStage ? 'Yes' : 'No'} />
+        </section>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+          <strong style={{ color: '#17202a', fontSize: '0.86rem' }}>Automation capabilities</strong>
+          {capabilities.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+              {capabilities.map((capability) => (
+                <span key={capability} className="client-type-badge">
+                  {capability}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p style={{ margin: 0, color: '#8a94a3', fontSize: '0.82rem', lineHeight: 1.45 }}>
+              No automation capabilities enabled.
+            </p>
+          )}
+        </section>
+      </aside>
+    </div>
+  )
+}
+
+function StageSettingRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+      <span style={{ color: '#8a94a3', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>
+        {label}
+      </span>
+      <span style={{ color: '#17202a', fontSize: '0.9rem', fontWeight: 750, lineHeight: 1.4 }}>
+        {value}
+      </span>
+    </div>
   )
 }
 
